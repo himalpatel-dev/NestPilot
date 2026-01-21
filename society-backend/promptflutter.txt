@@ -1,0 +1,628 @@
+You are a Senior Flutter Developer & Architect.
+
+Build a complete Society Management Mobile App in Flutter (Android only) that works with the Node.js backend (Express + Sequelize).
+State management must be Riverpod.
+Offline cache must use SQLite (sqflite).
+Networking must use Dio.
+
+App requirements:
+- OTP Login (mobile number)
+- Role-based UI:
+   1) SUPER_ADMIN
+   2) SOCIETY_ADMIN / SECRETARY
+   3) MEMBER
+- Support online + offline mode:
+   - Offline view: cached notices, bills, ledger
+   - Offline cash/cheque payments entry allowed and synced later
+- Push Notifications using Firebase Cloud Messaging (FCM)
+
+-------------------------------------------
+PROJECT STRUCTURE (CLEAN ARCHITECTURE)
+-------------------------------------------
+Create Flutter codebase with this structure:
+
+lib/
+  main.dart
+  app.dart
+  core/
+    constants/
+      app_constants.dart
+      api_endpoints.dart
+      storage_keys.dart
+      roles.dart
+    theme/
+      app_theme.dart
+    network/
+      dio_client.dart
+      api_client.dart
+      interceptors.dart
+    local/
+      sqlite_helper.dart
+      tables.dart
+      dao/
+        notice_dao.dart
+        bill_dao.dart
+        payment_dao.dart
+        complaint_dao.dart
+      models/
+        cached_notice.dart
+        cached_bill.dart
+        cached_payment.dart
+    utils/
+      logger.dart
+      validators.dart
+      connectivity_helper.dart
+      uuid_helper.dart
+      date_helper.dart
+      file_downloader.dart
+    widgets/
+      app_button.dart
+      app_text_field.dart
+      empty_state.dart
+      loading.dart
+      error_view.dart
+  features/
+    auth/
+      data/
+        auth_repository.dart
+        auth_api.dart
+        auth_local.dart
+        models/
+          otp_request.dart
+          otp_verify.dart
+          user_model.dart
+      presentation/
+        screens/
+          splash_screen.dart
+          login_screen.dart
+          otp_screen.dart
+          register_screen.dart
+        providers/
+          auth_provider.dart
+    dashboard/
+      presentation/
+        screens/
+          dashboard_screen.dart
+        widgets/
+          role_based_menu.dart
+    societies/
+      data/
+        society_repository.dart
+        society_api.dart
+        models/
+          society.dart
+          building.dart
+          flat.dart
+      presentation/
+        screens/
+          society_setup_screen.dart
+    approvals/
+      data/
+        approval_repository.dart
+        approval_api.dart
+      presentation/
+        screens/
+          pending_members_screen.dart
+        providers/
+          approval_provider.dart
+    notices/
+      data/
+        notice_repository.dart
+        notice_api.dart
+        notice_local.dart
+        models/
+          notice.dart
+          notice_attachment.dart
+      presentation/
+        screens/
+          notice_list_screen.dart
+          notice_detail_screen.dart
+          notice_create_screen.dart
+        providers/
+          notice_provider.dart
+    complaints/
+      data/
+        complaint_repository.dart
+        complaint_api.dart
+        complaint_local.dart
+      presentation/
+        screens/
+          complaint_list_screen.dart
+          complaint_create_screen.dart
+          complaint_detail_screen.dart
+        providers/
+          complaint_provider.dart
+    billing/
+      data/
+        bill_repository.dart
+        bill_api.dart
+        bill_local.dart
+      presentation/
+        screens/
+          bill_list_screen.dart
+          bill_detail_screen.dart
+          bill_create_screen.dart
+        providers/
+          bill_provider.dart
+    payments/
+      data/
+        payment_repository.dart
+        payment_api.dart
+        payment_local.dart
+        models/
+          payment_request.dart
+      presentation/
+        screens/
+          payment_entry_screen.dart
+          payment_history_screen.dart
+          receipt_view_screen.dart
+        providers/
+          payment_provider.dart
+    ledger/
+      presentation/
+        screens/
+          ledger_screen.dart
+    sync/
+      presentation/
+        providers/
+          sync_provider.dart
+      services/
+        sync_service.dart
+  firebase/
+    firebase_service.dart
+    notification_handler.dart
+
+assets/
+  images/
+pubspec.yaml
+
+-------------------------------------------
+TECH STACK REQUIRED
+-------------------------------------------
+Dependencies:
+- flutter_riverpod
+- dio
+- sqflite
+- path_provider
+- connectivity_plus
+- shared_preferences
+- firebase_core
+- firebase_messaging
+- flutter_local_notifications
+- image_picker
+- file_picker
+- open_filex
+- permission_handler
+- uuid
+
+-------------------------------------------
+API INTEGRATION (must match backend)
+-------------------------------------------
+Use baseUrl from .env (use flutter_dotenv).
+Endpoints:
+
+AUTH:
+- POST /api/auth/request-otp {mobile, purpose}
+- POST /api/auth/verify-otp {mobile, otp}
+- POST /api/auth/register {fullName, mobile, societyId, buildingId, flatId, relationType, email}
+- GET /api/auth/me
+
+APPROVALS:
+- GET /api/admin/pending-users
+- POST /api/admin/users/:id/approve
+- POST /api/admin/users/:id/reject
+
+NOTICES:
+- GET /api/notices
+- GET /api/notices/:id
+- POST /api/notices (Secretary) with multipart attachments
+
+COMPLAINTS:
+- POST /api/complaints (multipart image)
+- GET /api/complaints
+- PATCH /api/complaints/:id/status
+- POST /api/complaints/:id/comments
+
+BILLING:
+- GET /api/member-bills
+- GET /api/member-bills/:id
+- POST /api/bills (Secretary)
+- POST /api/bills/:id/publish
+
+PAYMENTS:
+- POST /api/payments/offline-sync {payments:[]}
+- GET /api/payments/my
+- GET /api/payments/receipts/:paymentId (download/open pdf)
+
+DEVICE:
+- POST /api/devices/register {token, deviceType}
+
+-------------------------------------------
+LOGIN + ROLE FLOW
+-------------------------------------------
+1. Splash screen checks token from SharedPreferences
+2. If token exists -> call /auth/me
+3. Redirect based on role:
+   - SUPER_ADMIN -> can create society/buildings/flats
+   - SOCIETY_ADMIN -> approval screen, notices create, bills create, offline payment entry, reports
+   - MEMBER -> notices view, complaints, bills view, ledger, payment history
+
+-------------------------------------------
+OFFLINE CACHE REQUIREMENTS
+-------------------------------------------
+Use SQLite caching:
+Tables:
+- cached_notices
+- cached_notice_attachments
+- cached_member_bills
+- cached_payments
+- offline_payment_queue (important)
+
+Cache rules:
+- Whenever online fetch notices/bills -> store in SQLite
+- When offline -> show SQLite data
+
+-------------------------------------------
+OFFLINE PAYMENT ENTRY + SYNC ENGINE
+-------------------------------------------
+Payment Entry screen (Secretary):
+- Select memberBill
+- Enter amount, mode CASH/CHEQUE, date, cheque/reference, note
+- Generate clientRefId using UUID v4
+- Save into SQLite offline_payment_queue with syncStatus=PENDING
+- Show success "Saved offline, will sync automatically"
+
+Sync engine:
+- Listen to connectivity changes using connectivity_plus
+- When internet available:
+   1) take all offline_payment_queue where syncStatus=PENDING
+   2) call POST /payments/offline-sync with payments batch
+   3) mark SYNCED in local queue
+   4) refresh bills/ledger cache
+
+Sync Provider UI:
+- Show pending sync count
+- Manual sync button
+
+-------------------------------------------
+PUSH NOTIFICATION
+-------------------------------------------
+- Setup Firebase Messaging
+- On first login register FCM token -> call /devices/register
+- When notice push arrives:
+   - Save into SQLite cache
+   - Update notices list provider instantly
+- Use flutter_local_notifications for foreground notification display
+
+-------------------------------------------
+UI REQUIREMENTS
+-------------------------------------------
+Build clean UI:
+- Material 3
+- Basic reusable components (AppButton, AppTextField)
+- Dashboard with quick cards:
+   Member:
+    - Notices
+    - Bills
+    - Complaints
+    - Ledger
+   Secretary:
+    - Pending Approvals
+    - Notices
+    - Complaints
+    - Bills
+    - Payments
+    - Reports (placeholder)
+
+Screens must include:
+Auth:
+- Login screen (mobile)
+- OTP screen
+- Register screen
+- Pending approval screen (if status pending)
+
+Notices:
+- List
+- Detail
+- Create (Secretary)
+
+Complaints:
+- List
+- Create
+- Detail with comments
+
+Bills:
+- List (Member bills)
+- Detail
+- Create bill (Secretary)
+- Publish bill
+
+Payments:
+- Offline Payment Entry (Secretary)
+- My payment history (Member)
+- Receipt viewer (open PDF)
+
+-------------------------------------------
+CODE QUALITY
+-------------------------------------------
+- Use repositories pattern
+- Separate API vs local implementations
+- Use Riverpod AsyncNotifier
+- Use global error handling
+- Handle loading states and empty states
+- Must provide reusable dialog helpers
+
+-------------------------------------------
+DELIVERABLES
+-------------------------------------------
+Generate full Flutter codebase with:
+- Working navigation (GoRouter preferred)
+- All providers + repositories
+- SQLite schema + DAO implementation
+- Sync engine service
+- Firebase messaging setup
+- Example UI screens
+- Readme setup steps
+- Proper pubspec.yaml
+
+Start now and generate complete code (not pseudo code).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+You are a Senior Flutter Developer.
+
+Build a Society Management Mobile App using Flutter (Android only) for MVP Phase-1.
+
+STRICT REQUIREMENTS:
+- DO NOT implement offline mode
+- DO NOT implement SQLite caching
+- DO NOT implement Riverpod / Bloc / Provider
+- DO NOT implement Dio networking
+- DO NOT implement Firebase / Push notifications
+- DO NOT implement online payment gateway
+- Keep code simple: use setState + basic services
+
+Use:
+- http package for API calls
+- shared_preferences for storing JWT token
+- simple form validation
+- Material 3 UI
+- clean and readable code
+
+-------------------------------------------
+PROJECT STRUCTURE (SIMPLE)
+-------------------------------------------
+lib/
+  main.dart
+  config/
+    app_config.dart (baseUrl)
+    api_endpoints.dart
+    roles.dart
+  services/
+    api_service.dart (http client wrapper)
+    auth_service.dart
+    notice_service.dart
+    complaint_service.dart
+    bill_service.dart
+    payment_service.dart
+    admin_service.dart
+    society_service.dart
+    file_service.dart (download/open receipt pdf)
+  models/
+    user_model.dart
+    society.dart
+    building.dart
+    flat.dart
+    notice.dart
+    complaint.dart
+    bill.dart
+    member_bill.dart
+    payment.dart
+  screens/
+    splash_screen.dart
+    login_screen.dart
+    otp_screen.dart
+    register_screen.dart
+    pending_approval_screen.dart
+    dashboard_screen.dart
+    super_admin/
+      society_create_screen.dart
+      building_create_screen.dart
+      flat_create_screen.dart
+      flats_list_screen.dart
+    secretary/
+      pending_members_screen.dart
+      notice_create_screen.dart
+      bill_create_screen.dart
+      bill_publish_screen.dart
+      payment_mark_screen.dart
+    member/
+      notice_list_screen.dart
+      notice_detail_screen.dart
+      complaint_list_screen.dart
+      complaint_create_screen.dart
+      complaint_detail_screen.dart
+      bills_list_screen.dart
+      bill_detail_screen.dart
+      ledger_screen.dart
+      payment_history_screen.dart
+      receipt_view_screen.dart
+  widgets/
+    app_button.dart
+    app_text_field.dart
+    loading_widget.dart
+    empty_widget.dart
+    error_widget_view.dart
+
+-------------------------------------------
+DEPENDENCIES (pubspec.yaml)
+-------------------------------------------
+Add these packages only:
+- http
+- shared_preferences
+- intl
+- file_picker (optional for notice attachments)
+- open_filex
+- path_provider
+- permission_handler
+
+DO NOT add:
+- dio
+- riverpod
+- sqlite
+- firebase packages
+
+-------------------------------------------
+API INTEGRATION (MATCH BACKEND)
+-------------------------------------------
+Use baseUrl in app_config.dart.
+All API responses are:
+{
+  "success": true/false,
+  "message": "...",
+  "data": ...
+}
+
+AUTH:
+- POST /api/auth/request-otp {mobile, purpose}
+- POST /api/auth/verify-otp {mobile, otp}
+- POST /api/auth/register {fullName, mobile, societyId, buildingId, flatId, relationType, email}
+- GET /api/auth/me
+
+APPROVALS (Secretary):
+- GET /api/admin/pending-users
+- POST /api/admin/users/:id/approve
+- POST /api/admin/users/:id/reject
+
+SOCIETY SETUP (Super Admin):
+- POST /api/societies
+- POST /api/societies/:id/buildings
+- POST /api/buildings/:id/flats
+- GET /api/societies/:id/flats
+
+NOTICES:
+- GET /api/notices
+- GET /api/notices/:id
+- POST /api/notices (Secretary) multipart attachments
+
+COMPLAINTS:
+- POST /api/complaints (multipart optional image)
+- GET /api/complaints
+- PATCH /api/complaints/:id/status (Secretary)
+- POST /api/complaints/:id/comments
+
+BILLING:
+- POST /api/bills (Secretary)
+- POST /api/bills/:id/publish (Secretary)
+- GET /api/member-bills (Member)
+- GET /api/member-bills/:id
+
+PAYMENTS (ONLY ONLINE ENTRY BY SECRETARY):
+- POST /api/payments/mark-received
+   payload: {memberBillId, amount, paymentMode: CASH/CHEQUE, paymentDate, referenceNo, note}
+- GET /api/payments/my (Member history)
+- GET /api/payments/receipts/:paymentId (download PDF)
+
+-------------------------------------------
+APP FLOW
+-------------------------------------------
+1) Splash screen:
+   - read JWT token from shared_preferences
+   - if exists call /auth/me
+   - if no token -> login screen
+
+2) OTP login:
+   - mobile input -> request otp
+   - otp screen -> verify otp -> store JWT
+
+3) Register flow:
+   - register screen:
+       name, mobile, society, building, flat, relationType
+   - after register user status becomes pending
+   - show PendingApprovalScreen
+
+4) Role-based dashboard:
+SUPER_ADMIN menu:
+- Create society
+- Add buildings
+- Add flats
+- View flats list
+
+SECRETARY menu:
+- Pending member approvals
+- Create notice
+- Create + publish bills
+- Mark payments received (cash/cheque)
+
+MEMBER menu:
+- Notices list + detail
+- Complaints list/create/detail + comments
+- Bills list + bill detail
+- Ledger screen (dues + receipts list)
+- Payment history + receipt download/open
+
+-------------------------------------------
+UI REQUIREMENTS
+-------------------------------------------
+- Material 3 design
+- Simple cards lists
+- forms with validation
+- show loading indicators while API requests
+- show errors nicely using snackbar/dialog
+
+-------------------------------------------
+IMPLEMENTATION RULES
+-------------------------------------------
+- Use setState only
+- Use simple service classes for API calling
+- Add http headers:
+   Content-Type: application/json
+   Authorization: Bearer <token> when token exists
+- For multipart file upload use http.MultipartRequest
+
+-------------------------------------------
+DELIVERABLES
+-------------------------------------------
+Generate complete Flutter codebase (NOT pseudo code) including:
+- all screens
+- all models
+- all service calls
+- clean navigation using Navigator 2.0 or Navigator (simple)
+- README.md with setup steps
+- Proper error handling
+
+Start now and generate the entire Flutter project.
