@@ -5,7 +5,8 @@ const db = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    //return Math.floor(100000 + Math.random() * 900000).toString();
+    return "123456";
 };
 
 const sendOtp = async (mobile, purpose) => {

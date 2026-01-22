@@ -27,8 +27,24 @@ const getMyBills = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getAll = async (req, res, next) => {
+    try {
+        const result = await api.getBillsBySociety(req.user.society_id);
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
+const getUserBills = async (req, res, next) => {
+    try {
+        const result = await api.getMemberBills(req.params.userId, req.user.society_id);
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     create,
     publish,
-    getMyBills
+    getMyBills,
+    getAll,
+    getUserBills
 };

@@ -68,13 +68,14 @@ module.exports = {
 
                 // Create 1 User per house
                 const userId = userIdCounter++;
-                const mobile = (mobileCounter++).toString();
+                const isSecretary = (userId === 2); // First user after Super Admin
+                const mobile = isSecretary ? '9000000001' : (mobileCounter++).toString();
 
                 users.push({
                     id: userId,
                     society_id: societyId,
-                    role_id: 3, // MEMBER
-                    full_name: `Resident ${houseNo} (${type.desc})`,
+                    role_id: isSecretary ? 2 : 3, // 2 = SOCIETY_ADMIN, 3 = MEMBER
+                    full_name: isSecretary ? `Secretary Kesharkunj (${houseNo})` : `Resident ${houseNo} (${type.desc})`,
                     mobile: mobile,
                     status: 'active',
                     created_at: new Date(),
@@ -105,35 +106,29 @@ module.exports = {
     async down(queryInterface, Sequelize) {
         const societyName = 'Kesharkunj Residency';
 
-        // Cleanup based on society name logic or ID ranges if known
-        await queryInterface.sequelize.query(`
-            DELETE FROM tbl_user_house_mappings WHERE house_id IN (
-                SELECT id FROM tbl_houses WHERE society_id IN (
-                    SELECT id FROM tbl_societies WHERE name = '${societyName}'
-                )
-            );
-        `);
+        // 1. Get Society ID
+        const societies = await queryInterface.sequelize.query(
+            `SELECT id FROM tbl_societies WHERE name = '${societyName}'`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
 
-        await queryInterface.sequelize.query(`
-            DELETE FROM tbl_users WHERE society_id IN (
-                SELECT id FROM tbl_societies WHERE name = '${societyName}'
-            );
-        `);
+        if (societies.length > 0) {
+            const societyId = societies[0].id;
 
-        await queryInterface.sequelize.query(`
-            DELETE FROM tbl_houses WHERE society_id IN (
-                SELECT id FROM tbl_societies WHERE name = '${societyName}'
-            );
-        `);
+            // 2. Delete dependent data in reverse order of dependencies
+            await queryInterface.sequelize.query(`DELETE FROM tbl_complaint_comments WHERE user_id IN (SELECT id FROM tbl_users WHERE society_id = ${societyId})`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_complaints WHERE society_id = ${societyId}`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_notice_attachments WHERE notice_id IN (SELECT id FROM tbl_notices WHERE society_id = ${societyId})`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_notices WHERE society_id = ${societyId}`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_member_bills WHERE house_id IN (SELECT id FROM tbl_houses WHERE society_id = ${societyId})`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_payments WHERE house_id IN (SELECT id FROM tbl_houses WHERE society_id = ${societyId})`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_bills WHERE society_id = ${societyId}`);
 
-        await queryInterface.sequelize.query(`
-            DELETE FROM tbl_buildings WHERE society_id IN (
-                SELECT id FROM tbl_societies WHERE name = '${societyName}'
-            );
-        `);
-
-        await queryInterface.sequelize.query(`
-            DELETE FROM tbl_societies WHERE name = '${societyName}';
-        `);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_user_house_mappings WHERE house_id IN (SELECT id FROM tbl_houses WHERE society_id = ${societyId})`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_users WHERE society_id = ${societyId}`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_houses WHERE society_id = ${societyId}`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_buildings WHERE society_id = ${societyId}`);
+            await queryInterface.sequelize.query(`DELETE FROM tbl_societies WHERE id = ${societyId}`);
+        }
     }
 };

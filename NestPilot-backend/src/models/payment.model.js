@@ -59,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: false
         },
         client_ref_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             allowNull: true,
             unique: true // For idempotency
         },

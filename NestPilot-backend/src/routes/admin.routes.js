@@ -8,6 +8,7 @@ router.use(auth);
 router.use(role(['SOCIETY_ADMIN']));
 
 router.get('/pending-users', adminController.getPendingUsers);
+router.get('/members', adminController.getSocietyMembers);
 router.post('/users/:id/approve', adminController.approveUser);
 router.post('/users/:id/reject', adminController.rejectUser);
 

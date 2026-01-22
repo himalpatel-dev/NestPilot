@@ -78,18 +78,31 @@ const publishBill = async (billId, societyId) => {
     }
 };
 
+const getBillsBySociety = async (societyId) => {
+    return db.Bill.findAll({
+        where: { society_id: societyId },
+        order: [['created_at', 'DESC']]
+    });
+};
+
 const getMemberBills = async (userId, societyId) => {
     return db.MemberBill.findAll({
         where: { user_id: userId },
         include: [
-            { model: db.Bill, attributes: ['title', 'bill_type', 'penalty_type', 'penalty_value'] },
+            {
+                model: db.Bill,
+                where: { society_id: societyId },
+                attributes: ['title', 'bill_type', 'penalty_type', 'penalty_value']
+            },
             { model: db.House, attributes: ['house_no', 'wing'] }
-        ]
+        ],
+        order: [['created_at', 'DESC']]
     });
 };
 
 module.exports = {
     createBill,
     publishBill,
-    getMemberBills
+    getMemberBills,
+    getBillsBySociety
 };

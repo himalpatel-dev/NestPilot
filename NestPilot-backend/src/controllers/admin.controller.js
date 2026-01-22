@@ -47,8 +47,28 @@ const rejectUser = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getSocietyMembers = async (req, res, next) => {
+    try {
+        const users = await db.User.findAll({
+            where: {
+                society_id: req.user.society_id,
+                status: 'active'
+            },
+            include: [
+                { model: db.Role },
+                {
+                    model: db.UserHouseMapping,
+                    include: [db.House]
+                }
+            ]
+        });
+        res.status(200).json(new ApiResponse(200, users));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getPendingUsers,
     approveUser,
-    rejectUser
+    rejectUser,
+    getSocietyMembers
 };
