@@ -27,7 +27,7 @@ const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Society Management API',
+            title: 'NestPilot Society Management API',
             version: '1.0.0',
         },
         servers: [{ url: 'http://localhost:5000' }],

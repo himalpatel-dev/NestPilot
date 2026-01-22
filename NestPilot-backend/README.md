@@ -9,7 +9,7 @@
 
 2. **Database Setup**
    - Ensure PostgreSQL is running.
-   - Create database `society_db`.
+   - Create database `NestPilot`.
    - Update `.env` with credentials.
 
 3. **Migrations & Seeds**
