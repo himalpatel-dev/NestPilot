@@ -53,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'House',
-        tableName: 'houses',
+        tableName: 'tbl_houses',
         underscored: true,
     });
     return House;

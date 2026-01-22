@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'AuditLog',
-        tableName: 'audit_logs',
+        tableName: 'tbl_audit_logs',
         underscored: true,
     });
     return AuditLog;

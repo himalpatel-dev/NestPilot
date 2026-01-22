@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'ComplaintComment',
-        tableName: 'complaint_comments',
+        tableName: 'tbl_complaint_comments',
         underscored: true,
     });
     return ComplaintComment;

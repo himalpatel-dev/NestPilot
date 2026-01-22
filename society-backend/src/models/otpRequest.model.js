@@ -40,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'OtpRequest',
-        tableName: 'otp_requests',
+        tableName: 'tbl_otp_requests',
         underscored: true,
     });
     return OtpRequest;

@@ -3,8 +3,8 @@
 module.exports = {
     async up(queryInterface, Sequelize) {
         // 1. Create Society: Kesharkunj Residency (Row House Society)
-        const societyId = 4;
-        await queryInterface.bulkInsert('societies', [{
+        const societyId = 1;
+        await queryInterface.bulkInsert('tbl_societies', [{
             id: societyId,
             name: 'Kesharkunj Residency',
             address: 'Scientific Road',
@@ -18,8 +18,8 @@ module.exports = {
         }]);
 
         // 2. Create Building: Sector 1 (Representing a group of row houses)
-        const buildingId = 5;
-        await queryInterface.bulkInsert('buildings', [{
+        const buildingId = 1;
+        await queryInterface.bulkInsert('tbl_buildings', [{
             id: buildingId,
             society_id: societyId,
             name: 'Sector 1',
@@ -42,9 +42,9 @@ module.exports = {
         ];
 
         let mobileCounter = 9910000001;
-        let houseIdCounter = 7;
-        let userIdCounter = 4;
-        let mappingIdCounter = 2; // Start after 1 (which was used in 02-demo)
+        let houseIdCounter = 1;
+        let userIdCounter = 2; // Start after 1 (Super Admin)
+        let mappingIdCounter = 1;
 
         // Generate 5 houses for each type
         for (const type of types) {
@@ -95,9 +95,9 @@ module.exports = {
             }
         }
 
-        await queryInterface.bulkInsert('houses', houses);
-        await queryInterface.bulkInsert('users', users);
-        await queryInterface.bulkInsert('user_house_mappings', userHouseMappings);
+        await queryInterface.bulkInsert('tbl_houses', houses);
+        await queryInterface.bulkInsert('tbl_users', users);
+        await queryInterface.bulkInsert('tbl_user_house_mappings', userHouseMappings);
 
         console.log(`Seeded Kesharkunj Residency (Row House) with ${houses.length} houses and ${users.length} users.`);
     },
@@ -107,33 +107,33 @@ module.exports = {
 
         // Cleanup based on society name logic or ID ranges if known
         await queryInterface.sequelize.query(`
-            DELETE FROM user_house_mappings WHERE house_id IN (
-                SELECT id FROM houses WHERE society_id IN (
-                    SELECT id FROM societies WHERE name = '${societyName}'
+            DELETE FROM tbl_user_house_mappings WHERE house_id IN (
+                SELECT id FROM tbl_houses WHERE society_id IN (
+                    SELECT id FROM tbl_societies WHERE name = '${societyName}'
                 )
             );
         `);
 
         await queryInterface.sequelize.query(`
-            DELETE FROM users WHERE society_id IN (
-                SELECT id FROM societies WHERE name = '${societyName}'
+            DELETE FROM tbl_users WHERE society_id IN (
+                SELECT id FROM tbl_societies WHERE name = '${societyName}'
             );
         `);
 
         await queryInterface.sequelize.query(`
-            DELETE FROM houses WHERE society_id IN (
-                SELECT id FROM societies WHERE name = '${societyName}'
+            DELETE FROM tbl_houses WHERE society_id IN (
+                SELECT id FROM tbl_societies WHERE name = '${societyName}'
             );
         `);
 
         await queryInterface.sequelize.query(`
-            DELETE FROM buildings WHERE society_id IN (
-                SELECT id FROM societies WHERE name = '${societyName}'
+            DELETE FROM tbl_buildings WHERE society_id IN (
+                SELECT id FROM tbl_societies WHERE name = '${societyName}'
             );
         `);
 
         await queryInterface.sequelize.query(`
-            DELETE FROM societies WHERE name = '${societyName}';
+            DELETE FROM tbl_societies WHERE name = '${societyName}';
         `);
     }
 };

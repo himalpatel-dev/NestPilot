@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'NoticeAttachment',
-        tableName: 'notice_attachments',
+        tableName: 'tbl_notice_attachments',
         underscored: true,
     });
     return NoticeAttachment;

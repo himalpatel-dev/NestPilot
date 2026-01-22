@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'society_db',
+    process.env.DB_NAME || 'NestPilot',
     process.env.DB_USER || 'postgres',
     process.env.DB_PASS || 'postgres',
     {

@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'UserHouseMapping',
-        tableName: 'user_house_mappings',
+        tableName: 'tbl_user_house_mappings',
         underscored: true,
     });
     return UserHouseMapping;

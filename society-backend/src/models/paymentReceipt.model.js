@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         sequelize,
         modelName: 'PaymentReceipt',
-        tableName: 'payment_receipts',
+        tableName: 'tbl_payment_receipts',
         underscored: true,
     });
     return PaymentReceipt;
