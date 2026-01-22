@@ -12,7 +12,7 @@ class ApiEndpoints {
   static String rejectUser(String id) => '/api/admin/users/$id/reject';
 
   // Society Setup
-  static const String societies = '/api/societies';
+  static const String societies = '/api/society';
   static String societyBuildings(String id) => '/api/societies/$id/buildings';
   static String buildingFlats(String id) => '/api/buildings/$id/flats';
   static String societyFlats(String id) => '/api/societies/$id/flats';

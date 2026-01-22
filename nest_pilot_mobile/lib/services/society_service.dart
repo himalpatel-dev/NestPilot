@@ -37,15 +37,21 @@ class SocietyService {
     return [];
   }
 
-  Future<bool> createSociety(
-    String name,
-    String address,
-    String? registrationNumber,
-  ) async {
+  Future<bool> createSociety({
+    required String name,
+    required String address,
+    required String city,
+    required String state,
+    required String pincode,
+    String societyType = 'APARTMENT',
+  }) async {
     final response = await _apiService.post(ApiEndpoints.societies, {
       'name': name,
       'address': address,
-      'registrationNumber': registrationNumber,
+      'city': city,
+      'state': state,
+      'pincode': pincode,
+      'society_type': societyType,
     });
     return response['success'] ?? false;
   }

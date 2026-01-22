@@ -41,7 +41,7 @@ module.exports = {
             { code: 'C', bhk: '4BHK', area: 1800, desc: 'Small Area' }
         ];
 
-        let mobileCounter = 9910000001;
+        let mobileCounter = 9727376737;
         let houseIdCounter = 1;
         let userIdCounter = 2; // Start after 1 (Super Admin)
         let mappingIdCounter = 1;
@@ -69,7 +69,7 @@ module.exports = {
                 // Create 1 User per house
                 const userId = userIdCounter++;
                 const isSecretary = (userId === 2); // First user after Super Admin
-                const mobile = isSecretary ? '9000000001' : (mobileCounter++).toString();
+                const mobile = isSecretary ? '9727376727' : (mobileCounter++).toString();
 
                 users.push({
                     id: userId,

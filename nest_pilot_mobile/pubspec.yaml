@@ -37,7 +37,7 @@ dependencies:
   http: ^1.1.0
   shared_preferences: ^2.2.0
   intl: ^0.18.1
-  file_picker: ^5.3.3
+  file_picker: ^10.3.8
   open_filex: ^4.3.2
   path_provider: ^2.1.1
   permission_handler: ^11.0.1

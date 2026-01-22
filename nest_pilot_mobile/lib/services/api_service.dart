@@ -83,7 +83,12 @@ class ApiService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
-      throw Exception(body['message'] ?? 'Something went wrong');
+      String errorMessage = body['message'] ?? 'Something went wrong';
+      if (body['errors'] != null && body['errors'] is List) {
+        final errors = (body['errors'] as List).join('\n');
+        errorMessage += '\n$errors';
+      }
+      throw Exception(errorMessage);
     }
   }
 }

@@ -29,8 +29,16 @@ const getAllHouses = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const createSociety = async (req, res, next) => {
+    try {
+        const data = await societyService.createSociety(req.body);
+        res.status(201).json(new ApiResponse(201, data));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getSociety,
+    createSociety,
     createBuilding,
     createHouse,
     getAllHouses
