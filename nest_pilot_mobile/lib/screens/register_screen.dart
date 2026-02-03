@@ -159,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedSocietyId,
+                      initialValue: _selectedSocietyId,
                       decoration: const InputDecoration(
                         labelText: 'Society',
                         border: OutlineInputBorder(),
@@ -179,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedBuildingId,
+                      initialValue: _selectedBuildingId,
                       decoration: const InputDecoration(
                         labelText: 'Building',
                         border: OutlineInputBorder(),
@@ -199,7 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedFlatId,
+                      initialValue: _selectedFlatId,
                       decoration: const InputDecoration(
                         labelText: 'Flat',
                         border: OutlineInputBorder(),
@@ -216,7 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedRelationType,
+                      initialValue: _selectedRelationType,
                       decoration: const InputDecoration(
                         labelText: 'Relation Type',
                         border: OutlineInputBorder(),

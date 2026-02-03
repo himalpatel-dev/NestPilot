@@ -36,4 +36,32 @@ class ApiEndpoints {
   static const String syncPayments = '/api/payments/offline-sync';
   static const String myPayments = '/api/payments/my';
   static String paymentReceipt(String id) => '/api/payments/receipts/$id';
+
+  // Vehicles
+  static const String vehicles = '/api/vehicles';
+  static const String allVehicles = '/api/vehicles/all';
+  static String deleteVehicle(int id) => '/api/vehicles/$id';
+
+  // Visitors
+  static const String visitors = '/api/visitors';
+  static const String myVisitors = '/api/visitors/my';
+  static const String inviteVisitor = '/api/visitors/invite';
+
+  // Amenities
+  static const String amenities = '/api/amenities';
+  static const String myAmenityBookings = '/api/amenities/my-bookings';
+  static const String bookAmenity = '/api/amenities/book';
+  static const String allBookings = '/api/amenities/bookings';
+  static String updateBookingStatus(int id) => '/api/amenities/bookings/$id';
+
+  // Staff
+  static const String staff = '/api/staff';
+  static String staffAttendance(int id) => '/api/staff/$id/attendance';
+
+  // Polls
+  static const String polls = '/api/polls';
+  static const String votePoll = '/api/polls/vote';
+
+  // Documents
+  static const String documents = '/api/documents';
 }

@@ -10,10 +10,22 @@ import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
 import 'secretary/payment_mark_screen.dart';
+import 'secretary/amenity_management_screen.dart';
+import 'secretary/vehicle_management_screen.dart';
+import 'secretary/member_list_screen.dart';
 import 'member/notice_list_screen.dart';
+import 'security/security_dashboard_screen.dart';
+import 'security/current_visitors_screen.dart';
+import 'common/visitor_report_screen.dart';
 import 'member/complaint_list_screen.dart';
 import 'member/bills_list_screen.dart';
 import 'member/ledger_screen.dart';
+import 'member/community/visitor_management_screen.dart';
+import 'member/community/vehicle_list_screen.dart';
+import 'member/community/amenity_booking_screen.dart';
+import 'member/community/staff_list_screen.dart';
+import 'member/community/poll_list_screen.dart';
+import 'member/community/document_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -77,9 +89,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (widget.user.role == UserRoles.societyAdmin)
                 _buildSocietyAdminMenu(),
               if (widget.user.role == UserRoles.member) _buildMemberMenu(),
+              if (widget.user.role == UserRoles.securityGuard)
+                _buildSecurityGuardMenu(),
               if (widget.user.role != UserRoles.superAdmin &&
                   widget.user.role != UserRoles.societyAdmin &&
-                  widget.user.role != UserRoles.member)
+                  widget.user.role != UserRoles.member &&
+                  widget.user.role != UserRoles.securityGuard)
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
@@ -219,6 +234,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         _buildMenuCard(
+          'Residents',
+          Icons.contacts,
+          Colors.indigo,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MemberListScreen()),
+          ),
+        ),
+        _buildMenuCard(
           'Create Notice',
           Icons.campaign,
           Colors.purple,
@@ -263,6 +287,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
             MaterialPageRoute(
               builder: (context) => const ComplaintListScreen(),
             ),
+          ),
+        ),
+        _buildMenuCard(
+          'Amenities',
+          Icons.pool,
+          Colors.cyan,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AmenityManagementScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Polls',
+          Icons.poll,
+          Colors.orangeAccent,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PollListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Visitor Logs',
+          Icons.group_work,
+          Colors.deepPurple,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VisitorReportScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Vehicles',
+          Icons.directions_car,
+          Colors.blueGrey,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VehicleManagementScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Documents',
+          Icons.folder,
+          Colors.amber,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DocumentListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Daily Help',
+          Icons.cleaning_services,
+          Colors.brown,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffListScreen()),
           ),
         ),
       ],
@@ -313,6 +397,118 @@ class _DashboardScreenState extends State<DashboardScreen> {
           () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const LedgerScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Visitors',
+          Icons.group,
+          Colors.orange,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VisitorManagementScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Vehicles',
+          Icons.directions_car,
+          Colors.blueGrey,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const VehicleListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Amenities',
+          Icons.pool,
+          Colors.cyan,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AmenityBookingScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Daily Help',
+          Icons.cleaning_services,
+          Colors.brown,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Polls',
+          Icons.poll,
+          Colors.indigo,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PollListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Documents',
+          Icons.folder,
+          Colors.amber,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DocumentListScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecurityGuardMenu() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      children: [
+        _buildMenuCard(
+          'Visitor Entry',
+          Icons.door_front_door,
+          Colors.green,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SecurityDashboardScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Visitor Logs',
+          Icons.history,
+          Colors.blue,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VisitorReportScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Visitors Inside',
+          Icons.group,
+          Colors.orange,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CurrentVisitorsScreen(),
+            ),
+          ),
+        ),
+        _buildMenuCard(
+          'Daily Help',
+          Icons.cleaning_services,
+          Colors.brown,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffListScreen()),
           ),
         ),
       ],

@@ -20,7 +20,7 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
   final BillService _billService = BillService();
   DateTime? _selectedDueDate;
   String _selectedMonth = DateFormat('MMMM').format(DateTime.now());
-  String _selectedYear = DateTime.now().year.toString();
+  final String _selectedYear = DateTime.now().year.toString();
   bool _isLoading = false;
 
   final List<String> _months = [
@@ -80,10 +80,11 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -110,7 +111,7 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedMonth,
+                      initialValue: _selectedMonth,
                       decoration: const InputDecoration(
                         labelText: 'Month',
                         border: OutlineInputBorder(),

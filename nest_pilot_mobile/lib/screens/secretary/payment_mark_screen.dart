@@ -123,7 +123,7 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<UserModel>(
-                      value: _selectedUser,
+                      initialValue: _selectedUser,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -161,7 +161,7 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                         )
                       else
                         DropdownButtonFormField<MemberBill>(
-                          value: _selectedBill,
+                          initialValue: _selectedBill,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
@@ -191,7 +191,7 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                       const Divider(),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: _selectedMode,
+                        initialValue: _selectedMode,
                         decoration: const InputDecoration(
                           labelText: 'Payment Mode',
                           border: OutlineInputBorder(),

@@ -52,10 +52,33 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+    final headers = await getHeaders();
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> delete(String endpoint) async {
+    final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+    final headers = await getHeaders();
+    final response = await http.delete(url, headers: headers);
+    return _handleResponse(response);
+  }
+
   Future<Map<String, dynamic>> multipartPost(
     String endpoint,
     Map<String, String> fields, {
     String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
     String? fileKey,
   }) async {
     final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
@@ -69,8 +92,14 @@ class ApiService {
 
     request.fields.addAll(fields);
 
-    if (filePath != null && fileKey != null) {
-      request.files.add(await http.MultipartFile.fromPath(fileKey, filePath));
+    if (fileKey != null) {
+      if (fileBytes != null && fileName != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(fileKey, fileBytes, filename: fileName),
+        );
+      } else if (filePath != null) {
+        request.files.add(await http.MultipartFile.fromPath(fileKey, filePath));
+      }
     }
 
     final streamedResponse = await request.send();

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/notice_complaint.dart';
+import '../../models/user_model.dart';
+import '../../config/roles.dart';
 import '../../services/notice_complaint_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/app_text_field.dart';
 
 class ComplaintDetailScreen extends StatefulWidget {
@@ -15,7 +18,23 @@ class ComplaintDetailScreen extends StatefulWidget {
 class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
   final ComplaintService _complaintService = ComplaintService();
+  final AuthService _authService = AuthService();
+
   bool _isSubmitting = false;
+  UserModel? _currentUser;
+  late String _currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.complaint.status;
+    _fetchCurrentUser();
+  }
+
+  Future<void> _fetchCurrentUser() async {
+    final user = await _authService.getMe();
+    if (mounted) setState(() => _currentUser = user);
+  }
 
   Future<void> _addComment() async {
     if (_commentController.text.isEmpty) return;
@@ -31,21 +50,76 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Comment added')));
-        // In a real app, we'd refresh the complaint data here.
-        // For MVP, we'll just pop or tell the user to refresh.
+        // TODO: Refresh comments logic would go here
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
+  Future<void> _updateStatus(String newStatus) async {
+    try {
+      final success = await _complaintService.updateStatus(
+        widget.complaint.id,
+        newStatus,
+      );
+      if (success && mounted) {
+        setState(() => _currentStatus = newStatus);
+        Navigator.pop(context); // Close dialog
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Status updated to $newStatus')));
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  void _showStatusDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Update Status'),
+          children: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].map((
+            status,
+          ) {
+            return SimpleDialogOption(
+              onPressed: () => _updateStatus(status),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: status == _currentStatus
+                        ? Colors.blue
+                        : Colors.black,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _currentUser?.role == UserRoles.societyAdmin;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Complaint Detail')),
       body: Column(
@@ -73,12 +147,22 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                       ),
                       const Spacer(),
                       Text(
-                        widget.complaint.status,
+                        _currentStatus,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
                         ),
                       ),
+                      if (isAdmin)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          onPressed: _showStatusDialog,
+                          tooltip: 'Edit Status',
+                        ),
                     ],
                   ),
                   const Divider(height: 32),
@@ -95,7 +179,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                         width: double.infinity,
                         height: 200,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             const Icon(Icons.broken_image, size: 100),
                       ),
                     ),

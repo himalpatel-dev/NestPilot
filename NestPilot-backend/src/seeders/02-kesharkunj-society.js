@@ -96,6 +96,18 @@ module.exports = {
             }
         }
 
+        // Seed a Security Guard
+        await queryInterface.bulkInsert('tbl_users', [{
+            id: userIdCounter++,
+            society_id: societyId,
+            role_id: 4, // SECURITY_GUARD
+            full_name: 'Main Gate Security',
+            mobile: '9000000000',
+            status: 'active',
+            created_at: new Date(),
+            updated_at: new Date()
+        }]);
+
         await queryInterface.bulkInsert('tbl_houses', houses);
         await queryInterface.bulkInsert('tbl_users', users);
         await queryInterface.bulkInsert('tbl_user_house_mappings', userHouseMappings);

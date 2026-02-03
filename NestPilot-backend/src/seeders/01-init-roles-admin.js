@@ -6,7 +6,8 @@ module.exports = {
         await queryInterface.bulkInsert('tbl_roles', [
             { id: 1, code: 'SUPER_ADMIN', name: 'Super Admin', created_at: new Date(), updated_at: new Date() },
             { id: 2, code: 'SOCIETY_ADMIN', name: 'Society Admin (Secretary)', created_at: new Date(), updated_at: new Date() },
-            { id: 3, code: 'MEMBER', name: 'Member', created_at: new Date(), updated_at: new Date() }
+            { id: 3, code: 'MEMBER', name: 'Member', created_at: new Date(), updated_at: new Date() },
+            { id: 4, code: 'SECURITY_GUARD', name: 'Security Guard / Gatekeeper', created_at: new Date(), updated_at: new Date() }
         ]);
 
         // Seed Super Admin

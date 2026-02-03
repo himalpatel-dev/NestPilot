@@ -51,10 +51,11 @@ class _LedgerScreenState extends State<LedgerScreen> {
       ).showSnackBar(const SnackBar(content: Text('Downloading receipt...')));
       await _fileService.downloadAndOpenReceipt(paymentId);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 

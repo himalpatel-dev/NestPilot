@@ -53,10 +53,11 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
         _fetchPendingUsers();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 

@@ -96,7 +96,7 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedSocietyType,
+                initialValue: _selectedSocietyType,
                 decoration: const InputDecoration(
                   labelText: 'Society Type',
                   border: OutlineInputBorder(),
