@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/user_model.dart';
 import '../config/roles.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
+import 'notification_list_screen.dart';
 import 'login_screen.dart';
 import 'super_admin/society_create_screen.dart';
 import 'super_admin/stubs.dart';
@@ -27,6 +30,8 @@ import 'member/community/staff_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
 import 'member/community/document_list_screen.dart';
 
+import '../services/socket_service.dart';
+
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
   const DashboardScreen({super.key, required this.user});
@@ -36,12 +41,99 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications(); // Initial fetch
+    _setupSocket();
+  }
+
+  @override
+  void dispose() {
+    SocketService().off('new_notification');
+    // SocketService().disconnect(); // Optional: Keep connected or disconnect
+    super.dispose();
+  }
+
+  Future<void> _setupSocket() async {
+    final socketService = SocketService();
+    try {
+      await socketService.initSocket();
+
+      socketService.on('new_notification', (data) {
+        if (mounted) {
+          setState(() {
+            _unreadCount++;
+            // Optionally show a snackbar or toast
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('New Notification Received')),
+            );
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('Error initializing socket: $e');
+    }
+  }
+
+  Future<void> _fetchNotifications() async {
+    try {
+      final res = await NotificationService().getNotifications(limit: 1);
+      if (mounted) {
+        setState(() {
+          _unreadCount = res.unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error polling notifications: $e');
+    }
+  }
+
+  void _showNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NotificationListScreen()),
+    ).then((_) => _fetchNotifications());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('NestPilot'),
         actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: _showNotifications,
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 14,
+                      minHeight: 14,
+                    ),
+                    child: Text(
+                      '$_unreadCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 8),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -63,10 +155,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (user != null && mounted) {
             setState(() {
               // In a real app, we'd update the parent or use a provider.
+              // In a real app, we'd update the parent or use a provider.
               // For MVP, we'll just refresh the current state if possible.
               // Since 'user' is passed in constructor, we might need to
               // handle this differently if we want it to persist.
             });
+            _fetchNotifications();
           }
         },
         child: SingleChildScrollView(
@@ -307,6 +401,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const PollListScreen()),
+          ),
+        ),
+        _buildMenuCard(
+          'Visitor Entry',
+          Icons.door_front_door,
+          Colors.green,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SecurityDashboardScreen(),
+            ),
           ),
         ),
         _buildMenuCard(

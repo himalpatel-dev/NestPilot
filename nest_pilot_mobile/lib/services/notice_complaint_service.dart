@@ -70,11 +70,14 @@ class ComplaintService {
     return response['success'] ?? false;
   }
 
-  Future<bool> addComment(String id, String message) async {
+  Future<ComplaintComment?> addComment(String id, String message) async {
     final response = await _apiService.post(
       ApiEndpoints.complaintComments(id),
       {'message': message},
     );
-    return response['success'] ?? false;
+    if (response['success'] == true) {
+      return ComplaintComment.fromJson(response['data']);
+    }
+    return null;
   }
 }

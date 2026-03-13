@@ -25,7 +25,7 @@ const getAll = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
-        const result = await api.updateStatus(req.params.id, status, req.user.society_id);
+        const result = await api.updateStatus(req.params.id, status, req.user.society_id, req.user.id);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };

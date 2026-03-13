@@ -284,4 +284,12 @@ class CommunityService {
     }
     throw Exception(response['message']);
   }
+
+  Future<List<dynamic>> getAllHouses() async {
+    final response = await _apiService.get('/api/society/houses');
+    if (response['success']) {
+      return response['data'] as List;
+    }
+    throw Exception(response['message']);
+  }
 }

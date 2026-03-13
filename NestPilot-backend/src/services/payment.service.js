@@ -66,6 +66,34 @@ const syncOfflinePayments = async (paymentsData, receivedByUserId, societyId) =>
             syncedCount++;
             results.push({ clientRefId: p.clientRefId, status: 'SUCCESS', paymentId: payment.id, receiptUrl: pdfPath });
 
+            // --- Notification Logic Start ---
+            if (memberBill.user_id && memberBill.user_id !== receivedByUserId) {
+                try {
+                    // Create Notification Record
+                    await db.Notification.create({
+                        user_id: memberBill.user_id,
+                        society_id: societyId,
+                        type: 'PAYMENT',
+                        title: 'Payment Received',
+                        message: `Payment of ${p.amount} recorded via ${p.paymentMode}. Receipt: ${receiptNo}`,
+                        reference_id: payment.id,
+                        is_read: false
+                    });
+
+                    // Emit Socket Event
+                    const io = require('../utils/socket').getIo();
+                    io.to(`user_${memberBill.user_id}`).emit('new_notification', {
+                        title: 'Payment Received',
+                        message: `Payment of ${p.amount} recorded via ${p.paymentMode}.`,
+                        type: 'PAYMENT'
+                    });
+                } catch (notifError) {
+                    console.error("Notification/Socket error in payment sync:", notifError);
+                    // Do not fail the payment sync just because notification failed
+                }
+            }
+            // --- Notification Logic End ---
+
         } catch (error) {
             await transaction.rollback();
             failedCount++;

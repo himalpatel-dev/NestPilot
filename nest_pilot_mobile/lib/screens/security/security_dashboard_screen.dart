@@ -16,6 +16,30 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _vehicleController = TextEditingController();
   bool _isLoading = false;
+  List<String> _houseNumbers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHouses();
+  }
+
+  Future<void> _fetchHouses() async {
+    try {
+      final houses = await _service.getAllHouses();
+      if (mounted) {
+        setState(() {
+          _houseNumbers = houses
+              .map<String>((h) => h['house_no'].toString())
+              .toList();
+          // Sort numerically/alphabetically if needed
+          _houseNumbers.sort();
+        });
+      }
+    } catch (e) {
+      print('Error fetching houses: $e');
+    }
+  }
 
   Future<void> _verifyEntry() async {
     if (_codeController.text.isEmpty) {
@@ -111,65 +135,124 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
   Future<void> _logWalkIn() async {
     final TextEditingController nameCtrl = TextEditingController();
     final TextEditingController mobileCtrl = TextEditingController();
-    final TextEditingController houseCtrl = TextEditingController();
+    // No houseCtrl for text, using selectedHouse for Dropdown
+    String? selectedHouse;
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Walk-in Entry'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(controller: nameCtrl, label: 'Visitor Name'),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: mobileCtrl,
-                label: 'Mobile Number',
-                keyboardType: TextInputType.phone,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('New Walk-in Entry'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppTextField(
+                        controller: nameCtrl,
+                        label: 'Visitor Name',
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Visitor Name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        controller: mobileCtrl,
+                        label: 'Mobile Number',
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Mobile Number is required';
+                          }
+                          if (value.trim().length < 10) {
+                            return 'Enter valid 10-digit mobile number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedHouse,
+                        decoration: InputDecoration(
+                          labelText: 'Visiting Flat',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: _houseNumbers.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setDialogState(() {
+                            selectedHouse = newValue;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a flat';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        controller: _vehicleController,
+                        label: 'Vehicle Number (Optional)',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: houseCtrl,
-                label: 'Visiting Flat (e.g. A-101)',
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _vehicleController,
-                label: 'Vehicle Number (Optional)',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'DENIED'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Deny Entry'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, 'INSIDE'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Allow Entry'),
-          ),
-        ],
-      ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'DENIED'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Deny Entry'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.pop(context, 'INSIDE');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Allow Entry'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
     if (result != null) {
+      // selectedHouse is verified by form already, but for safety:
+      if (selectedHouse == null && result == 'INSIDE') return;
+
       setState(() => _isLoading = true);
       try {
         await _service.logVisitorEntry({
           'name': nameCtrl.text,
           'mobile': mobileCtrl.text,
-          'house_no': houseCtrl.text,
+          'house_no': selectedHouse,
           'vehicle_number': _vehicleController.text,
           'type': 'WALK_IN',
           'gate': 'Main Gate',

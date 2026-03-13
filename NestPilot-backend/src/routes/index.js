@@ -15,8 +15,7 @@ const amenitiesRoutes = require('./amenity.routes');
 const staffRoutes = require('./staff.routes');
 const pollsRoutes = require('./poll.routes');
 const documentsRoutes = require('./document.routes');
-
-
+const notificationRoutes = require('./notification.routes');
 
 router.use('/auth', authRoutes);
 router.use('/society', societyRoutes);
@@ -32,6 +31,7 @@ router.use('/amenities', amenitiesRoutes);
 router.use('/staff', staffRoutes);
 router.use('/polls', pollsRoutes);
 router.use('/documents', documentsRoutes);
+router.use('/notifications', notificationRoutes);
 
 router.get('/health', (req, res) => {
     res.status(200).send('API is running...');

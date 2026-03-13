@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 import '../config/app_config.dart';
 
 class ApiService {
@@ -19,8 +20,10 @@ class ApiService {
 
   Future<Map<String, dynamic>> get(String endpoint) async {
     final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
+    debugPrint('GET Request: $url');
     final headers = await getHeaders();
     final response = await http.get(url, headers: headers);
+    debugPrint('GET Response: ${response.statusCode} for $url');
     return _handleResponse(response);
   }
 

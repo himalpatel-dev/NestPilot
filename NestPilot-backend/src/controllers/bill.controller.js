@@ -15,7 +15,7 @@ const create = async (req, res, next) => {
 
 const publish = async (req, res, next) => {
     try {
-        const result = await api.publishBill(req.params.id, req.user.society_id);
+        const result = await api.publishBill(req.params.id, req.user.society_id, req.user.id);
         res.status(200).json(new ApiResponse(200, result, 'Bill published and generated for members'));
     } catch (e) { next(e); }
 };

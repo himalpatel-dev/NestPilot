@@ -53,11 +53,20 @@ const startServer = async () => {
             console.warn("WARNING: --force flag detected. Database tables will be DROPPED and RECREATED.");
         }
 
+        const http = require('http');
+        const socketUtil = require('./utils/socket'); // Import socket util
+
+        // ...
+
         // Connect to DB and start server
         db.sequelize.sync(syncOptions) // Auto-create/update tables from models
             .then(() => {
                 console.log("Database synced successfully (Tables created/updated).");
-                app.listen(PORT, () => {
+
+                const server = http.createServer(app);
+                socketUtil.init(server); // Initialize Socket.IO
+
+                server.listen(PORT, () => {
                     console.log(`Server is running on port ${PORT}`);
                 });
             })

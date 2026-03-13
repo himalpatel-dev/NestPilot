@@ -23,6 +23,46 @@ const createPoll = async (req, res, next) => {
             await db.PollOption.bulkCreate(pollOptions, { transaction });
         }
 
+        // --- Notification Logic Start ---
+        // Fetch users in society (active users)
+        const users = await db.User.findAll({
+            attributes: ['id'],
+            where: { society_id: req.user.society_id, status: 'active' },
+            transaction
+        });
+
+        const currentUserId = req.user.id;
+        let usersToNotify = users.map(u => u.id).filter(id => id !== currentUserId);
+        usersToNotify = [...new Set(usersToNotify)];
+
+        if (usersToNotify.length > 0) {
+            const notifications = usersToNotify.map(userId => ({
+                user_id: userId,
+                society_id: req.user.society_id,
+                type: 'POLL',
+                title: 'New Poll Created',
+                message: question,
+                reference_id: poll.id,
+                is_read: false
+            }));
+            await db.Notification.bulkCreate(notifications, { transaction });
+
+            // Emit Socket Events (Non-transactional)
+            try {
+                const io = require('../utils/socket').getIo();
+                usersToNotify.forEach(userId => {
+                    io.to(`user_${userId}`).emit('new_notification', {
+                        title: 'New Poll Created',
+                        message: question,
+                        type: 'POLL'
+                    });
+                });
+            } catch (socketError) {
+                console.error("Socket emit failed (non-critical):", socketError);
+            }
+        }
+        // --- Notification Logic End ---
+
         await transaction.commit();
         res.status(201).json(new ApiResponse(201, poll, 'Poll created successfully'));
     } catch (e) {

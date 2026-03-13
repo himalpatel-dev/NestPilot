@@ -6,6 +6,7 @@ import '../../config/roles.dart';
 import '../../services/notice_complaint_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/app_text_field.dart';
+import '../../services/socket_service.dart';
 
 class ComplaintDetailScreen extends StatefulWidget {
   final Complaint complaint;
@@ -23,12 +24,61 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   bool _isSubmitting = false;
   UserModel? _currentUser;
   late String _currentStatus;
+  List<ComplaintComment> _comments = [];
 
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.complaint.status;
+    _comments = List.from(widget.complaint.comments);
     _fetchCurrentUser();
+    _setupSocket();
+  }
+
+  @override
+  void dispose() {
+    SocketService().off('new_comment');
+    SocketService().off('complaint_status_updated'); // Unsubscribe
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  void _setupSocket() {
+    SocketService().on('new_comment', (data) {
+      if (data != null &&
+          data['complaint_id'].toString() == widget.complaint.id) {
+        if (mounted) {
+          final newComment = ComplaintComment.fromJson(data['comment']);
+          if (!_comments.any((c) => c.id == newComment.id)) {
+            setState(() {
+              _comments.insert(0, newComment);
+            });
+          }
+        }
+      }
+    });
+
+    SocketService().on('complaint_status_updated', (data) {
+      print('Received complaint_status_updated: $data');
+      if (data != null &&
+          data['complaint_id'].toString() == widget.complaint.id) {
+        print(
+          'Updating status to ${data['status']}. Widget ID: ${widget.complaint.id}',
+        );
+        if (mounted) {
+          setState(() {
+            _currentStatus = data['status'];
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Status updated to $_currentStatus')),
+          );
+        }
+      } else {
+        print(
+          'Status update ignored: ID mismatch or null data. Widget ID: ${widget.complaint.id}, Data ID: ${data != null ? data['complaint_id'] : "null"}',
+        );
+      }
+    });
   }
 
   Future<void> _fetchCurrentUser() async {
@@ -41,16 +91,18 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final success = await _complaintService.addComment(
+      final newComment = await _complaintService.addComment(
         widget.complaint.id,
         _commentController.text,
       );
-      if (success && mounted) {
+      if (newComment != null && mounted) {
         _commentController.clear();
+        setState(() {
+          _comments.insert(0, newComment);
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Comment added')));
-        // TODO: Refresh comments logic would go here
       }
     } catch (e) {
       if (mounted) {
@@ -190,12 +242,12 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  if (widget.complaint.comments.isEmpty)
+                  if (_comments.isEmpty)
                     const Text(
                       'No comments yet',
                       style: TextStyle(color: Colors.grey),
                     ),
-                  ...widget.complaint.comments.map((c) => _buildCommentItem(c)),
+                  ..._comments.map((c) => _buildCommentItem(c)),
                 ],
               ),
             ),
@@ -238,6 +290,19 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   }
 
   Widget _buildCommentInput() {
+    if (_currentStatus == 'RESOLVED' || _currentStatus == 'REJECTED') {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        width: double.infinity,
+        color: Colors.grey.shade200,
+        child: const Text(
+          'Comments are closed for this complaint.',
+          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -64,4 +64,8 @@ class ApiEndpoints {
 
   // Documents
   static const String documents = '/api/documents';
+
+  // Notifications
+  static const String notifications = '/api/notifications';
+  static String readNotification(String id) => '/api/notifications/$id/read';
 }

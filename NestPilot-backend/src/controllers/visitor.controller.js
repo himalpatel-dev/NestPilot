@@ -95,6 +95,63 @@ const logEntry = async (req, res, next) => {
         }
 
         await transaction.commit();
+
+        // --- Notification Logic Start ---
+        try {
+            const targetHouseId = visitorLog.house_id || resolvedHouseId;
+            if (targetHouseId) {
+                const mappings = await db.UserHouseMapping.findAll({
+                    where: { house_id: targetHouseId, is_active: true }
+                });
+                const userIds = mappings.map(m => m.user_id);
+
+                if (userIds.length > 0) {
+                    const statusMsg = visitorLog.status;
+                    let title = 'Visitor Update';
+                    let message = `Visitor is ${statusMsg}`;
+
+                    if (statusMsg === 'INSIDE') {
+                        title = 'Visitor Arrived';
+                        message = `Visitor ${name || (visitorLog.Visitor ? visitorLog.Visitor.name : 'Guest')} has entered.`;
+                    } else if (statusMsg === 'WAITING_APPROVAL') {
+                        title = 'New Visitor Waiting';
+                        message = `Visitor ${name || 'Guest'} is waiting for your approval.`;
+                    } else if (statusMsg === 'DENIED') {
+                        title = 'Visitor Denied';
+                        message = `Visitor ${name || 'Guest'} entry was denied.`;
+                    }
+
+                    const notifications = userIds.map(uid => ({
+                        user_id: uid,
+                        society_id: req.user.society_id,
+                        type: 'VISITOR',
+                        title: title,
+                        message: message,
+                        reference_id: visitorLog.id,
+                        is_read: false
+                    }));
+                    await db.Notification.bulkCreate(notifications);
+
+                    const io = require('../utils/socket').getIo();
+                    userIds.forEach(uid => {
+                        io.to(`user_${uid}`).emit('new_notification', {
+                            title: title,
+                            message: message,
+                            type: 'VISITOR'
+                        });
+
+                        io.to(`user_${uid}`).emit('visitor_update', {
+                            visitor_log: visitorLog,
+                            status: statusMsg
+                        });
+                    });
+                }
+            }
+        } catch (notifWarn) {
+            console.error('Visitor Notification Error:', notifWarn);
+        }
+        // --- Notification Logic End ---
+
         res.status(201).json(new ApiResponse(201, visitorLog, 'Visitor entry logged'));
     } catch (e) {
         await transaction.rollback();
@@ -106,13 +163,56 @@ const logEntry = async (req, res, next) => {
 const logExit = async (req, res, next) => {
     try {
         const { visitor_log_id, gate } = req.body;
-        const log = await db.VisitorLog.findByPk(visitor_log_id);
+        const log = await db.VisitorLog.findByPk(visitor_log_id, {
+            include: [db.Visitor]
+        });
         if (!log) throw new ApiError(404, 'Log not found');
 
         log.exit_time = new Date();
         log.exit_gate = gate;
         log.status = 'EXITED';
         await log.save();
+
+        // --- Notification Logic ---
+        try {
+            if (log.house_id) {
+                const mappings = await db.UserHouseMapping.findAll({
+                    where: { house_id: log.house_id, is_active: true }
+                });
+                const userIds = mappings.map(m => m.user_id);
+
+                if (userIds.length > 0) {
+                    const statusMsg = 'EXITED';
+                    const title = 'Visitor Exited';
+                    const message = `Visitor ${log.Visitor ? log.Visitor.name : 'Guest'} has exited.`;
+
+                    const notifications = userIds.map(uid => ({
+                        user_id: uid,
+                        society_id: req.user.society_id,
+                        type: 'VISITOR',
+                        title: title,
+                        message: message,
+                        reference_id: log.id,
+                        is_read: false
+                    }));
+                    await db.Notification.bulkCreate(notifications);
+
+                    const io = require('../utils/socket').getIo();
+                    userIds.forEach(uid => {
+                        io.to(`user_${uid}`).emit('new_notification', {
+                            title: title,
+                            message: message,
+                            type: 'VISITOR'
+                        });
+
+                        io.to(`user_${uid}`).emit('visitor_update', {
+                            visitor_log: log,
+                            status: statusMsg
+                        });
+                    });
+                }
+            }
+        } catch (notifWarn) { console.error('Exit Notification Error:', notifWarn); }
 
         res.status(200).json(new ApiResponse(200, log, 'Exit logged'));
     } catch (e) { next(e); }

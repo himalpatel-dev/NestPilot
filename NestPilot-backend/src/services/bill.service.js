@@ -30,7 +30,7 @@ const createBill = async (data) => {
     }
 };
 
-const publishBill = async (billId, societyId) => {
+const publishBill = async (billId, societyId, currentUserId) => {
     const transaction = await db.sequelize.transaction();
     try {
         const bill = await db.Bill.findOne({
@@ -50,25 +50,63 @@ const publishBill = async (billId, societyId) => {
 
         // 2. Prepare MemberBills
         const memberBills = [];
+        let usersToNotify = [];
+
         for (const target of targets) {
             // Find current primary user for house
             const mapping = await db.UserHouseMapping.findOne({
                 where: { house_id: target.house_id, is_active: true }
             });
+            const mappedUserId = mapping ? mapping.user_id : null;
 
             memberBills.push({
                 bill_id: bill.id,
                 house_id: target.house_id,
-                user_id: mapping ? mapping.user_id : null,
+                user_id: mappedUserId,
                 amount: bill.amount_total,
                 due_date: bill.due_date,
                 status: 'PENDING'
             });
+
+            if (mappedUserId && mappedUserId !== currentUserId) {
+                usersToNotify.push(mappedUserId);
+            }
         }
 
         if (memberBills.length) {
             await db.MemberBill.bulkCreate(memberBills, { transaction });
         }
+
+        // --- Notification Logic Start ---
+        usersToNotify = [...new Set(usersToNotify)]; // Unique users
+
+        if (usersToNotify.length > 0) {
+            const notifications = usersToNotify.map(userId => ({
+                user_id: userId,
+                society_id: societyId,
+                type: 'BILL',
+                title: 'New Bill Generated',
+                message: `Bill of amount ${bill.amount_total} is ready for payment`,
+                reference_id: bill.id,
+                is_read: false
+            }));
+            await db.Notification.bulkCreate(notifications, { transaction });
+
+            // Emit Socket Events (Non-transactional)
+            try {
+                const io = require('../utils/socket').getIo();
+                usersToNotify.forEach(userId => {
+                    io.to(`user_${userId}`).emit('new_notification', {
+                        title: 'New Bill Generated',
+                        message: `Bill of amount ${bill.amount_total} is ready for payment`,
+                        type: 'BILL'
+                    });
+                });
+            } catch (socketError) {
+                console.error("Socket emit failed (non-critical):", socketError);
+            }
+        }
+        // --- Notification Logic End ---
 
         await transaction.commit();
         return bill;

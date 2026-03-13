@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
+import 'package:nest_pilot_mobile/services/socket_service.dart';
 import 'package:intl/intl.dart';
 
 class VisitorManagementScreen extends StatefulWidget {
@@ -30,20 +31,46 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _fetchLogs();
+    _setupSocket();
+  }
+
+  @override
+  void dispose() {
+    SocketService().off('visitor_update');
+    _tabController.dispose();
+    _nameController.dispose();
+    _mobileController.dispose();
+    _purposeController.dispose();
+    super.dispose();
+  }
+
+  void _setupSocket() {
+    SocketService().on('visitor_update', (data) {
+      if (mounted) {
+        _fetchLogs(); // Refresh list to get latest status and details
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Visitor list updated')));
+      }
+    });
   }
 
   Future<void> _fetchLogs() async {
     try {
       final logs = await _service.getMyVisitors();
-      setState(() {
-        _logs = logs;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _logs = logs;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
