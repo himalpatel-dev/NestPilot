@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_endpoints.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
+import 'socket_service.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
@@ -44,11 +45,11 @@ class AuthService {
     final response = await _apiService.post(ApiEndpoints.register, {
       'fullName': fullName,
       'mobile': mobile,
-      'societyId': societyId,
-      'buildingId': buildingId,
-      'flatId': flatId,
-      'relationType': relationType,
-      'email': email,
+      'societyId': int.tryParse(societyId) ?? 0,
+      'buildingId': int.tryParse(buildingId) ?? 0,
+      'houseId': int.tryParse(flatId) ?? 0,
+      'relationType': relationType == 'FAMILY_MEMBER' ? 'FAMILY' : relationType,
+      if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
     });
     return response['success'] ?? false;
   }
@@ -69,6 +70,7 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
+    SocketService().disconnect();
   }
 
   Future<String?> getToken() async {

@@ -28,10 +28,43 @@ const getHouses = async (societyId) => {
     });
 };
 
+const getAllSocieties = async () => {
+    return db.Society.findAll();
+};
+
+const getBuildingById = async (id) => {
+    return db.Building.findByPk(id);
+};
+
+const getBuildingsBySocietyId = async (societyId) => {
+    return db.Building.findAll({
+        where: { society_id: societyId }
+    });
+};
+
+const getFlatsByBuildingId = async (buildingId) => {
+    return db.House.findAll({
+        where: { building_id: buildingId }
+    });
+};
+
+const getFlatsBySocietyId = async (societyId) => {
+    return db.House.findAll({
+        where: { society_id: societyId },
+        include: [db.Building]
+    });
+};
+
 module.exports = {
     getSocietyDetails,
     createSociety,
     createBuilding,
     createHouse,
-    getHouses
+    getHouses,
+    getAllSocieties,
+    getBuildingById,
+    getBuildingsBySocietyId,
+    getFlatsByBuildingId,
+    getFlatsBySocietyId
 };
+

@@ -220,11 +220,17 @@ const logExit = async (req, res, next) => {
 
 const getMyVisitors = async (req, res, next) => {
     try {
-        const mapping = await db.UserHouseMapping.findOne({ where: { user_id: req.user.id, is_active: true } });
-        if (!mapping) throw new ApiError(400, 'No house assigned');
+        const mappings = await db.UserHouseMapping.findAll({
+            where: { user_id: req.user.id, is_active: true },
+            attributes: ['house_id']
+        });
+        const houseIds = mappings.map(m => m.house_id);
+        if (houseIds.length === 0) {
+            return res.status(200).json(new ApiResponse(200, []));
+        }
 
         const logs = await db.VisitorLog.findAll({
-            where: { house_id: mapping.house_id },
+            where: { house_id: houseIds },
             include: [db.Visitor],
             order: [['created_at', 'DESC']]
         });

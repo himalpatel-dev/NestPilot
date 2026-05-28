@@ -46,4 +46,27 @@ const auth = async (req, res, next) => {
     }
 };
 
+const optionalAuth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                const decoded = verifyToken(token);
+                const user = await db.User.findByPk(decoded.userId, {
+                    include: [{ model: db.Role }]
+                });
+                if (user && user.status === 'active') {
+                    req.user = user;
+                }
+            }
+        }
+        next();
+    } catch (err) {
+        next();
+    }
+};
+
+auth.optional = optionalAuth;
+
 module.exports = auth;

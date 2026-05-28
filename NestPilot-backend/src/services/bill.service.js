@@ -124,8 +124,18 @@ const getBillsBySociety = async (societyId) => {
 };
 
 const getMemberBills = async (userId, societyId) => {
+    const mappings = await db.UserHouseMapping.findAll({
+        where: { user_id: userId, is_active: true },
+        attributes: ['house_id']
+    });
+    const houseIds = mappings.map(m => m.house_id);
+
+    if (houseIds.length === 0) {
+        return [];
+    }
+
     return db.MemberBill.findAll({
-        where: { user_id: userId },
+        where: { house_id: houseIds },
         include: [
             {
                 model: db.Bill,
@@ -137,6 +147,7 @@ const getMemberBills = async (userId, societyId) => {
         order: [['created_at', 'DESC']]
     });
 };
+
 
 module.exports = {
     createBill,

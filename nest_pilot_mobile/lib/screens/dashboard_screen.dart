@@ -7,7 +7,9 @@ import '../services/notification_service.dart';
 import 'notification_list_screen.dart';
 import 'login_screen.dart';
 import 'super_admin/society_create_screen.dart';
-import 'super_admin/stubs.dart';
+import 'super_admin/building_create_screen.dart';
+import 'super_admin/flat_create_screen.dart';
+import 'super_admin/flats_list_screen.dart';
 import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
@@ -102,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NestPilot'),
+        title: const Text('Smart Nivaas'),
         actions: [
           Stack(
             alignment: Alignment.center,

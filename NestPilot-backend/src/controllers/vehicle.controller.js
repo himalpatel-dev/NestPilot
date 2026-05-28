@@ -27,8 +27,24 @@ const addVehicle = async (req, res, next) => {
 
 const getMyVehicles = async (req, res, next) => {
     try {
+        const userHouses = await db.UserHouseMapping.findAll({
+            where: { user_id: req.user.id, is_active: true },
+            attributes: ['house_id']
+        });
+        const houseIds = userHouses.map(uh => uh.house_id);
+
+        if (houseIds.length === 0) {
+            return res.status(200).json(new ApiResponse(200, []));
+        }
+
+        const houseMappings = await db.UserHouseMapping.findAll({
+            where: { house_id: houseIds, is_active: true },
+            attributes: ['user_id']
+        });
+        const userIds = [...new Set(houseMappings.map(hm => hm.user_id))];
+
         const vehicles = await db.Vehicle.findAll({
-            where: { user_id: req.user.id, is_active: true }
+            where: { user_id: userIds, is_active: true }
         });
         res.status(200).json(new ApiResponse(200, vehicles));
     } catch (e) { next(e); }
@@ -36,8 +52,20 @@ const getMyVehicles = async (req, res, next) => {
 
 const deleteVehicle = async (req, res, next) => {
     try {
+        const userHouses = await db.UserHouseMapping.findAll({
+            where: { user_id: req.user.id, is_active: true },
+            attributes: ['house_id']
+        });
+        const houseIds = userHouses.map(uh => uh.house_id);
+
+        const houseMappings = await db.UserHouseMapping.findAll({
+            where: { house_id: houseIds, is_active: true },
+            attributes: ['user_id']
+        });
+        const userIds = [...new Set(houseMappings.map(hm => hm.user_id))];
+
         const vehicle = await db.Vehicle.findOne({
-            where: { id: req.params.id, user_id: req.user.id }
+            where: { id: req.params.id, user_id: userIds }
         });
         if (!vehicle) throw new ApiError(404, 'Vehicle not found');
 

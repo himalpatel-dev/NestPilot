@@ -10,18 +10,26 @@ class SocketService {
 
   IO.Socket? socket;
   bool _isInitializing = false;
-  final _initCompleter = Completer<void>();
+  Completer<void>? _initCompleter;
 
   Future<void> initSocket() async {
     if (socket != null && socket!.connected) return;
-    if (_isInitializing) return _initCompleter.future;
+    if (_isInitializing && _initCompleter != null) return _initCompleter!.future;
 
     _isInitializing = true;
+    _initCompleter = Completer<void>();
     try {
       final user = await AuthService().getMe();
       if (user == null) {
         _isInitializing = false;
+        if (!_initCompleter!.isCompleted) _initCompleter!.complete();
         return;
+      }
+
+      // Clean up any existing socket connection
+      if (socket != null) {
+        socket?.disconnect();
+        socket?.destroy();
       }
 
       socket = IO.io(
@@ -35,16 +43,16 @@ class SocketService {
       socket?.connect();
 
       socket?.onConnect((_) {
-        print('Socket connected');
+        print('Socket connected for user_${user.id}');
         socket?.emit('join', 'user_${user.id}');
       });
 
       socket?.onDisconnect((_) => print('Socket disconnected'));
 
-      if (!_initCompleter.isCompleted) _initCompleter.complete();
+      if (!_initCompleter!.isCompleted) _initCompleter!.complete();
     } catch (e) {
       print('Socket init error: $e');
-      if (!_initCompleter.isCompleted) _initCompleter.completeError(e);
+      if (!_initCompleter!.isCompleted) _initCompleter!.completeError(e);
     } finally {
       _isInitializing = false;
     }
@@ -52,7 +60,10 @@ class SocketService {
 
   void disconnect() {
     socket?.disconnect();
+    socket?.destroy();
     socket = null; // Clear socket instance
+    _isInitializing = false;
+    _initCompleter = null;
   }
 
   void on(String event, Function(dynamic) callback) {

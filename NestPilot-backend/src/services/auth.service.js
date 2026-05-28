@@ -7,7 +7,12 @@ const login = async (mobile) => {
         where: { mobile },
         include: [
             { model: db.Role },
-            { model: db.Society }
+            { model: db.Society },
+            {
+                model: db.House,
+                through: { attributes: ['relation_type'] },
+                include: [{ model: db.Building }]
+            }
         ]
     });
 

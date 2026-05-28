@@ -12,12 +12,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NestPilot',
+      title: 'Smart Nivaas',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          primary: Colors.blue.shade700,
+          seedColor: const Color(0xFF6366F1), // Premium Indigo
+          primary: const Color(0xFF4F46E5),
+          secondary: const Color(0xFF0EA5E9), // Sky Blue
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
@@ -26,9 +27,27 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
         cardTheme: CardThemeData(
-          elevation: 2,
+          elevation: 3,
+          shadowColor: const Color(0xFF6366F1).withOpacity(0.08),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
           ),
         ),
       ),

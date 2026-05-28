@@ -11,6 +11,15 @@ class AppTextField extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final void Function(String)? onChanged;
+  
+  // Customization styling options for premium dark & glass layouts
+  final Color? fillColor;
+  final Color? textColor;
+  final Color? labelColor;
+  final Color? prefixIconColor;
+  final Color? enabledBorderColor;
+  final Color? focusedBorderColor;
+  final TextStyle? textStyle;
 
   const AppTextField({
     super.key,
@@ -24,10 +33,19 @@ class AppTextField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.onChanged,
+    this.fillColor,
+    this.textColor,
+    this.labelColor,
+    this.prefixIconColor,
+    this.enabledBorderColor,
+    this.focusedBorderColor,
+    this.textStyle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lColor = labelColor;
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
@@ -36,19 +54,28 @@ class AppTextField extends StatelessWidget {
       maxLines: maxLines,
       maxLength: maxLength,
       onChanged: onChanged,
+      style: textStyle ?? (textColor != null ? TextStyle(color: textColor) : null),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: lColor != null ? TextStyle(color: lColor) : null,
         hintText: hint,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        hintStyle: lColor != null ? TextStyle(color: lColor.withOpacity(0.6)) : null,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: prefixIconColor ?? theme.colorScheme.primary) : null,
+        filled: true,
+        fillColor: fillColor ?? theme.inputDecorationTheme.fillColor ?? Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: enabledBorderColor ?? Colors.grey.shade300),
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: enabledBorderColor ?? Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
+            color: focusedBorderColor ?? theme.colorScheme.primary,
             width: 2,
           ),
         ),

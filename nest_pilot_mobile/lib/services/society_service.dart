@@ -56,22 +56,42 @@ class SocietyService {
     return response['success'] ?? false;
   }
 
-  Future<bool> createBuilding(String societyId, String name) async {
+  Future<bool> createBuilding({
+    required String societyId,
+    required String name,
+    String? blocks,
+    String? wings,
+    int floorsCount = 0,
+  }) async {
     final response = await _apiService.post(
       ApiEndpoints.societyBuildings(societyId),
-      {'name': name},
+      {
+        'name': name,
+        'blocks': blocks,
+        'wings': wings,
+        'floors_count': floorsCount,
+      },
     );
     return response['success'] ?? false;
   }
 
-  Future<bool> createFlat(
-    String buildingId,
-    String number,
-    String? floor,
-  ) async {
+  Future<bool> createFlat({
+    required String buildingId,
+    required String number,
+    int? floor,
+    String? wing,
+    String unitType = 'FLAT',
+    double? areaSqft,
+  }) async {
     final response = await _apiService.post(
       ApiEndpoints.buildingFlats(buildingId),
-      {'number': number, 'floor': floor},
+      {
+        'house_no': number,
+        'floor_no': floor ?? 0,
+        'wing': wing,
+        'unit_type': unitType,
+        'area_sqft': areaSqft,
+      },
     );
     return response['success'] ?? false;
   }

@@ -4,6 +4,16 @@ const createComplaint = async (data, file) => {
     if (file) {
         data.image_path = file.path;
     }
+
+    if (!data.house_id) {
+        const mapping = await db.UserHouseMapping.findOne({
+            where: { user_id: data.created_by, is_active: true }
+        });
+        if (mapping) {
+            data.house_id = mapping.house_id;
+        }
+    }
+
     const complaint = await db.Complaint.create(data);
 
     // Notify Society Admins
@@ -51,7 +61,15 @@ const createComplaint = async (data, file) => {
 const getComplaints = async (user, societyId) => {
     const where = { society_id: societyId };
     if (user.Role.code === 'MEMBER') {
-        where.created_by = user.id;
+        const userHouses = await db.UserHouseMapping.findAll({
+            where: { user_id: user.id, is_active: true },
+            attributes: ['house_id']
+        });
+        const houseIds = userHouses.map(uh => uh.house_id);
+        where[db.Sequelize.Op.or] = [
+            { house_id: houseIds },
+            { created_by: user.id }
+        ];
     }
 
     return db.Complaint.findAll({
@@ -72,35 +90,45 @@ const updateStatus = async (id, status, societyId, currentUserId) => {
     complaint.status = status;
     await complaint.save();
 
-    // Notify Creator if status updated by someone else
-    // Notify Creator and Admins
+    // Notify Creator and co-residents if status updated by someone else
     try {
         const io = require('../utils/socket').getIo();
 
-        // 1. Notify Creator (if not self)
-        if (String(complaint.created_by) !== String(currentUserId)) {
-            await db.Notification.create({
-                user_id: complaint.created_by,
+        let houseUserIds = [];
+        if (complaint.house_id) {
+            const mappings = await db.UserHouseMapping.findAll({
+                where: { house_id: complaint.house_id, is_active: true },
+                attributes: ['user_id']
+            });
+            houseUserIds = mappings.map(m => m.user_id).filter(uid => String(uid) !== String(currentUserId));
+        } else {
+            if (String(complaint.created_by) !== String(currentUserId)) {
+                houseUserIds = [complaint.created_by];
+            }
+        }
+
+        if (houseUserIds.length > 0) {
+            const notifications = houseUserIds.map(uid => ({
+                user_id: uid,
                 society_id: societyId,
                 type: 'COMPLAINT',
                 title: 'Complaint Status Updated',
                 message: `Your complaint status has been updated to ${status}`,
                 reference_id: complaint.id,
                 is_read: false
-            });
+            }));
+            await db.Notification.bulkCreate(notifications);
 
-            // Notification
-            io.to(`user_${complaint.created_by}`).emit('new_notification', {
-                title: 'Complaint Status Updated',
-                message: `Your complaint status has been updated to ${status}`,
-                type: 'COMPLAINT'
-            });
-
-            // Real-time Status Update
-            console.log(`Emitting complaint_status_updated for complaint ${id} to user_${complaint.created_by} with status ${status}`);
-            io.to(`user_${complaint.created_by}`).emit('complaint_status_updated', {
-                complaint_id: id,
-                status: status
+            houseUserIds.forEach(uid => {
+                io.to(`user_${uid}`).emit('new_notification', {
+                    title: 'Complaint Status Updated',
+                    message: `Your complaint status has been updated to ${status}`,
+                    type: 'COMPLAINT'
+                });
+                io.to(`user_${uid}`).emit('complaint_status_updated', {
+                    complaint_id: id,
+                    status: status
+                });
             });
         }
 
@@ -145,83 +173,68 @@ const addComment = async (complaintId, userId, message) => {
     if (complaint) {
         let title = 'New Comment on Complaint';
         let msg = `New comment: ${message}`;
-        let targetUserId = null;
 
-        // If comment by Creator -> Notify Admins?
-        // If comment by Admin -> Notify Creator?
+        // Get commenter details to check role
+        const commenter = await db.User.findByPk(userId, { include: [db.Role] });
+        const isCommenterAdmin = commenter && (commenter.Role.code === 'SOCIETY_ADMIN' || commenter.Role.code === 'SUPER_ADMIN');
 
-        // Simpler: If commenter != creator, notify creator.
-        if (String(userId) !== String(complaint.created_by)) {
-            targetUserId = complaint.created_by;
-        } else {
-            // Commenter IS creator. Notify Admins.
-            try {
-                const adminUsers = await db.User.findAll({
-                    where: { society_id: complaint.society_id, status: 'active' },
-                    include: [{ model: db.Role, where: { code: 'SOCIETY_ADMIN' } }]
-                });
+        let usersToNotify = [];
+        let adminsToNotify = [];
 
-                if (adminUsers.length > 0) {
-                    // Filter admins who are NOT the commenter
-                    const notifyAdmins = adminUsers.filter(a => String(a.id) !== String(userId));
-
-                    if (notifyAdmins.length > 0) {
-                        const notifications = notifyAdmins.map(admin => ({
-                            user_id: admin.id,
-                            society_id: complaint.society_id,
-                            type: 'COMPLAINT',
-                            title: title,
-                            message: msg,
-                            reference_id: complaint.id,
-                            is_read: false
-                        }));
-                        await db.Notification.bulkCreate(notifications);
-
-                        const io = require('../utils/socket').getIo();
-                        notifyAdmins.forEach(admin => {
-                            // Emit Notification
-                            io.to(`user_${admin.id}`).emit('new_notification', {
-                                title: title,
-                                message: msg,
-                                type: 'COMPLAINT'
-                            });
-                            // Emit New Comment Data for Real-time Chat
-                            io.to(`user_${admin.id}`).emit('new_comment', {
-                                complaint_id: complaintId,
-                                comment: fullComment
-                            });
-                        });
-                    }
-                }
-            } catch (e) { console.error("Comment Notification Error:", e); }
-            return fullComment;
+        // 1. Determine admins to notify
+        if (!isCommenterAdmin) {
+            const adminUsers = await db.User.findAll({
+                where: { society_id: complaint.society_id, status: 'active' },
+                include: [{ model: db.Role, where: { code: 'SOCIETY_ADMIN' } }]
+            });
+            adminsToNotify = adminUsers.filter(a => String(a.id) !== String(userId));
         }
 
-        if (targetUserId) {
+        // 2. Determine house residents to notify
+        if (complaint.house_id) {
+            const mappings = await db.UserHouseMapping.findAll({
+                where: { house_id: complaint.house_id, is_active: true },
+                attributes: ['user_id']
+            });
+            usersToNotify = mappings.map(m => m.user_id).filter(uid => String(uid) !== String(userId));
+        } else {
+            // Fallback if no house is associated
+            if (String(complaint.created_by) !== String(userId)) {
+                usersToNotify = [complaint.created_by];
+            }
+        }
+
+        // Combine into arrays for bulk insertion and socket emissions
+        const allRecipientIds = [...new Set([...usersToNotify, ...adminsToNotify.map(a => a.id)])];
+
+        if (allRecipientIds.length > 0) {
             try {
-                await db.Notification.create({
-                    user_id: targetUserId,
+                const notifications = allRecipientIds.map(uid => ({
+                    user_id: uid,
                     society_id: complaint.society_id,
                     type: 'COMPLAINT',
                     title: title,
                     message: msg,
                     reference_id: complaint.id,
                     is_read: false
-                });
+                }));
+                await db.Notification.bulkCreate(notifications);
 
                 const io = require('../utils/socket').getIo();
-                // Emit Notification
-                io.to(`user_${targetUserId}`).emit('new_notification', {
-                    title: title,
-                    message: msg,
-                    type: 'COMPLAINT'
+                allRecipientIds.forEach(uid => {
+                    io.to(`user_${uid}`).emit('new_notification', {
+                        title: title,
+                        message: msg,
+                        type: 'COMPLAINT'
+                    });
+                    io.to(`user_${uid}`).emit('new_comment', {
+                        complaint_id: complaintId,
+                        comment: fullComment
+                    });
                 });
-                // Emit New Comment Data for Real-time Chat
-                io.to(`user_${targetUserId}`).emit('new_comment', {
-                    complaint_id: complaintId,
-                    comment: fullComment
-                });
-            } catch (e) { console.error("Comment Notification Error:", e); }
+            } catch (e) {
+                console.error("Comment Notification Error:", e);
+            }
         }
     }
     return fullComment;

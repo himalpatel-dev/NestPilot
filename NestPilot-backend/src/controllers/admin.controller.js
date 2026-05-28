@@ -9,7 +9,13 @@ const getPendingUsers = async (req, res, next) => {
                 society_id: req.user.society_id,
                 status: 'pending'
             },
-            include: [db.Role]
+            include: [
+                { model: db.Role },
+                {
+                    model: db.UserHouseMapping,
+                    include: [db.House]
+                }
+            ]
         });
         res.status(200).json(new ApiResponse(200, users));
     } catch (e) { next(e); }

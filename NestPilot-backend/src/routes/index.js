@@ -3,6 +3,7 @@ const router = express.Router();
 
 const authRoutes = require('./auth.routes');
 const societyRoutes = require('./society.routes');
+const buildingRoutes = require('./building.routes');
 const adminRoutes = require('./admin.routes');
 const noticeRoutes = require('./notice.routes');
 const complaintRoutes = require('./complaint.routes');
@@ -19,6 +20,8 @@ const notificationRoutes = require('./notification.routes');
 
 router.use('/auth', authRoutes);
 router.use('/society', societyRoutes);
+router.use('/societies', societyRoutes);
+router.use('/buildings', buildingRoutes);
 router.use('/admin', adminRoutes);
 router.use('/notices', noticeRoutes);
 router.use('/complaints', complaintRoutes);

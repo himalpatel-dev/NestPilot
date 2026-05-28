@@ -10,6 +10,7 @@ class UserModel {
   final String? flatId;
   final String? relationType;
   final String? flatNumber;
+  final String? societyName;
 
   UserModel({
     required this.id,
@@ -23,6 +24,7 @@ class UserModel {
     this.flatId,
     this.relationType,
     this.flatNumber,
+    this.societyName,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,31 @@ class UserModel {
       roleCode = json['Role']['code'].toString();
     } else {
       roleCode = (json['role'] ?? json['role_code'] ?? '').toString();
+    }
+
+    String? flatNum = json['flatNumber'] ?? json['flat_number'];
+    if (flatNum == null) {
+      final houses = json['Houses'] ?? json['houses'];
+      if (houses != null && (houses as List).isNotEmpty) {
+        flatNum = houses[0]['house_no']?.toString();
+      }
+    }
+    if (flatNum == null) {
+      final mappings = json['UserHouseMappings'] ?? json['user_house_mappings'];
+      if (mappings != null && (mappings as List).isNotEmpty) {
+        final house = mappings[0]['House'] ?? mappings[0]['house'];
+        if (house != null) {
+          flatNum = house['house_no']?.toString();
+        }
+      }
+    }
+
+    String? socName = json['societyName'] ?? json['society_name'];
+    if (socName == null) {
+      final soc = json['Society'] ?? json['society'];
+      if (soc != null) {
+        socName = soc['name']?.toString();
+      }
     }
 
     return UserModel(
@@ -45,7 +72,8 @@ class UserModel {
       buildingId: (json['buildingId'] ?? json['building_id'])?.toString(),
       flatId: (json['flatId'] ?? json['flat_id'])?.toString(),
       relationType: json['relationType'] ?? json['relation_type'],
-      flatNumber: json['flatNumber'] ?? json['flat_number'],
+      flatNumber: flatNum,
+      societyName: socName,
     );
   }
 
@@ -62,6 +90,7 @@ class UserModel {
       'flatId': flatId,
       'relationType': relationType,
       'flatNumber': flatNumber,
+      'societyName': societyName,
     };
   }
 }

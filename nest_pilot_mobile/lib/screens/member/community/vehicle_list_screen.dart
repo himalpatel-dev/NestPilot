@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
+import 'package:nest_pilot_mobile/services/auth_service.dart';
 
 class VehicleListScreen extends StatefulWidget {
   const VehicleListScreen({super.key});
@@ -40,6 +41,26 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     final numberController = TextEditingController();
     final modelController = TextEditingController();
     String type = 'CAR';
+
+    // Fetch user details to construct sticker number
+    final user = await AuthService().getMe();
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Could not retrieve user profile.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final flatNo = user.flatNumber ?? 'N/A';
+    final societyId = user.societyId ?? 'N/A';
+    final userId = user.id;
+    final stickerNumber = '$flatNo-$societyId-$userId';
+
+    if (!mounted) return;
 
     await showDialog(
       context: context,
@@ -87,6 +108,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                     'vehicle_number': numberController.text,
                     'model': modelController.text,
                     'type': type,
+                    'sticker_number': stickerNumber,
                   });
                   Navigator.pop(context);
                   _fetchVehicles();
