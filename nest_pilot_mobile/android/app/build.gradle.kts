@@ -42,3 +42,11 @@ android {
 flutter {
     source = "../.."
 }
+
+tasks.configureEach {
+    if (name.startsWith("output") && name.endsWith("AppLinkSettings")) {
+        val variant = name.removePrefix("output").removeSuffix("AppLinkSettings")
+        dependsOn("process${variant}MainManifest")
+    }
+}
+

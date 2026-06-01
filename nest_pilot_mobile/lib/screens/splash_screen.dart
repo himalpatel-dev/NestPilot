@@ -192,7 +192,9 @@ class _SplashScreenState extends State<SplashScreen> {
                       borderRadius: BorderRadius.circular(4),
                       child: const LinearProgressIndicator(
                         backgroundColor: Colors.white10,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF818CF8)),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF818CF8),
+                        ),
                         minHeight: 4,
                       ),
                     ),
