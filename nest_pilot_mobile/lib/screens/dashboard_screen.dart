@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -17,9 +16,7 @@ import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
-import 'secretary/payment_mark_screen.dart';
 import 'secretary/amenity_management_screen.dart';
-import 'secretary/vehicle_management_screen.dart';
 import 'secretary/member_list_screen.dart';
 import 'member/notice_list_screen.dart';
 import 'security/security_dashboard_screen.dart';
@@ -27,15 +24,14 @@ import 'security/current_visitors_screen.dart';
 import 'common/visitor_report_screen.dart';
 import 'member/complaint_list_screen.dart';
 import 'member/bills_list_screen.dart';
-import 'member/ledger_screen.dart';
 import 'member/community/visitor_management_screen.dart';
-import 'member/community/vehicle_list_screen.dart';
 import 'member/community/amenity_booking_screen.dart';
 import 'member/community/staff_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
-import 'member/community/document_list_screen.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/dashboard_cards.dart';
+import '../theme/app_bottom_nav.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -48,8 +44,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _unreadCount = 0;
   double _outstandingAmount = 0.0;
-  DateTime _dueDate = DateTime(2024, 6, 15);
   bool _loadingBills = false;
+  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -106,14 +102,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             .toList();
         if (pending.isNotEmpty) {
           double total = 0;
-          DateTime earliest = pending.first.dueDate;
           for (final b in pending) {
             total += b.amount;
-            if (b.dueDate.isBefore(earliest)) earliest = b.dueDate;
           }
           setState(() {
             _outstandingAmount = total;
-            _dueDate = earliest;
           });
         } else {
           setState(() => _outstandingAmount = 0.0);
@@ -160,13 +153,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       widget.user.role == UserRoles.societyAdmin;
   bool get _isMember => widget.user.role == UserRoles.member;
   bool get _isSecurity => widget.user.role == UserRoles.securityGuard;
+  bool get _isSuperAdmin => widget.user.role == UserRoles.superAdmin;
 
   // ─── Profile sheet ──────────────────────────────────────────────────────────
 
   void _showProfileSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.dashBg,
+      backgroundColor: const Color(0xFF111111),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -227,12 +221,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 4),
               Text(
                 _roleLabel(widget.user.role),
-                style: const TextStyle(color: AppColors.white, fontSize: 13),
+                style: TextStyle(
+                  color: AppColors.white.withValues(alpha: 0.60),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 widget.user.mobile,
-                style: const TextStyle(color: AppColors.white, fontSize: 13),
+                style: TextStyle(
+                  color: AppColors.white.withValues(alpha: 0.60),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 28),
               SizedBox(
@@ -285,7 +285,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
@@ -293,7 +292,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.dashBg,
+        backgroundColor: const Color(0xFF0A0A0A),
+        bottomNavigationBar: AppBottomNav(
+          selectedIndex: _selectedTab,
+          bottomPadding: bottomPad,
+          onTap: (i) {
+            setState(() => _selectedTab = i);
+            _onNavTap(i);
+          },
+          items: const [
+            AppNavItem(Icons.home_rounded, 'Home'),
+            AppNavItem(Icons.people_rounded, 'Community'),
+            AppNavItem(Icons.apps_rounded, 'Services'),
+            AppNavItem(Icons.account_balance_wallet_rounded, 'Payments'),
+            AppNavItem(Icons.person_rounded, 'Profile'),
+          ],
+        ),
         body: SafeArea(
           top: false,
           bottom: false,
@@ -309,21 +323,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               slivers: [
                 SliverToBoxAdapter(child: _buildHero()),
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPad + 40),
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 24),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      if (_isAdmin) ...[
-                        _buildStatsRow(),
-                        const SizedBox(height: 24),
-                      ],
-                      _buildSectionLabel(
-                        _isSecurity ? 'On Duty' : 'Resident Corner',
-                      ),
+                      _buildMyOverview(),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Quick Actions'),
                       const SizedBox(height: 14),
-                      _buildRoleMenu(),
+                      _buildQuickActions(),
+                      if (_isMember || _isAdmin) ...[
+                        const SizedBox(height: 24),
+                        _buildNoticeAndEvent(),
+                      ],
                       if (_isMember) ...[
                         const SizedBox(height: 24),
-                        _buildPromoCard(),
+                        _buildSectionHeader(
+                          'My Complaints',
+                          onViewAll: () => _go(const ComplaintListScreen()),
+                        ),
+                        const SizedBox(height: 14),
+                        _buildRecentComplaints(),
                       ],
                     ]),
                   ),
@@ -336,273 +355,179 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Full-bleed hero ────────────────────────────────────────────────────────
+  // ─── Hero ───────────────────────────────────────────────────────────────────
 
   Widget _buildHero() {
-    String line1, line2, subtext, ctaLabel;
-    IconData ctaIcon;
-    VoidCallback ctaAction;
-
-    if (_isMember) {
-      final hasDue = _outstandingAmount > 0;
-      line1 = 'Your community,';
-      line2 = hasDue ? 'bills pending.' : 'all cleared.';
-      subtext = hasDue
-          ? 'Pay before the due date to avoid penalties.'
-          : 'Everything you need, right here.';
-      ctaLabel = hasDue ? 'View & Pay Bills' : 'View Bills';
-      ctaIcon = Icons.receipt_long_rounded;
-      ctaAction = () =>
-          _go(const BillsListScreen(), refresh: _fetchOutstandingBills);
-    } else if (_isSecurity) {
-      line1 = 'Stay alert,';
-      line2 = 'keep gates safe.';
-      subtext = 'Log every visitor, every time.';
-      ctaLabel = 'Visitor Entry';
-      ctaIcon = Icons.directions_run_rounded;
-      ctaAction = () => _go(const SecurityDashboardScreen());
-    } else {
-      line1 = 'Your society,';
-      line2 = 'well managed.';
-      subtext = 'Everything you need, in one place.';
-      ctaLabel = 'Manage Notices';
-      ctaIcon = Icons.campaign_rounded;
-      ctaAction = () => _go(const NoticeCreateScreen());
-    }
-
+    final screenWidth = MediaQuery.of(context).size.width;
     final firstName = widget.user.fullName.split(' ').first;
-    final topPad = MediaQuery.of(context).padding.top;
+    final hasFlat = (widget.user.flatNumber ?? '').isNotEmpty;
+    final hasSociety = (widget.user.societyName ?? '').isNotEmpty;
 
-    return SizedBox(
-      height: 380 + topPad,
+    return Container(
+      color: const Color(0xFF0A0A0A),
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          // ① Full-bleed society photo
-          Image.asset(
-            'dash1.png',
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-          ),
-
-          // ② Cinematic gradient — clear window in middle, black at bottom
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: [0.0, 0.80, 0.50, 1.20],
+          // Building image — right half, fades in from left edge
+          Positioned(
+            right: 0,
+            top: 20,
+            bottom: -40,
+            width: screenWidth * 0.55,
+            child: ShaderMask(
+              shaderCallback: (rect) => const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.bottomRight,
+                stops: [0.0, 0.80, 0.90, 1.0],
                 colors: [
-                  AppColors.heroOverlayMid,
-                  AppColors.transparent,
-                  AppColors.heroOverlayMid,
-                  AppColors.black,
+                  Colors.transparent,
+                  Color.fromARGB(255, 0, 0, 0),
+                  Colors.white,
+                  Colors.white,
+                ],
+              ).createShader(rect),
+              blendMode: BlendMode.dstIn,
+              child: Image.asset(
+                'assets/dash2.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          // Top fade — darkens status bar / nav row area
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: 200,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [const Color(0xFF0A0A0A), Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+          // Bottom fade so stats section blends seamlessly
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 60,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, const Color(0xFF0A0A0A)],
+                ),
+              ),
+            ),
+          ),
+          // Content (determines Stack height)
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _showProfileSheet,
+                        child: Icon(
+                          Icons.menu_rounded,
+                          color: AppColors.white.withValues(alpha: 0.9),
+                          size: 26,
+                        ),
+                      ),
+                      const Spacer(),
+                      _buildNotifBell(),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Text(
+                        '${_getGreeting()}, $firstName',
+                        style: TextStyle(
+                          color: AppColors.white.withValues(alpha: 0.85),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text('👋', style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasFlat
+                        ? 'Flat ${widget.user.flatNumber}'
+                        : _roleLabel(widget.user.role),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      height: 1.1,
+                    ),
+                  ),
+                  if (hasSociety)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        widget.user.societyName!,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-
-          // ③ Content
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, topPad + 14, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Nav bar
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: _showProfileSheet,
-                      child: _GlassChip(
-                        width: 40,
-                        height: 40,
-                        radius: 20,
-                        tint: 0.14,
-                        child: Icon(
-                          Icons.person_outline_rounded,
-                          color: AppColors.white.withValues(alpha: 0.9),
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _circleIconBtn(
-                          icon: Icons.notifications_none_rounded,
-                          onTap: _showNotifications,
-                        ),
-                        if (_unreadCount > 0)
-                          Positioned(
-                            right: 4,
-                            top: 4,
-                            child: Container(
-                              width: 9,
-                              height: 9,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.black,
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.65,
-                                    ),
-                                    blurRadius: 6,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // Greeting row
-                Row(
-                  children: [
-                    Text(
-                      '${_getGreeting()}, $firstName',
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text('👋', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Headline — line 1 white, line 2 first-word accent
-                Text(
-                  line1,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                _heroLine2(line2),
-
-                const SizedBox(height: 10),
-
-                // Subtitle
-                Text(
-                  subtext,
-                  style: TextStyle(
-                    color: AppColors.white.withValues(alpha: 0.58),
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-                _buildHeroStatusPill(),
-                const SizedBox(height: 20),
-
-                // CTA button
-                GestureDetector(
-                  onTap: ctaAction,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.primaryDark],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.40),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(ctaIcon, color: AppColors.black, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            ctaLabel,
-                            style: const TextStyle(
-                              color: AppColors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.black.withValues(alpha: 0.18),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: AppColors.black,
-                            size: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  // First word of the second headline line rendered in accent, rest white.
-  Widget _heroLine2(String text) {
-    final words = text.split(' ');
-    return RichText(
-      text: TextSpan(
+  Widget _buildNotifBell() {
+    return GestureDetector(
+      onTap: _showNotifications,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          TextSpan(
-            text: words.first,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-              letterSpacing: -0.5,
-            ),
+          Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.white.withValues(alpha: 0.9),
+            size: 26,
           ),
-          if (words.length > 1)
-            TextSpan(
-              text: ' ${words.skip(1).join(' ')}',
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                height: 1.1,
-                letterSpacing: -0.5,
+          if (_unreadCount > 0)
+            Positioned(
+              right: 1,
+              top: 1,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF0A0A0A),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.60),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -610,605 +535,789 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _circleIconBtn({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) => GestureDetector(
-    onTap: onTap,
-    child: _GlassChip(
-      width: 40,
-      height: 40,
-      radius: 20,
-      tint: 0.14,
-      child: Icon(
-        icon,
-        color: AppColors.white.withValues(alpha: 0.9),
-        size: 20,
-      ),
-    ),
-  );
+  // ─── My Overview (stats grid) ────────────────────────────────────────────────
 
-  // Status pill shown below headline — bills for member, role tag for others.
-  Widget _buildHeroStatusPill() {
-    if (_isMember) {
-      if (_loadingBills) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.10)),
-          ),
-          child: const SizedBox(
-            height: 14,
-            width: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.6,
-              color: AppColors.primary,
+  Widget _buildMyOverview() => _buildStatsGrid();
+
+  Widget _buildStatsGrid() {
+    final cards = _getStatCards();
+    return Row(
+      children: [
+        for (int i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: DashStatCard(
+              icon: cards[i].icon,
+              color: cards[i].color,
+              value: cards[i].value,
+              label: cards[i].label,
+              onTap: cards[i].onTap,
             ),
           ),
-        );
-      }
-      final hasDue = _outstandingAmount > 0;
-      final currency = NumberFormat.currency(
-        locale: 'HI',
-        symbol: '₹',
-        decimalDigits: 0,
-      );
-      final tint = hasDue ? AppColors.warning : AppColors.success;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        ],
+      ],
+    );
+  }
+
+  List<_StatCard> _getStatCards() {
+    final currency = NumberFormat.currency(
+      locale: 'HI',
+      symbol: '₹',
+      decimalDigits: 0,
+    );
+
+    if (_isMember) {
+      return [
+        _StatCard(
+          icon: Icons.account_balance_wallet_outlined,
+          color: AppColors.accentAmber,
+          value: _loadingBills
+              ? '...'
+              : (_outstandingAmount > 0
+                    ? currency.format(_outstandingAmount)
+                    : '₹0'),
+          label: 'Maintenance Due',
+          onTap: () =>
+              _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
+        ),
+        _StatCard(
+          icon: Icons.person_pin_circle_outlined,
+          color: AppColors.accentBlue,
+          value: '0',
+          label: 'Visitors Today',
+          onTap: () => _go(const VisitorManagementScreen()),
+        ),
+        _StatCard(
+          icon: Icons.notifications_outlined,
+          color: AppColors.accentPurple,
+          value: '$_unreadCount',
+          label: 'Unread Notices',
+          onTap: _showNotifications,
+        ),
+        _StatCard(
+          icon: Icons.report_problem_outlined,
+          color: AppColors.accentRed,
+          value: '0',
+          label: 'Open Complaints',
+          onTap: () => _go(const ComplaintListScreen()),
+        ),
+      ];
+    } else if (_isSecurity) {
+      return [
+        _StatCard(
+          icon: Icons.group_outlined,
+          color: AppColors.accentGreen,
+          value: '0',
+          label: 'Inside Now',
+          onTap: () => _go(const CurrentVisitorsScreen()),
+        ),
+        _StatCard(
+          icon: Icons.login_outlined,
+          color: AppColors.accentBlue,
+          value: '0',
+          label: "Today's Entries",
+          onTap: () => _go(const VisitorReportScreen()),
+        ),
+        _StatCard(
+          icon: Icons.notifications_outlined,
+          color: AppColors.accentPurple,
+          value: '$_unreadCount',
+          label: 'Notifications',
+          onTap: _showNotifications,
+        ),
+        _StatCard(
+          icon: Icons.cleaning_services_outlined,
+          color: AppColors.accentPink,
+          value: '0',
+          label: 'Daily Help',
+          onTap: () => _go(const StaffListScreen()),
+        ),
+      ];
+    } else if (_isSuperAdmin) {
+      return [
+        _StatCard(
+          icon: Icons.business_outlined,
+          color: AppColors.accentOrange,
+          value: '0',
+          label: 'Societies',
+          onTap: () => _go(const SocietyCreateScreen()),
+        ),
+        _StatCard(
+          icon: Icons.apartment_outlined,
+          color: AppColors.accentBlue,
+          value: '0',
+          label: 'Buildings',
+          onTap: () => _go(const BuildingCreateScreen()),
+        ),
+        _StatCard(
+          icon: Icons.door_front_door_outlined,
+          color: AppColors.accentPurple,
+          value: '0',
+          label: 'Flats',
+          onTap: () => _go(const FlatsListScreen()),
+        ),
+        _StatCard(
+          icon: Icons.people_outlined,
+          color: AppColors.accentGreen,
+          value: '0',
+          label: 'Members',
+          onTap: () => _go(const FlatsListScreen()),
+        ),
+      ];
+    } else {
+      return [
+        _StatCard(
+          icon: Icons.person_add_outlined,
+          color: AppColors.accentAmber,
+          value: '0',
+          label: 'Pending',
+          onTap: () => _go(const PendingMembersScreen()),
+        ),
+        _StatCard(
+          icon: Icons.contacts_outlined,
+          color: AppColors.accentBlue,
+          value: '0',
+          label: 'Residents',
+          onTap: () => _go(const MemberListScreen()),
+        ),
+        _StatCard(
+          icon: Icons.notifications_outlined,
+          color: AppColors.accentPurple,
+          value: '$_unreadCount',
+          label: 'Notices',
+          onTap: _showNotifications,
+        ),
+        _StatCard(
+          icon: Icons.report_problem_outlined,
+          color: AppColors.accentRed,
+          value: '0',
+          label: 'Complaints',
+          onTap: () => _go(const ComplaintListScreen()),
+        ),
+      ];
+    }
+  }
+
+  // ─── Quick Actions ───────────────────────────────────────────────────────────
+
+  Widget _buildQuickActions() {
+    final actions = _getQuickActions();
+    return Row(
+      children: [
+        for (int i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: DashActionCard(
+              icon: actions[i].icon,
+              color: actions[i].color,
+              label: actions[i].label,
+              onTap: actions[i].onTap,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<_Action> _getQuickActions() {
+    if (_isMember) {
+      return [
+        _Action(
+          Icons.person_add_outlined,
+          'Invite\nGuest',
+          AppColors.accentBlue,
+          () => _go(const VisitorManagementScreen()),
+        ),
+        _Action(
+          Icons.credit_card_outlined,
+          'Pay\nMaintenance',
+          AppColors.accentGreen,
+          () => _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
+        ),
+        _Action(
+          Icons.campaign_outlined,
+          'Raise\nComplaint',
+          AppColors.accentRed,
+          () => _go(const ComplaintListScreen()),
+        ),
+        _Action(
+          Icons.calendar_today_outlined,
+          'Book\nAmenities',
+          AppColors.accentIndigo,
+          () => _go(const AmenityBookingScreen()),
+        ),
+      ];
+    } else if (_isSecurity) {
+      return [
+        _Action(
+          Icons.directions_run_outlined,
+          'Visitor\nEntry',
+          AppColors.accentOrange,
+          () => _go(const SecurityDashboardScreen()),
+        ),
+        _Action(
+          Icons.history_outlined,
+          'Visitor\nLogs',
+          AppColors.accentBlue,
+          () => _go(const VisitorReportScreen()),
+        ),
+        _Action(
+          Icons.group_outlined,
+          'Inside\nNow',
+          AppColors.accentGreen,
+          () => _go(const CurrentVisitorsScreen()),
+        ),
+        _Action(
+          Icons.cleaning_services_outlined,
+          'Daily\nHelp',
+          AppColors.accentPink,
+          () => _go(const StaffListScreen()),
+        ),
+      ];
+    } else if (_isSuperAdmin) {
+      return [
+        _Action(
+          Icons.business_outlined,
+          'Create\nSociety',
+          AppColors.accentPink,
+          () => _go(const SocietyCreateScreen()),
+        ),
+        _Action(
+          Icons.apartment_outlined,
+          'Add\nBuilding',
+          AppColors.accentBlue,
+          () => _go(const BuildingCreateScreen()),
+        ),
+        _Action(
+          Icons.door_front_door_outlined,
+          'Add\nFlat',
+          AppColors.accentOrange,
+          () => _go(const FlatCreateScreen()),
+        ),
+        _Action(
+          Icons.list_alt_outlined,
+          'Flats\nList',
+          AppColors.accentTeal,
+          () => _go(const FlatsListScreen()),
+        ),
+      ];
+    } else {
+      return [
+        _Action(
+          Icons.person_add_alt_1_outlined,
+          'Pending',
+          AppColors.accentAmber,
+          () => _go(const PendingMembersScreen()),
+        ),
+        _Action(
+          Icons.campaign_outlined,
+          'Notices',
+          AppColors.accentPurple,
+          () => _go(const NoticeCreateScreen()),
+        ),
+        _Action(
+          Icons.add_card_outlined,
+          'Create\nBill',
+          AppColors.accentGreen,
+          () => _go(const BillCreateScreen()),
+        ),
+        _Action(
+          Icons.contacts_outlined,
+          'Residents',
+          AppColors.accentBlue,
+          () => _go(const MemberListScreen()),
+        ),
+      ];
+    }
+  }
+
+  // ─── Notice + Event ──────────────────────────────────────────────────────────
+
+  Widget _buildNoticeAndEvent() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _buildLatestNoticeCard()),
+        const SizedBox(width: 12),
+        Expanded(child: _buildUpcomingEventCard()),
+      ],
+    );
+  }
+
+  Widget _buildLatestNoticeCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Latest Notice',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _go(
+                  _isMember
+                      ? const NoticeListScreen()
+                      : const NoticeCreateScreen(),
+                ),
+                child: const Text(
+                  'View all',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.accentAmber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.campaign_outlined,
+                  color: AppColors.accentAmber,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Water Supply\nMaintenance',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Tomorrow, 10:00 AM\nto 12:00 PM',
+                      style: TextStyle(
+                        color: Color(0x7AFFFFFF),
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: () => _go(
+              _isMember ? const NoticeListScreen() : const NoticeCreateScreen(),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'View Notice',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppColors.primary,
+                    size: 13,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingEventCard() {
+    final now = DateTime.now();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Upcoming Event',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _go(const PollListScreen()),
+                child: const Text(
+                  'View all',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      DateFormat('MMM').format(now).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('dd').format(now),
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Annual General\nMeeting',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Community Hall\n7:00 PM',
+                      style: TextStyle(
+                        color: Color(0x7AFFFFFF),
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: () => _go(const PollListScreen()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'View Event',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppColors.primary,
+                    size: 13,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Recent Complaints ───────────────────────────────────────────────────────
+
+  Widget _buildRecentComplaints() {
+    return Column(
+      children: [
+        _complaintTile(
+          title: 'Lift not working',
+          status: 'In Progress',
+          statusColor: AppColors.accentAmber,
+          date: 'Raised on 20 May, 10:30 AM',
+          id: '#C-1245',
+        ),
+        const SizedBox(height: 10),
+        _complaintTile(
+          title: 'Water Leakage',
+          status: 'Resolved',
+          statusColor: AppColors.accentGreen,
+          date: 'Resolved on 18 May, 09:15 AM',
+          id: '#C-1244',
+        ),
+      ],
+    );
+  }
+
+  Widget _complaintTile({
+    required String title,
+    required String status,
+    required Color statusColor,
+    required String date,
+    required String id,
+  }) {
+    return GestureDetector(
+      onTap: () => _go(const ComplaintListScreen()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: tint.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: tint.withValues(alpha: 0.35)),
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: tint),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.report_problem_outlined,
+                color: statusColor,
+                size: 18,
+              ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    date,
+                    style: TextStyle(
+                      color: AppColors.white.withValues(alpha: 0.42),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  id,
+                  style: TextStyle(
+                    color: AppColors.white.withValues(alpha: 0.35),
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.white.withValues(alpha: 0.28),
+                  size: 20,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Section header ──────────────────────────────────────────────────────────
+
+  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 18,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.50),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
             Text(
-              hasDue
-                  ? '${currency.format(_outstandingAmount)} · due ${DateFormat('dd MMM').format(_dueDate)}'
-                  : 'All cleared',
-              style: TextStyle(
-                color: tint,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
               ),
             ),
           ],
         ),
-      );
+        if (onViewAll != null)
+          GestureDetector(
+            onTap: onViewAll,
+            child: const Text(
+              'View all',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _onNavTap(int index) {
+    if (index == 0) return;
+    Widget? screen;
+    switch (index) {
+      case 1:
+        screen = _isMember
+            ? const NoticeListScreen()
+            : const NoticeCreateScreen();
+        break;
+      case 2:
+        screen = _isMember
+            ? const AmenityBookingScreen()
+            : _isSecurity
+            ? const SecurityDashboardScreen()
+            : const AmenityManagementScreen();
+        break;
+      case 3:
+        screen = _isMember
+            ? const BillsListScreen()
+            : const BillsManageScreen();
+        break;
+      case 4:
+        setState(() => _selectedTab = 0);
+        _showProfileSheet();
+        return;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        _roleLabel(widget.user.role).toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
-        ),
-      ),
-    );
+    if (screen != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen!)).then((
+        _,
+      ) {
+        if (mounted) setState(() => _selectedTab = 0);
+        if (index == 3 && _isMember) _fetchOutstandingBills();
+      });
+    }
   }
 
-  // ─── Stats row (admins only) ─────────────────────────────────────────────────
-
-  Widget _buildStatsRow() {
-    final isSuperAdmin = widget.user.role == UserRoles.superAdmin;
-    final stats = isSuperAdmin
-        ? const [
-            _StatData('Societies', '0', AppColors.accentOrange),
-            _StatData('Buildings', '0', AppColors.accentPurple),
-            _StatData('Flats', '0', AppColors.accentBlue),
-            _StatData('Members', '0', AppColors.accentGreen),
-          ]
-        : const [
-            _StatData('Owners', '0', AppColors.accentOrange),
-            _StatData('Tenants', '0', AppColors.accentPurple),
-            _StatData('Occupied', '0', AppColors.accentBlue),
-            _StatData('Vacant', '0', AppColors.accentGreen),
-          ];
-
-    return Row(
-      children: [
-        for (int i = 0; i < stats.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: _statCard(stats[i])),
-        ],
-      ],
-    );
-  }
-
-  Widget _statCard(_StatData s) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
-      decoration: BoxDecoration(
-        color: AppColors.dashBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.06),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            s.value,
-            style: TextStyle(
-              color: s.color,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            s.label,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.42),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Section label ───────────────────────────────────────────────────────────
-
-  Widget _buildSectionLabel(String title) => Row(
-    children: [
-      Container(
-        width: 3,
-        height: 16,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w800,
-          color: AppColors.white,
-          letterSpacing: 0.2,
-        ),
-      ),
-    ],
-  );
-
-  // ─── Role menus ──────────────────────────────────────────────────────────────
-
-  Widget _buildRoleMenu() {
-    if (widget.user.role == UserRoles.superAdmin) return _superAdminMenu();
-    if (widget.user.role == UserRoles.societyAdmin) return _societyAdminMenu();
-    if (widget.user.role == UserRoles.member) return _memberMenu();
-    if (widget.user.role == UserRoles.securityGuard) return _securityMenu();
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 32),
-      child: Text(
-        'No actions available for your role.',
-        style: TextStyle(color: AppColors.white),
-      ),
-    );
-  }
-
-  Widget _superAdminMenu() => _compactGrid([
-    _Item(
-      Icons.business_outlined,
-      'Create Society',
-      () => _go(const SocietyCreateScreen()),
-      AppColors.accentPink,
-    ),
-    _Item(
-      Icons.apartment_outlined,
-      'Add Building',
-      () => _go(const BuildingCreateScreen()),
-      AppColors.accentBlue,
-    ),
-    _Item(
-      Icons.door_front_door_outlined,
-      'Add Flat',
-      () => _go(const FlatCreateScreen()),
-      AppColors.accentOrange,
-    ),
-    _Item(
-      Icons.list_alt_outlined,
-      'Flats List',
-      () => _go(const FlatsListScreen()),
-      AppColors.accentTeal,
-    ),
-  ]);
-
-  Widget _societyAdminMenu() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _compactGrid([
-        _Item(
-          Icons.person_add_alt_1_outlined,
-          'Pending',
-          () => _go(const PendingMembersScreen()),
-          AppColors.accentAmber,
-        ),
-        _Item(
-          Icons.contacts_outlined,
-          'Residents',
-          () => _go(const MemberListScreen()),
-          AppColors.accentBlue,
-        ),
-        _Item(
-          Icons.campaign_outlined,
-          'Notices',
-          () => _go(const NoticeCreateScreen()),
-          AppColors.accentPurple,
-        ),
-        _Item(
-          Icons.add_card_outlined,
-          'Create Bill',
-          () => _go(const BillCreateScreen()),
-          AppColors.accentGreen,
-        ),
-        _Item(
-          Icons.receipt_long_outlined,
-          'Manage Bills',
-          () => _go(const BillsManageScreen()),
-          AppColors.accentTeal,
-        ),
-        _Item(
-          Icons.payments_outlined,
-          'Payment',
-          () => _go(const PaymentMarkScreen()),
-          AppColors.accentOrange,
-        ),
-        _Item(
-          Icons.report_problem_outlined,
-          'Complaints',
-          () => _go(const ComplaintListScreen()),
-          AppColors.accentRed,
-        ),
-        _Item(
-          Icons.pool_outlined,
-          'Amenities',
-          () => _go(const AmenityManagementScreen()),
-          AppColors.accentIndigo,
-        ),
-      ]),
-      const SizedBox(height: 24),
-      _buildSectionLabel('Society Control'),
-      const SizedBox(height: 14),
-      _compactGrid([
-        _Item(
-          Icons.poll_outlined,
-          'Polls',
-          () => _go(const PollListScreen()),
-          AppColors.accentPurple,
-        ),
-        _Item(
-          Icons.directions_run_outlined,
-          'Visitor Entry',
-          () => _go(const SecurityDashboardScreen()),
-          AppColors.accentOrange,
-        ),
-        _Item(
-          Icons.group_work_outlined,
-          'Visitor Logs',
-          () => _go(const VisitorReportScreen()),
-          AppColors.accentBlue,
-        ),
-        _Item(
-          Icons.directions_car_outlined,
-          'Vehicles',
-          () => _go(const VehicleManagementScreen()),
-          AppColors.accentTeal,
-        ),
-        _Item(
-          Icons.folder_open_outlined,
-          'Documents',
-          () => _go(const DocumentListScreen()),
-          AppColors.accentAmber,
-        ),
-        _Item(
-          Icons.cleaning_services_outlined,
-          'Daily Help',
-          () => _go(const StaffListScreen()),
-          AppColors.accentPink,
-        ),
-      ]),
-    ],
-  );
-
-  Widget _memberMenu() => _compactGrid([
-    _Item(
-      Icons.campaign_outlined,
-      'Notices',
-      () => _go(const NoticeListScreen()),
-      AppColors.accentPurple,
-    ),
-    _Item(
-      Icons.receipt_long_outlined,
-      'Bills',
-      () => _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
-      AppColors.accentOrange,
-    ),
-    _Item(
-      Icons.person_add_outlined,
-      'Visitor Pass',
-      () => _go(const VisitorManagementScreen()),
-      AppColors.accentBlue,
-    ),
-    _Item(
-      Icons.headset_mic_outlined,
-      'Complaints',
-      () => _go(const ComplaintListScreen()),
-      AppColors.accentRed,
-    ),
-    _Item(
-      Icons.calendar_today_outlined,
-      'Amenities',
-      () => _go(const AmenityBookingScreen()),
-      AppColors.accentGreen,
-    ),
-    _Item(
-      Icons.bar_chart_outlined,
-      'Polls',
-      () => _go(const PollListScreen()),
-      AppColors.accentIndigo,
-    ),
-    _Item(
-      Icons.folder_open_outlined,
-      'Documents',
-      () => _go(const DocumentListScreen()),
-      AppColors.accentAmber,
-    ),
-    _Item(
-      Icons.account_balance_wallet_outlined,
-      'Ledger',
-      () => _go(const LedgerScreen()),
-      AppColors.accentTeal,
-    ),
-    _Item(
-      Icons.directions_car_outlined,
-      'Vehicles',
-      () => _go(const VehicleListScreen()),
-      AppColors.accentBrown,
-    ),
-    _Item(
-      Icons.cleaning_services_outlined,
-      'Daily Help',
-      () => _go(const StaffListScreen()),
-      AppColors.accentPink,
-    ),
-  ]);
-
-  Widget _securityMenu() => _compactGrid([
-    _Item(
-      Icons.directions_run_outlined,
-      'Visitor Entry',
-      () => _go(const SecurityDashboardScreen()),
-      AppColors.accentOrange,
-    ),
-    _Item(
-      Icons.history_outlined,
-      'Visitor Logs',
-      () => _go(const VisitorReportScreen()),
-      AppColors.accentBlue,
-    ),
-    _Item(
-      Icons.group_outlined,
-      'Inside Now',
-      () => _go(const CurrentVisitorsScreen()),
-      AppColors.accentGreen,
-    ),
-    _Item(
-      Icons.cleaning_services_outlined,
-      'Daily Help',
-      () => _go(const StaffListScreen()),
-      AppColors.accentPink,
-    ),
-  ]);
-
-  // ─── Compact icon-tile grid ──────────────────────────────────────────────────
-
-  Widget _compactGrid(List<_Item> items) => GridView.count(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    crossAxisCount: 4,
-    mainAxisSpacing: 18,
-    crossAxisSpacing: 10,
-    childAspectRatio: 0.78,
-    children: items.map(_compactTile).toList(),
-  );
-
-  Widget _compactTile(_Item item) => GestureDetector(
-    onTap: item.onTap,
-    behavior: HitTestBehavior.opaque,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 66,
-          height: 66,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.tileSurfaceHigh,
-                AppColors.tileSurfaceMid,
-                AppColors.tileSurfaceLow,
-              ],
-              stops: [0.0, 0.55, 1.0],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.08),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.white.withValues(alpha: 0.04),
-                blurRadius: 1,
-                offset: const Offset(0, 1),
-              ),
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.45),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: Icon(item.icon, color: item.color, size: 26),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          item.label,
-          maxLines: 2,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.white,
-            height: 1.2,
-            letterSpacing: 0.1,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  // ─── Promo card (member only) ────────────────────────────────────────────────
-
-  Widget _buildPromoCard() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.primary, AppColors.primaryDark],
-      ),
-      borderRadius: BorderRadius.circular(22),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.30),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'VISITOR PASS',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.87),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Create Visitor Pass',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Generate a secure pass for your guests',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.65),
-                  fontSize: 12,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 14),
-              GestureDetector(
-                onTap: () => _go(const VisitorManagementScreen()),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.black.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.white.withValues(alpha: 0.20),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Generate Pass',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AppColors.white,
-                        size: 14,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: AppColors.black.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.qr_code_2_rounded,
-            color: AppColors.white,
-            size: 36,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  // ─── Navigation helpers ───────────────────────────────────────────────────────
+  // ─── Navigation helper ───────────────────────────────────────────────────────
 
   void _go(Widget screen, {VoidCallback? refresh}) {
     Navigator.push(
@@ -1220,65 +1329,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ─── Data classes ────────────────────────────────────────────────────────────
 
-class _Item {
+class _StatCard {
   final IconData icon;
+  final Color color;
+  final String value;
   final String label;
   final VoidCallback onTap;
-  final Color color;
-  const _Item(this.icon, this.label, this.onTap, this.color);
-}
-
-/// Reusable frosted-glass surface: backdrop blur + translucent white tint.
-class _GlassChip extends StatelessWidget {
-  final Widget child;
-  final double radius;
-  final double? width;
-  final double? height;
-  final double tint;
-
-  const _GlassChip({
-    required this.child,
-    this.radius = 16,
-    this.width,
-    this.height,
-    this.tint = 0.06,
+  const _StatCard({
+    required this.icon,
+    required this.color,
+    required this.value,
+    required this.label,
+    required this.onTap,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          width: width,
-          height: height,
-          alignment: width != null ? Alignment.center : null,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.white.withValues(alpha: tint),
-                AppColors.white.withValues(alpha: tint * 0.35),
-              ],
-            ),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.08),
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
 }
 
-class _StatData {
+class _Action {
+  final IconData icon;
   final String label;
-  final String value;
   final Color color;
-  const _StatData(this.label, this.value, this.color);
+  final VoidCallback onTap;
+  const _Action(this.icon, this.label, this.color, this.onTap);
 }

@@ -41,6 +41,12 @@ abstract final class AppColors {
   static const Color heroOverlayTop = Color(0x88000000);
   static const Color heroOverlayMid = Color(0xCC000000);
 
+  // Dark component surfaces — nav bar, stat cards, action cards
+  static const Color surfaceElevated = Color(0xFF1C1C1C);
+  static const Color surfaceCard = Color(0xFF181818);
+  static const Color surfaceDeep = Color(0xFF111111);
+  static const Color cardBorderSubtle = Color(0x0FFFFFFF);
+
   // Accent palette — per-module icon colors
   static const Color accentRed = Color(0xFFEF4444);
   static const Color accentBlue = Color(0xFF3B82F6);
