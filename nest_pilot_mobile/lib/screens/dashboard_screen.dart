@@ -35,30 +35,7 @@ import 'member/community/staff_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
 import 'member/community/document_list_screen.dart';
 import '../services/socket_service.dart';
-
-// ─── Theme tokens (matte black + gold) ───────────────────────────────────────
-const _kBg = Color(0xFF000000);
-const _kSurface = Color(0xFF15151B);
-const _kGold = Color.fromARGB(255, 189, 104, 47);
-const _kGoldDeep = Color.fromARGB(255, 228, 106, 31);
-const _kTextHi = Colors.white;
-const _kTextMid = Color(0xCCFFFFFF);
-const _kTextLo = Color(0x80FFFFFF);
-const _kSuccess = Color(0xFF4ADE80);
-const _kDanger = Color(0xFFFF8C42);
-
-// Per-tile accent palette — used only on the small icon chips so each module
-// gets a recognisable color while the rest of the UI stays black + gold.
-const _kRed = Color(0xFFEF4444);
-const _kBlue = Color(0xFF3B82F6);
-const _kGreen = Color(0xFF22C55E);
-const _kOrange = Color(0xFFF97316);
-const _kPurple = Color(0xFFA855F7);
-const _kPink = Color(0xFFEC4899);
-const _kTeal = Color(0xFF14B8A6);
-const _kIndigo = Color(0xFF6366F1);
-const _kAmber = Color(0xFFF59E0B);
-const _kBrown = Color(0xFF8B5A3C);
+import '../theme/app_colors.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -189,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showProfileSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _kSurface,
+      backgroundColor: AppColors.dashBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -203,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: AppColors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -214,13 +191,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [_kGold, _kGoldDeep],
+                    colors: [AppColors.primary, AppColors.primaryDark],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _kGold.withValues(alpha: 0.35),
+                      color: AppColors.primary.withValues(alpha: 0.35),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -234,7 +211,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.black,
                   ),
                 ),
               ),
@@ -242,7 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 widget.user.fullName,
                 style: const TextStyle(
-                  color: _kTextHi,
+                  color: AppColors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
@@ -250,12 +227,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 4),
               Text(
                 _roleLabel(widget.user.role),
-                style: const TextStyle(color: _kTextLo, fontSize: 13),
+                style: const TextStyle(color: AppColors.white, fontSize: 13),
               ),
               const SizedBox(height: 2),
               Text(
                 widget.user.mobile,
-                style: const TextStyle(color: _kTextLo, fontSize: 13),
+                style: const TextStyle(color: AppColors.white, fontSize: 13),
               ),
               const SizedBox(height: 28),
               SizedBox(
@@ -264,19 +241,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: const Icon(
                     Icons.logout_rounded,
                     size: 18,
-                    color: Colors.black,
+                    color: AppColors.black,
                   ),
                   label: const Text(
                     'Logout',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                      color: AppColors.black,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _kGold,
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.black,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -311,37 +288,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: _kBg,
+        backgroundColor: AppColors.dashBg,
         body: SafeArea(
+          top: false,
           bottom: false,
           child: RefreshIndicator(
             onRefresh: () async {
               await _fetchNotifications();
               await _fetchOutstandingBills();
             },
-            color: Colors.black,
-            backgroundColor: _kGold,
+            color: AppColors.black,
+            backgroundColor: AppColors.primary,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(child: _buildHeader()),
+                SliverToBoxAdapter(child: _buildHero()),
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(20, 8, 20, bottomPad + 40),
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPad + 40),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildHeroCard(),
-                      const SizedBox(height: 24),
                       if (_isAdmin) ...[
                         _buildStatsRow(),
                         const SizedBox(height: 24),
                       ],
                       _buildSectionLabel(
-                        _isSecurity ? 'On Duty' : 'Quick Actions',
+                        _isSecurity ? 'On Duty' : 'Resident Corner',
                       ),
                       const SizedBox(height: 14),
                       _buildRoleMenu(),
@@ -360,73 +336,275 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Header (top bar) ───────────────────────────────────────────────────────
+  // ─── Full-bleed hero ────────────────────────────────────────────────────────
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-      child: Row(
+  Widget _buildHero() {
+    String line1, line2, subtext, ctaLabel;
+    IconData ctaIcon;
+    VoidCallback ctaAction;
+
+    if (_isMember) {
+      final hasDue = _outstandingAmount > 0;
+      line1 = 'Your community,';
+      line2 = hasDue ? 'bills pending.' : 'all cleared.';
+      subtext = hasDue
+          ? 'Pay before the due date to avoid penalties.'
+          : 'Everything you need, right here.';
+      ctaLabel = hasDue ? 'View & Pay Bills' : 'View Bills';
+      ctaIcon = Icons.receipt_long_rounded;
+      ctaAction = () =>
+          _go(const BillsListScreen(), refresh: _fetchOutstandingBills);
+    } else if (_isSecurity) {
+      line1 = 'Stay alert,';
+      line2 = 'keep gates safe.';
+      subtext = 'Log every visitor, every time.';
+      ctaLabel = 'Visitor Entry';
+      ctaIcon = Icons.directions_run_rounded;
+      ctaAction = () => _go(const SecurityDashboardScreen());
+    } else {
+      line1 = 'Your society,';
+      line2 = 'well managed.';
+      subtext = 'Everything you need, in one place.';
+      ctaLabel = 'Manage Notices';
+      ctaIcon = Icons.campaign_rounded;
+      ctaAction = () => _go(const NoticeCreateScreen());
+    }
+
+    final firstName = widget.user.fullName.split(' ').first;
+    final topPad = MediaQuery.of(context).padding.top;
+
+    return SizedBox(
+      height: 380 + topPad,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          // Left: avatar (profile)
-          GestureDetector(
-            onTap: _showProfileSheet,
-            child: _GlassChip(
-              width: 40,
-              height: 40,
-              radius: 20,
-              tint: 0.08,
-              child: Icon(
-                Icons.person_outline_rounded,
-                color: Colors.white.withValues(alpha: 0.85),
-                size: 20,
+          // ① Full-bleed society photo
+          Image.asset(
+            'dash1.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+
+          // ② Cinematic gradient — clear window in middle, black at bottom
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.0, 0.80, 0.50, 1.20],
+                colors: [
+                  AppColors.heroOverlayMid,
+                  AppColors.transparent,
+                  AppColors.heroOverlayMid,
+                  AppColors.black,
+                ],
               ),
             ),
           ),
-          // Center: brand title
-          const Expanded(
-            child: Center(
-              child: Text(
-                'NestPilot',
-                style: TextStyle(
-                  color: _kTextHi,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+
+          // ③ Content
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, topPad + 14, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nav bar
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _showProfileSheet,
+                      child: _GlassChip(
+                        width: 40,
+                        height: 40,
+                        radius: 20,
+                        tint: 0.14,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          color: AppColors.white.withValues(alpha: 0.9),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _circleIconBtn(
+                          icon: Icons.notifications_none_rounded,
+                          onTap: _showNotifications,
+                        ),
+                        if (_unreadCount > 0)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.black,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.65,
+                                    ),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          // Right: notifications with badge
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _circleIconBtn(
-                icon: Icons.notifications_none_rounded,
-                onTap: _showNotifications,
-              ),
-              if (_unreadCount > 0)
-                Positioned(
-                  right: 4,
-                  top: 4,
+
+                const Spacer(),
+
+                // Greeting row
+                Row(
+                  children: [
+                    Text(
+                      '${_getGreeting()}, $firstName',
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text('👋', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Headline — line 1 white, line 2 first-word accent
+                Text(
+                  line1,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                _heroLine2(line2),
+
+                const SizedBox(height: 10),
+
+                // Subtitle
+                Text(
+                  subtext,
+                  style: TextStyle(
+                    color: AppColors.white.withValues(alpha: 0.58),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+                _buildHeroStatusPill(),
+                const SizedBox(height: 20),
+
+                // CTA button
+                GestureDetector(
+                  onTap: ctaAction,
                   child: Container(
-                    width: 9,
-                    height: 9,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: _kGold,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _kBg, width: 1.5),
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primary, AppColors.primaryDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: _kGold.withValues(alpha: 0.60),
-                          blurRadius: 6,
-                          spreadRadius: 1,
+                          color: AppColors.primary.withValues(alpha: 0.40),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(ctaIcon, color: AppColors.black, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            ctaLabel,
+                            style: const TextStyle(
+                              color: AppColors.black,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.black.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: AppColors.black,
+                            size: 14,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-            ],
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // First word of the second headline line rendered in accent, rest white.
+  Widget _heroLine2(String text) {
+    final words = text.split(' ');
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: words.first,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              letterSpacing: -0.5,
+            ),
+          ),
+          if (words.length > 1)
+            TextSpan(
+              text: ' ${words.skip(1).join(' ')}',
+              style: const TextStyle(
+                color: AppColors.white,
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+                letterSpacing: -0.5,
+              ),
+            ),
         ],
       ),
     );
@@ -441,199 +619,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: 40,
       height: 40,
       radius: 20,
-      tint: 0.08,
-      child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20),
+      tint: 0.14,
+      child: Icon(
+        icon,
+        color: AppColors.white.withValues(alpha: 0.9),
+        size: 20,
+      ),
     ),
   );
 
-  // ─── Hero card (greeting + role context) ─────────────────────────────────────
-
-  Widget _buildHeroCard() {
-    // Tagline differs by role so the hero stays meaningful for each persona.
-    String headline;
-    String subhead;
-    String ctaLabel;
-    IconData ctaIcon;
-    VoidCallback ctaAction;
-
-    if (_isMember) {
-      final hasDue = _outstandingAmount > 0;
-      headline = hasDue ? 'You have bills' : 'All bills are';
-      subhead = hasDue ? 'pending today.' : 'cleared.';
-      ctaLabel = hasDue ? 'View & Pay Bills' : 'View Bills';
-      ctaIcon = Icons.receipt_long_rounded;
-      ctaAction = () =>
-          _go(const BillsListScreen(), refresh: _fetchOutstandingBills);
-    } else if (_isSecurity) {
-      headline = 'Stay alert,';
-      subhead = 'keep gates safe.';
-      ctaLabel = 'Visitor Entry';
-      ctaIcon = Icons.directions_run_rounded;
-      ctaAction = () => _go(const SecurityDashboardScreen());
-    } else {
-      headline = 'Run your society';
-      subhead = 'smoothly today.';
-      ctaLabel = 'Manage Notices';
-      ctaIcon = Icons.campaign_rounded;
-      ctaAction = () => _go(const NoticeCreateScreen());
-    }
-
-    final firstName = widget.user.fullName.split(' ').first;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Top row: greeting + tagline on the left, framed image on the right.
-        Padding(
-          padding: const EdgeInsets.only(left: 4, right: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '${_getGreeting()}, $firstName',
-                          style: const TextStyle(
-                            color: _kTextMid,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text('👋', style: TextStyle(fontSize: 14)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      headline,
-                      style: const TextStyle(
-                        color: _kTextHi,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    Text(
-                      subhead,
-                      style: const TextStyle(
-                        color: _kTextHi,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildHeroStatusPill(),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              _buildHeroImage(),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        // Wide gold CTA pill.
-        GestureDetector(
-          onTap: ctaAction,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [_kGold, _kGoldDeep],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: _kGold.withValues(alpha: 0.35),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(ctaIcon, color: Colors.black, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    ctaLabel,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.black,
-                    size: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Small inline status pill under the hero headline — shows outstanding
-  /// amount + due date for members, role pill for everyone else.
+  // Status pill shown below headline — bills for member, role tag for others.
   Widget _buildHeroStatusPill() {
     if (_isMember) {
       if (_loadingBills) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppColors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.10),
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.10)),
           ),
           child: const SizedBox(
             height: 14,
             width: 14,
-            child: CircularProgressIndicator(strokeWidth: 1.6, color: _kGold),
+            child: CircularProgressIndicator(
+              strokeWidth: 1.6,
+              color: AppColors.primary,
+            ),
           ),
         );
       }
-
       final hasDue = _outstandingAmount > 0;
       final currency = NumberFormat.currency(
         locale: 'HI',
         symbol: '₹',
         decimalDigits: 0,
       );
-      final dateF = DateFormat('dd MMM');
-      final tint = hasDue ? _kDanger : _kSuccess;
-
+      final tint = hasDue ? AppColors.warning : AppColors.success;
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: tint.withValues(alpha: 0.12),
+          color: tint.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: tint.withValues(alpha: 0.35), width: 1),
+          border: Border.all(color: tint.withValues(alpha: 0.35)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -646,7 +674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 6),
             Text(
               hasDue
-                  ? '${currency.format(_outstandingAmount)} · due ${dateF.format(_dueDate)}'
+                  ? '${currency.format(_outstandingAmount)} · due ${DateFormat('dd MMM').format(_dueDate)}'
                   : 'All cleared',
               style: TextStyle(
                 color: tint,
@@ -658,18 +686,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _kGold.withValues(alpha: 0.15),
+        color: AppColors.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _kGold.withValues(alpha: 0.35), width: 1),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
       ),
       child: Text(
         _roleLabel(widget.user.role).toUpperCase(),
         style: const TextStyle(
-          color: _kGold,
+          color: AppColors.primary,
           fontSize: 10,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.1,
@@ -678,92 +705,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Rounded-rectangle hero image on the right — a clean photographic crop of
-  /// the lit community entrance from the reference design.
-  Widget _buildHeroImage() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Image.asset(
-        'assets/dash.png',
-        width: 140,
-        height: 160,
-        fit: BoxFit.cover,
-      ),
-    );
-  }
-
   // ─── Stats row (admins only) ─────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
-    const stats = [
-      _StatData('Notices', Icons.campaign_outlined),
-      _StatData('Bills', Icons.receipt_long_outlined),
-      _StatData('Members', Icons.group_outlined),
-    ];
+    final isSuperAdmin = widget.user.role == UserRoles.superAdmin;
+    final stats = isSuperAdmin
+        ? const [
+            _StatData('Societies', '0', AppColors.accentOrange),
+            _StatData('Buildings', '0', AppColors.accentPurple),
+            _StatData('Flats', '0', AppColors.accentBlue),
+            _StatData('Members', '0', AppColors.accentGreen),
+          ]
+        : const [
+            _StatData('Owners', '0', AppColors.accentOrange),
+            _StatData('Tenants', '0', AppColors.accentPurple),
+            _StatData('Occupied', '0', AppColors.accentBlue),
+            _StatData('Vacant', '0', AppColors.accentGreen),
+          ];
+
     return Row(
       children: [
-        Expanded(child: _statCard(stats[0])),
-        const SizedBox(width: 12),
-        Expanded(child: _statCard(stats[1])),
-        const SizedBox(width: 12),
-        Expanded(child: _statCard(stats[2])),
+        for (int i = 0; i < stats.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: _statCard(stats[i])),
+        ],
       ],
     );
   }
 
   Widget _statCard(_StatData s) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
       decoration: BoxDecoration(
-        color: _kSurface,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.dashBg,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: AppColors.white.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Inner icon chip — glass-style, soft white border + subtle glow.
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.10),
-                  Colors.white.withValues(alpha: 0.03),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.10),
-                width: 1,
-              ),
+          Text(
+            s.value,
+            style: TextStyle(
+              color: s.color,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              height: 1.0,
             ),
-            alignment: Alignment.center,
-            child: Icon(s.icon, color: _kGold, size: 20),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 5),
           Text(
             s.label,
-            style: const TextStyle(
-              color: _kTextLo,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Manage',
             style: TextStyle(
-              color: _kTextHi,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
+              color: AppColors.white.withValues(alpha: 0.42),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -779,7 +779,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         width: 3,
         height: 16,
         decoration: BoxDecoration(
-          color: _kGold,
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -789,7 +789,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w800,
-          color: _kTextHi,
+          color: AppColors.white,
           letterSpacing: 0.2,
         ),
       ),
@@ -807,7 +807,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: EdgeInsets.symmetric(vertical: 32),
       child: Text(
         'No actions available for your role.',
-        style: TextStyle(color: _kTextLo),
+        style: TextStyle(color: AppColors.white),
       ),
     );
   }
@@ -817,25 +817,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Icons.business_outlined,
       'Create Society',
       () => _go(const SocietyCreateScreen()),
-      _kPink,
+      AppColors.accentPink,
     ),
     _Item(
       Icons.apartment_outlined,
       'Add Building',
       () => _go(const BuildingCreateScreen()),
-      _kBlue,
+      AppColors.accentBlue,
     ),
     _Item(
       Icons.door_front_door_outlined,
       'Add Flat',
       () => _go(const FlatCreateScreen()),
-      _kOrange,
+      AppColors.accentOrange,
     ),
     _Item(
       Icons.list_alt_outlined,
       'Flats List',
       () => _go(const FlatsListScreen()),
-      _kTeal,
+      AppColors.accentTeal,
     ),
   ]);
 
@@ -847,90 +847,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icons.person_add_alt_1_outlined,
           'Pending',
           () => _go(const PendingMembersScreen()),
-          _kAmber,
+          AppColors.accentAmber,
         ),
         _Item(
           Icons.contacts_outlined,
           'Residents',
           () => _go(const MemberListScreen()),
-          _kBlue,
+          AppColors.accentBlue,
         ),
         _Item(
           Icons.campaign_outlined,
           'Notices',
           () => _go(const NoticeCreateScreen()),
-          _kPurple,
+          AppColors.accentPurple,
         ),
         _Item(
           Icons.add_card_outlined,
           'Create Bill',
           () => _go(const BillCreateScreen()),
-          _kGreen,
+          AppColors.accentGreen,
         ),
         _Item(
           Icons.receipt_long_outlined,
           'Manage Bills',
           () => _go(const BillsManageScreen()),
-          _kTeal,
+          AppColors.accentTeal,
         ),
         _Item(
           Icons.payments_outlined,
           'Payment',
           () => _go(const PaymentMarkScreen()),
-          _kOrange,
+          AppColors.accentOrange,
         ),
         _Item(
           Icons.report_problem_outlined,
           'Complaints',
           () => _go(const ComplaintListScreen()),
-          _kRed,
+          AppColors.accentRed,
         ),
         _Item(
           Icons.pool_outlined,
           'Amenities',
           () => _go(const AmenityManagementScreen()),
-          _kIndigo,
+          AppColors.accentIndigo,
         ),
       ]),
       const SizedBox(height: 24),
-      _buildSectionLabel('Operations & Tools'),
+      _buildSectionLabel('Society Control'),
       const SizedBox(height: 14),
       _compactGrid([
         _Item(
           Icons.poll_outlined,
           'Polls',
           () => _go(const PollListScreen()),
-          _kPurple,
+          AppColors.accentPurple,
         ),
         _Item(
           Icons.directions_run_outlined,
           'Visitor Entry',
           () => _go(const SecurityDashboardScreen()),
-          _kOrange,
+          AppColors.accentOrange,
         ),
         _Item(
           Icons.group_work_outlined,
           'Visitor Logs',
           () => _go(const VisitorReportScreen()),
-          _kBlue,
+          AppColors.accentBlue,
         ),
         _Item(
           Icons.directions_car_outlined,
           'Vehicles',
           () => _go(const VehicleManagementScreen()),
-          _kTeal,
+          AppColors.accentTeal,
         ),
         _Item(
           Icons.folder_open_outlined,
           'Documents',
           () => _go(const DocumentListScreen()),
-          _kAmber,
+          AppColors.accentAmber,
         ),
         _Item(
           Icons.cleaning_services_outlined,
           'Daily Help',
           () => _go(const StaffListScreen()),
-          _kPink,
+          AppColors.accentPink,
         ),
       ]),
     ],
@@ -941,61 +941,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Icons.campaign_outlined,
       'Notices',
       () => _go(const NoticeListScreen()),
-      _kPurple,
+      AppColors.accentPurple,
     ),
     _Item(
       Icons.receipt_long_outlined,
       'Bills',
       () => _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
-      _kOrange,
+      AppColors.accentOrange,
     ),
     _Item(
       Icons.person_add_outlined,
       'Visitor Pass',
       () => _go(const VisitorManagementScreen()),
-      _kBlue,
+      AppColors.accentBlue,
     ),
     _Item(
       Icons.headset_mic_outlined,
       'Complaints',
       () => _go(const ComplaintListScreen()),
-      _kRed,
+      AppColors.accentRed,
     ),
     _Item(
       Icons.calendar_today_outlined,
       'Amenities',
       () => _go(const AmenityBookingScreen()),
-      _kGreen,
+      AppColors.accentGreen,
     ),
     _Item(
       Icons.bar_chart_outlined,
       'Polls',
       () => _go(const PollListScreen()),
-      _kIndigo,
+      AppColors.accentIndigo,
     ),
     _Item(
       Icons.folder_open_outlined,
       'Documents',
       () => _go(const DocumentListScreen()),
-      _kAmber,
+      AppColors.accentAmber,
     ),
     _Item(
       Icons.account_balance_wallet_outlined,
       'Ledger',
       () => _go(const LedgerScreen()),
-      _kTeal,
+      AppColors.accentTeal,
     ),
     _Item(
       Icons.directions_car_outlined,
       'Vehicles',
       () => _go(const VehicleListScreen()),
-      _kBrown,
+      AppColors.accentBrown,
     ),
     _Item(
       Icons.cleaning_services_outlined,
       'Daily Help',
       () => _go(const StaffListScreen()),
-      _kPink,
+      AppColors.accentPink,
     ),
   ]);
 
@@ -1004,25 +1004,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Icons.directions_run_outlined,
       'Visitor Entry',
       () => _go(const SecurityDashboardScreen()),
-      _kOrange,
+      AppColors.accentOrange,
     ),
     _Item(
       Icons.history_outlined,
       'Visitor Logs',
       () => _go(const VisitorReportScreen()),
-      _kBlue,
+      AppColors.accentBlue,
     ),
     _Item(
       Icons.group_outlined,
       'Inside Now',
       () => _go(const CurrentVisitorsScreen()),
-      _kGreen,
+      AppColors.accentGreen,
     ),
     _Item(
       Icons.cleaning_services_outlined,
       'Daily Help',
       () => _go(const StaffListScreen()),
-      _kPink,
+      AppColors.accentPink,
     ),
   ]);
 
@@ -1044,38 +1044,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Glass tile — flat dark surface with a vertical highlight gradient
-        // (brighter at the top → dim at the bottom) for the glossy sheen
-        // from the reference. Subtle inner top highlight + thin border.
         Container(
           width: 66,
           height: 66,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF26262E),
-                Color(0xFF15151B),
-                Color(0xFF0F0F14),
+                AppColors.tileSurfaceHigh,
+                AppColors.tileSurfaceMid,
+                AppColors.tileSurfaceLow,
               ],
               stops: [0.0, 0.55, 1.0],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: AppColors.white.withValues(alpha: 0.08),
               width: 1,
             ),
             boxShadow: [
-              // Soft inner-style top highlight (acts as glass sheen)
               BoxShadow(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppColors.white.withValues(alpha: 0.04),
                 blurRadius: 1,
                 offset: const Offset(0, 1),
               ),
-              // Outer drop shadow to lift the tile off the background
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
+                color: AppColors.black.withValues(alpha: 0.45),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -1093,7 +1088,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: const TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            color: _kTextMid,
+            color: AppColors.white,
             height: 1.2,
             letterSpacing: 0.1,
           ),
@@ -1111,12 +1106,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [_kGold, _kGoldDeep],
+        colors: [AppColors.primary, AppColors.primaryDark],
       ),
       borderRadius: BorderRadius.circular(22),
       boxShadow: [
         BoxShadow(
-          color: _kGold.withValues(alpha: 0.30),
+          color: AppColors.primary.withValues(alpha: 0.30),
           blurRadius: 20,
           offset: const Offset(0, 10),
         ),
@@ -1128,10 +1123,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'VISITOR PASS',
                 style: TextStyle(
-                  color: Colors.black87,
+                  color: AppColors.white.withValues(alpha: 0.87),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2.2,
@@ -1141,7 +1136,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text(
                 'Create Visitor Pass',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: AppColors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1150,7 +1145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'Generate a secure pass for your guests',
                 style: TextStyle(
-                  color: Colors.black.withValues(alpha: 0.65),
+                  color: AppColors.white.withValues(alpha: 0.65),
                   fontSize: 12,
                   height: 1.3,
                 ),
@@ -1164,24 +1159,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: AppColors.black.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.white.withValues(alpha: 0.20),
+                    ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'Generate Pass',
-                        style: TextStyle(
-                          color: _kGold,
+                        style: const TextStyle(
+                          color: AppColors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      SizedBox(width: 6),
-                      Icon(
+                      const SizedBox(width: 6),
+                      const Icon(
                         Icons.arrow_forward_rounded,
-                        color: _kGold,
+                        color: AppColors.white,
                         size: 14,
                       ),
                     ],
@@ -1196,13 +1194,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.10),
+            color: AppColors.black.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
           child: const Icon(
             Icons.qr_code_2_rounded,
-            color: Colors.black,
+            color: AppColors.white,
             size: 36,
           ),
         ),
@@ -1261,12 +1259,12 @@ class _GlassChip extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withValues(alpha: tint),
-                Colors.white.withValues(alpha: tint * 0.35),
+                AppColors.white.withValues(alpha: tint),
+                AppColors.white.withValues(alpha: tint * 0.35),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: AppColors.white.withValues(alpha: 0.08),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(radius),
@@ -1280,6 +1278,7 @@ class _GlassChip extends StatelessWidget {
 
 class _StatData {
   final String label;
-  final IconData icon;
-  const _StatData(this.label, this.icon);
+  final String value;
+  final Color color;
+  const _StatData(this.label, this.value, this.color);
 }

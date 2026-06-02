@@ -169,7 +169,7 @@ class _OtpScreenState extends State<OtpScreen>
                               height: 3,
                               width: 64 * ts,
                               decoration: BoxDecoration(
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
@@ -296,14 +296,14 @@ class _OtpScreenState extends State<OtpScreen>
                                     },
                                     child: Text(
                                       'Resend OTP',
-                                      style: AppTextStyles.cardSubtext(
-                                        s * 0.88,
-                                      ).copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: AppColors.primary,
-                                      ),
+                                      style: AppTextStyles.cardSubtext(s * 0.88)
+                                          .copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor: AppColors.primary,
+                                          ),
                                     ),
                                   ),
                                 ],
