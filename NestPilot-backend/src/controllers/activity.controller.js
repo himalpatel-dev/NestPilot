@@ -7,10 +7,12 @@ const ENTITY_LABEL = {
     BILL: 'Maintenance bill',
     COMPLAINT: 'Complaint',
     NOTICE: 'Notice',
+    AMENITY: 'Amenity',
     AMENITY_BOOKING: 'Amenity booking',
     POLL: 'Poll',
     STAFF: 'Staff',
-    VEHICLE: 'Vehicle'
+    VEHICLE: 'Vehicle',
+    RESIDENT: 'Resident'
 };
 
 const ACTION_VERB = {

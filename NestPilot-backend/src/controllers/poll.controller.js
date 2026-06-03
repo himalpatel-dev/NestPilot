@@ -1,6 +1,7 @@
 const db = require('../models');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
+const auditService = require('../services/audit.service');
 
 const createPoll = async (req, res, next) => {
     const transaction = await db.sequelize.transaction();
@@ -64,6 +65,18 @@ const createPoll = async (req, res, next) => {
         // --- Notification Logic End ---
 
         await transaction.commit();
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'CREATED',
+                'POLL',
+                String(poll.id),
+                { new_value: { title: poll.question }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
         res.status(201).json(new ApiResponse(201, poll, 'Poll created successfully'));
     } catch (e) {
         await transaction.rollback();

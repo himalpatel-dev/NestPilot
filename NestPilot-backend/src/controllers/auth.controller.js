@@ -2,6 +2,8 @@ const otpService = require('../services/otp.service');
 const authService = require('../services/auth.service');
 const ApiResponse = require('../utils/ApiResponse');
 const catchAsync = require('../utils/catchAsync');
+const auditService = require('../services/audit.service');
+const db = require('../models');
 
 const requestOtp = catchAsync(async (req, res) => {
     const { mobile, purpose } = req.body;
@@ -22,6 +24,23 @@ const verifyOtp = catchAsync(async (req, res) => {
 
 const register = catchAsync(async (req, res) => {
     const user = await authService.register(req.body);
+
+    try {
+        let house_no = null;
+        if (req.body.houseId) {
+            const house = await db.House.findByPk(req.body.houseId, { attributes: ['house_no'] });
+            house_no = house ? house.house_no : null;
+        }
+        await auditService.logAction(
+            user.id,
+            user.society_id,
+            'CREATED',
+            'RESIDENT',
+            String(user.id),
+            { new_value: { title: user.full_name, house_no }, ip_address: req.ip }
+        );
+    } catch (_) {}
+
     res.status(201).json(new ApiResponse(201, user, 'Registration successful. Please wait for admin approval.'));
 });
 

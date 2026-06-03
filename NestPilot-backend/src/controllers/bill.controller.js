@@ -10,6 +10,18 @@ const create = async (req, res, next) => {
             created_by: req.user.id
         };
         const result = await api.createBill(data);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'CREATED',
+                'BILL',
+                String(result.id),
+                { new_value: { title: result.title, ref_code: result.id }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
         res.status(201).json(new ApiResponse(201, result));
     } catch (e) { next(e); }
 };

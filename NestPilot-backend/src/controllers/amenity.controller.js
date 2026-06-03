@@ -2,6 +2,7 @@ const db = require('../models');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const { Op } = require('sequelize');
+const auditService = require('../services/audit.service');
 
 // --- Amenity Management (Admin) ---
 
@@ -9,6 +10,18 @@ const createAmenity = async (req, res, next) => {
     try {
         const data = { ...req.body, society_id: req.user.society_id };
         const amenity = await db.Amenity.create(data);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'CREATED',
+                'AMENITY',
+                String(amenity.id),
+                { new_value: { title: amenity.name }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
         res.status(201).json(new ApiResponse(201, amenity, 'Amenity created successfully'));
     } catch (e) { next(e); }
 };

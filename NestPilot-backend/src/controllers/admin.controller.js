@@ -1,6 +1,19 @@
 const db = require('../models');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
+const auditService = require('../services/audit.service');
+
+const resolveUserHouseNo = async (userId) => {
+    try {
+        const mapping = await db.UserHouseMapping.findOne({
+            where: { user_id: userId, is_active: true },
+            include: [{ model: db.House, attributes: ['house_no'] }]
+        });
+        return mapping && mapping.House ? mapping.House.house_no : null;
+    } catch (_) {
+        return null;
+    }
+};
 
 const getPendingUsers = async (req, res, next) => {
     try {
@@ -33,6 +46,18 @@ const approveUser = async (req, res, next) => {
         user.status = 'active';
         await user.save();
 
+        try {
+            const house_no = await resolveUserHouseNo(user.id);
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'APPROVED',
+                'RESIDENT',
+                String(user.id),
+                { new_value: { title: user.full_name, house_no }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
         res.status(200).json(new ApiResponse(200, user, 'User approved'));
     } catch (e) { next(e); }
 };
@@ -48,6 +73,18 @@ const rejectUser = async (req, res, next) => {
 
         user.status = 'rejected';
         await user.save();
+
+        try {
+            const house_no = await resolveUserHouseNo(user.id);
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'DENIED',
+                'RESIDENT',
+                String(user.id),
+                { new_value: { title: user.full_name, house_no }, ip_address: req.ip }
+            );
+        } catch (_) {}
 
         res.status(200).json(new ApiResponse(200, user, 'User rejected'));
     } catch (e) { next(e); }
