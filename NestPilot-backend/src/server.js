@@ -5,7 +5,7 @@ const app = require('./app');
 const db = require('./models');
 // Logger removed
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 
 const ensureDatabaseExists = async () => {
     const dbName = process.env.DB_NAME || 'NestPilot';
@@ -43,6 +43,12 @@ const ensureDatabaseExists = async () => {
 
 const startServer = async () => {
     try {
+        // Ensure critical secrets are present before starting
+        if (!process.env.JWT_SECRET) {
+            console.error('FATAL: JWT_SECRET is not set in environment. Set JWT_SECRET in your .env or environment variables.');
+            process.exit(1);
+        }
+
         await ensureDatabaseExists();
 
         // Check if --force flag is passed to reset DB

@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
     development: {
         username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASS || 'postgres',
+        password: process.env.DB_PASS || 'P8L5fE123456_',
         database: process.env.DB_NAME || 'NestPilot',
         host: process.env.DB_HOST || '127.0.0.1',
         dialect: 'postgres',
@@ -11,7 +11,7 @@ module.exports = {
     },
     test: {
         username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASS || 'postgres',
+        password: process.env.DB_PASS || 'P8L5fE123456_',
         database: process.env.DB_NAME || 'NestPilot_test',
         host: process.env.DB_HOST || '127.0.0.1',
         dialect: 'postgres',

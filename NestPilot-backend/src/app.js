@@ -30,7 +30,7 @@ const swaggerOptions = {
             title: 'NestPilot Society Management API',
             version: '1.0.0',
         },
-        servers: [{ url: 'http://localhost:5000' }],
+        servers: [{ url: 'http://localhost:5005' }],
     },
     apis: ['./src/routes/*.js'],
 };
