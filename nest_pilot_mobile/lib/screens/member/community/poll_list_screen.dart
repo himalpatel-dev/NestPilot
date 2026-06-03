@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/auth_service.dart';
@@ -287,7 +288,7 @@ class _PollListScreenState extends State<PollListScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Polls')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _polls.isEmpty
           ? const Center(child: Text('No active polls'))
           : ListView.builder(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/nest_loader.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
@@ -61,14 +62,7 @@ class AppButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
           child: Center(
             child: isLoading
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
+                ? const NestLoader(size: 32, showDots: false)
                 : Text(
                     text,
                     style: textStyle ??

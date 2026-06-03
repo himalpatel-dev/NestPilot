@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/admin_service.dart';
@@ -6,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
+import '../../theme/tab_route.dart';
 import '../dashboard_screen.dart';
 import '../services_hub_screen.dart';
 import '../common/visitor_report_screen.dart';
@@ -153,7 +155,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.black,
+        backgroundColor: AppColors.cardBackground,
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _residentsTabIndex,
           bottomPadding: bottomPad,
@@ -166,32 +168,29 @@ class _MemberListScreenState extends State<MemberListScreen> {
             AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
           ],
         ),
-        body: SafeArea(
-          bottom: false,
-          child: RefreshIndicator(
-            color: AppColors.black,
-            backgroundColor: AppColors.primary,
-            onRefresh: _fetchMembers,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: _buildHeader()),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildSearchBar(),
-                      const SizedBox(height: 16),
-                      _buildStatsGrid(),
-                      const SizedBox(height: 22),
-                      _buildListHeader(),
-                      const SizedBox(height: 12),
-                      _buildList(),
-                    ]),
-                  ),
+        body: RefreshIndicator(
+          color: AppColors.white,
+          backgroundColor: AppColors.primary,
+          onRefresh: _fetchMembers,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildSearchBar(),
+                    const SizedBox(height: 16),
+                    _buildStatsGrid(),
+                    const SizedBox(height: 22),
+                    _buildListHeader(),
+                    const SizedBox(height: 12),
+                    _buildList(),
+                  ]),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -207,7 +206,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
     // otherwise rebuild the dashboard from the current user.
     if (index == 0) {
       if (!widget.embedded && Navigator.canPop(context)) {
-        Navigator.pop(context);
+        Navigator.popUntil(context, (r) => r.isFirst);
       } else {
         await _goHome();
       }
@@ -228,7 +227,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         break;
     }
     if (target != null && mounted) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => target!));
+      Navigator.push(context, tabRoute(target));
     }
   }
 
@@ -261,39 +260,127 @@ class _MemberListScreenState extends State<MemberListScreen> {
   // ─── Header (top bar) ──────────────────────────────────────────────────────
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 16, 14),
-      child: Row(
-        children: [
-          if (!widget.embedded)
-            IconButton(
-              onPressed: () => Navigator.maybePop(context),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.white.withValues(alpha: 0.9),
-                size: 18,
+    final safeTop = MediaQuery.of(context).padding.top;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final heroHeight = safeTop + 130.0;
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(32),
+        bottomRight: Radius.circular(32),
+      ),
+      child: SizedBox(
+        height: heroHeight,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: [0.0, 0.6, 1.0],
+                  colors: [
+                    AppColors.heroGradientDeep,
+                    AppColors.primaryDark,
+                    AppColors.primary,
+                  ],
+                ),
               ),
-            )
-          else
-            const SizedBox(width: 16),
-          const Text(
-            'Residents',
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
             ),
-          ),
-          const Spacer(),
-          Text(
-            '${_members.length} total',
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.55),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
+            Positioned(
+              right: -30, top: -30,
+              child: Container(
+                width: 160, height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withValues(alpha: 0.06),
+                ),
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              right: 40, top: -10,
+              child: Container(
+                width: 90, height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0, top: 0, bottom: 0,
+              width: screenWidth * 0.50,
+              child: ShaderMask(
+                shaderCallback: (rect) => LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.40, 1.0],
+                  colors: [
+                    AppColors.transparent,
+                    AppColors.white.withValues(alpha: 0.30),
+                    AppColors.white.withValues(alpha: 0.55),
+                  ],
+                ).createShader(rect),
+                blendMode: BlendMode.dstIn,
+                child: Image.asset(
+                  'assets/dash2.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                ),
+              ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!widget.embedded)
+                      GestureDetector(
+                        onTap: () => Navigator.maybePop(context),
+                        child: Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: AppColors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    const Text(
+                      'Residents',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_members.length} members registered',
+                      style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.70),
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -304,22 +391,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
     final hasQuery = _query.isNotEmpty;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasQuery
-              ? AppColors.primary.withValues(alpha: 0.45)
-              : AppColors.white.withValues(alpha: 0.06),
+          color: hasQuery ? AppColors.primary : AppColors.border,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
           Icon(
             Icons.search_rounded,
-            color: hasQuery
-                ? AppColors.primary
-                : AppColors.white.withValues(alpha: 0.55),
+            color: hasQuery ? AppColors.primary : AppColors.textHint,
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -328,27 +418,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
               controller: _searchCtrl,
               onChanged: (v) => setState(() => _query = v.trim()),
               style: const TextStyle(
-                color: AppColors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 height: 1.25,
               ),
               cursorColor: AppColors.primary,
               cursorHeight: 18,
-              decoration: InputDecoration(
-                // Override the global filled=true + grey.shade50 fill from main.dart
-                // so the dark container shows through.
+              decoration: const InputDecoration(
                 filled: true,
                 fillColor: AppColors.transparent,
                 hintText: 'Search by name, flat or mobile',
                 hintStyle: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.40),
+                  color: AppColors.textHint,
                   fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                   height: 1.25,
                 ),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -365,13 +453,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 setState(() => _query = '');
               },
               behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Icon(
-                  Icons.close_rounded,
-                  color: AppColors.white.withValues(alpha: 0.55),
-                  size: 18,
-                ),
+              child: const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.close_rounded, color: AppColors.textHint, size: 18),
               ),
             ),
         ],
@@ -419,27 +503,42 @@ class _MemberListScreenState extends State<MemberListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(
-            s.value,
-            style: TextStyle(
-              color: s.color,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              height: 1.0,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: s.color.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              s.value,
+              style: TextStyle(
+                color: s.color,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             s.label,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.60),
-              fontSize: 11.5,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -475,7 +574,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             const Text(
               'Resident List',
               style: TextStyle(
-                color: AppColors.white,
+                color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
@@ -486,18 +585,18 @@ class _MemberListScreenState extends State<MemberListScreen> {
           onTap: _showSortSheet,
           child: Row(
             children: [
-              Text(
+              const Text(
                 'Sort',
                 style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.75),
+                  color: AppColors.textSecondary,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 2),
-              Icon(
+              const Icon(
                 Icons.keyboard_arrow_down_rounded,
-                color: AppColors.white.withValues(alpha: 0.75),
+                color: AppColors.textSecondary,
                 size: 18,
               ),
             ],
@@ -514,14 +613,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 60),
         alignment: Alignment.center,
-        child: const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary,
-          ),
-        ),
+        child: const NestLoader(size: 32, showDots: false),
       );
     }
     if (_error != null) {
@@ -565,9 +657,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -599,7 +698,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: AppColors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       height: 1.15,
@@ -608,8 +707,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   const SizedBox(height: 2),
                   Text(
                     relation,
-                    style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 0.55),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w500,
                     ),
@@ -681,7 +780,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
       child: Text(
         initials,
         style: const TextStyle(
-          color: AppColors.black,
+          color: AppColors.white,
           fontSize: 15,
           fontWeight: FontWeight.w800,
         ),
@@ -721,20 +820,27 @@ class _MemberListScreenState extends State<MemberListScreen> {
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 18),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.white.withValues(alpha: 0.45), size: 32),
+          Icon(icon, color: AppColors.textHint, size: 32),
           const SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: AppColors.white,
+              color: AppColors.textPrimary,
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
             ),
@@ -744,8 +850,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.50),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
                 fontSize: 11.5,
               ),
             ),
@@ -755,10 +861,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             GestureDetector(
               onTap: onAction,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
@@ -766,7 +869,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 child: Text(
                   actionLabel,
                   style: const TextStyle(
-                    color: AppColors.black,
+                    color: AppColors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -784,7 +887,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   void _showSortSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -802,7 +905,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 child: Text(
                   'Sort residents by',
                   style: TextStyle(
-                    color: AppColors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -847,18 +950,14 @@ class _MemberListScreenState extends State<MemberListScreen> {
               selected
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_off_rounded,
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.white.withValues(alpha: 0.45),
+              color: selected ? AppColors.primary : AppColors.textHint,
               size: 20,
             ),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
-                color: selected
-                    ? AppColors.white
-                    : AppColors.white.withValues(alpha: 0.80),
+                color: selected ? AppColors.textPrimary : AppColors.textSecondary,
                 fontSize: 14,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -872,7 +971,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   void _showResidentSheet(UserModel user) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -896,7 +995,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                         Text(
                           user.fullName,
                           style: const TextStyle(
-                            color: AppColors.white,
+                            color: AppColors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -904,8 +1003,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                         const SizedBox(height: 2),
                         Text(
                           _relationLabel(user.relationType),
-                          style: TextStyle(
-                            color: AppColors.white.withValues(alpha: 0.60),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -936,14 +1035,14 @@ class _MemberListScreenState extends State<MemberListScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.white.withValues(alpha: 0.45), size: 18),
+          Icon(icon, color: AppColors.textHint, size: 18),
           const SizedBox(width: 12),
           SizedBox(
             width: 70,
             child: Text(
               label,
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.55),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -953,7 +1052,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             child: Text(
               value,
               style: const TextStyle(
-                color: AppColors.white,
+                color: AppColors.textPrimary,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -969,7 +1068,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.25),
+        color: AppColors.border,
         borderRadius: BorderRadius.circular(2),
       ),
     ),

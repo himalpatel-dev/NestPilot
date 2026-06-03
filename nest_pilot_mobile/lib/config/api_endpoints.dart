@@ -71,4 +71,9 @@ class ApiEndpoints {
 
   // Activity
   static const String recentActivity = '/api/activity/recent';
+
+  // Events
+  static const String events = '/api/events';
+  static String eventDetail(String id) => '/api/events/$id';
+  static String registerEvent(String id) => '/api/events/$id/register';
 }

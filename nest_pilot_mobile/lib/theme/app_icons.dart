@@ -1,9 +1,8 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Shared Quick-Action tile: a compact glass card with a colored icon and a
-/// short label centered below.
+/// Shared Quick-Action tile: circular gradient icon with white symbol,
+/// colored drop-shadow, and a short label below.
 ///
 /// Pass `color`, `icon`, `label` (and optionally `iconSize`). Wrap in a
 /// GestureDetector at the call site if you want it tappable.
@@ -15,66 +14,69 @@ class AppIconTile extends StatelessWidget {
   final String label;
   final double iconSize;
 
-  /// Overall tile height. Defaults to the quick-action card size (88).
-  /// Pass a smaller value (e.g. 72) for denser grids like the services hub.
-  final double height;
-
   const AppIconTile({
     super.key,
     required this.icon,
     required this.color,
     required this.label,
-    this.iconSize = 26,
-    this.height = 88,
+    this.iconSize = 24,
   });
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(18);
+    // Derive a lighter start-stop for the gradient by blending toward white
+    final lightColor = Color.lerp(AppColors.white, color, 0.55)!;
+
+    // Fixed layout: circle area (top) + label area (bottom, fixed height).
+    // Both regions have a set height so all tiles align perfectly regardless
+    // of whether the label wraps to 1 or 2 lines.
+    const double circleSize = 52;
+    const double gap = 8;
+    const double labelAreaHeight = 30; // fits 2 lines at font 11, line-height 1.3
+
     return SizedBox(
-      height: height,
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+      height: circleSize + gap + labelAreaHeight,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: circleSize,
+            height: circleSize,
             decoration: BoxDecoration(
-              borderRadius: borderRadius,
+              shape: BoxShape.circle,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  AppColors.white.withValues(alpha: 0.12),
-                  AppColors.white.withValues(alpha: 0.03),
-                ],
+                colors: [lightColor, color],
               ),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.18),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: color, size: iconSize),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.white.withValues(alpha: 0.85),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    height: 1.3,
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.38),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: AppColors.white, size: iconSize),
           ),
-        ),
+          const SizedBox(height: gap),
+          SizedBox(
+            height: labelAreaHeight,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

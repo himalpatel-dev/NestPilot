@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:nest_pilot_mobile/screens/secretary/payment_mark_screen.dart';
+import '../theme/nest_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
@@ -34,6 +36,7 @@ import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/dashboard_cards.dart';
 import '../theme/app_bottom_nav.dart';
+import '../theme/tab_route.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -99,7 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!_isAdmin && !_isSecurity) return;
     setState(() => _loadingActivity = true);
     try {
-      final items = await ActivityService().getRecent(limit: 8);
+      final items = await ActivityService().getRecent(limit: 5);
       debugPrint('RecentActivity items received: ${items.length}');
       if (mounted) setState(() => _recentActivity = items);
     } catch (e) {
@@ -183,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showProfileSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -197,7 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.25),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -228,7 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.black,
+                    color: AppColors.white,
                   ),
                 ),
               ),
@@ -236,7 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 widget.user.fullName,
                 style: const TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
@@ -244,16 +247,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 4),
               Text(
                 _roleLabel(widget.user.role),
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.60),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 widget.user.mobile,
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.60),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
@@ -264,19 +267,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: const Icon(
                     Icons.logout_rounded,
                     size: 18,
-                    color: AppColors.black,
+                    color: AppColors.white,
                   ),
                   label: const Text(
                     'Logout',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.black,
+                      color: AppColors.white,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.black,
+                    foregroundColor: AppColors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -315,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.black,
+        backgroundColor: AppColors.cardBackground,
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _selectedTab,
           bottomPadding: bottomPad,
@@ -334,14 +337,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               await _fetchOutstandingBills();
               await _fetchRecentActivity();
             },
-            color: AppColors.black,
+            color: AppColors.white,
             backgroundColor: AppColors.primary,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: _buildHero()),
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 24),
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       _buildMyOverview(),
@@ -382,149 +385,214 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── Hero ───────────────────────────────────────────────────────────────────
 
   Widget _buildHero() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final firstName = widget.user.fullName.split(' ').first;
     final hasFlat = (widget.user.flatNumber ?? '').isNotEmpty;
     final hasSociety = (widget.user.societyName ?? '').isNotEmpty;
+    final safeTop = MediaQuery.of(context).padding.top;
+    final heroHeight = safeTop + 220.0;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return Container(
-      color: AppColors.black,
-      child: Stack(
-        children: [
-          // Building image — right half, fades in from left edge
-          Positioned(
-            right: 0,
-            top: 20,
-            bottom: -40,
-            width: screenWidth * 0.55,
-            child: ShaderMask(
-              shaderCallback: (rect) => const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.bottomRight,
-                stops: [0.0, 0.80, 0.70, 1.0],
-                colors: [
-                  AppColors.transparent,
-                  AppColors.black,
-                  AppColors.white,
-                  AppColors.white,
-                ],
-              ).createShader(rect),
-              blendMode: BlendMode.dstIn,
-              child: Image.asset(
-                'assets/dash2.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-          // Top fade — darkens status bar / nav row area
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: 200,
-            child: DecoratedBox(
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(36),
+        bottomRight: Radius.circular(36),
+      ),
+      child: SizedBox(
+        height: heroHeight,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Layer 1: rich diagonal gradient ───────────────────────
+            const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.black, AppColors.transparent],
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  stops: [0.2, 0.9, 1.0],
+                  colors: [
+                    AppColors.heroGradientDeep,
+                    AppColors.primaryDark,
+                    AppColors.primary,
+                  ],
                 ),
               ),
             ),
-          ),
-          // Bottom fade so stats section blends seamlessly
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 60,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.transparent, AppColors.black],
+
+            // ── Layer 3: building image — right 58%, fades left ───────
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: screenWidth * 0.45,
+              child: ShaderMask(
+                shaderCallback: (rect) => LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.38, 1.0],
+                  colors: [
+                    AppColors.transparent,
+                    AppColors.white.withValues(alpha: 0.45),
+                    AppColors.white.withValues(alpha: 0.70),
+                  ],
+                ).createShader(rect),
+                blendMode: BlendMode.dstIn,
+                child: Image.asset(
+                  'assets/dash2.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
             ),
-          ),
-          // Content (determines Stack height)
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _showProfileSheet,
-                        child: Icon(
-                          Icons.menu_rounded,
-                          color: AppColors.white.withValues(alpha: 0.9),
-                          size: 26,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: _openServicesHub,
-                        child: Icon(
-                          Icons.grid_view_rounded,
-                          color: AppColors.white.withValues(alpha: 0.9),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 18),
-                      _buildNotifBell(),
+
+            // ── Layer 4: bottom sheen so image edge is smooth ─────────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 60,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.transparent,
+                      AppColors.primaryDark.withValues(alpha: 0.50),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  Row(
-                    children: [
-                      Text(
-                        '${_getGreeting()}, $firstName',
-                        style: TextStyle(
-                          color: AppColors.white.withValues(alpha: 0.85),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text('👋', style: TextStyle(fontSize: 15)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    hasFlat
-                        ? 'Flat ${widget.user.flatNumber}'
-                        : _roleLabel(widget.user.role),
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                    ),
-                  ),
-                  if (hasSociety)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        widget.user.societyName!,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            // ── Layer 5: content ──────────────────────────────────────
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Top bar: bell only ─────────────────────────────
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.82),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.white.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: _buildNotifBell(),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // ── Greeting + name (single compact block) ─────────
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${_getGreeting()}  👋\n',
+                            style: TextStyle(
+                              color: AppColors.white.withValues(alpha: 0.72),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w400,
+                              height: 1.6,
+                            ),
+                          ),
+                          TextSpan(
+                            text: widget.user.fullName,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // ── Compact info chip ──────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.white.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (hasFlat) ...[
+                            Icon(
+                              Icons.door_front_door_rounded,
+                              color: AppColors.white.withValues(alpha: 0.85),
+                              size: 12,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Flat ${widget.user.flatNumber}',
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.90),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (hasSociety) ...[
+                              Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                ),
+                                width: 3,
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.white.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                          if (hasSociety)
+                            Text(
+                              widget.user.societyName!,
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.75),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
+                          else if (!hasFlat)
+                            Text(
+                              _roleLabel(widget.user.role),
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.90),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -537,7 +605,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Icon(
             Icons.notifications_none_rounded,
-            color: AppColors.white.withValues(alpha: 0.9),
+            color: AppColors.cardBackground.withValues(alpha: 0.9),
             size: 26,
           ),
           if (_unreadCount > 0)
@@ -828,16 +896,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           () => _go(const NoticeCreateScreen()),
         ),
         _Action(
-          Icons.add_card_outlined,
-          'Create\nBill',
+          Icons.warning_amber_rounded,
+          'Complaints',
           AppColors.accentGreen,
-          () => _go(const BillCreateScreen()),
+          () => _go(const ComplaintListScreen()),
         ),
         _Action(
-          Icons.contacts_outlined,
-          'Residents',
+          Icons.payment_outlined,
+          'Payments',
           AppColors.accentBlue,
-          () => _go(const MemberListScreen()),
+          () => _go(const PaymentMarkScreen()),
         ),
       ];
     }
@@ -860,9 +928,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.black,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +948,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text(
                 'Latest Notice',
                 style: TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -921,7 +996,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Water Supply\nMaintenance',
                       style: TextStyle(
-                        color: AppColors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         height: 1.3,
@@ -949,7 +1024,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.05),
+                color: AppColors.primary.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -982,9 +1057,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.black,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,7 +1077,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text(
                 'Upcoming Event',
                 style: TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1041,7 +1123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       DateFormat('dd').format(now),
                       style: const TextStyle(
-                        color: AppColors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
@@ -1058,7 +1140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Annual General\nMeeting',
                       style: TextStyle(
-                        color: AppColors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         height: 1.3,
@@ -1084,7 +1166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.05),
+                color: AppColors.primary.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -1148,9 +1230,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.black,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1179,7 +1268,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Text(
                           title,
                           style: const TextStyle(
-                            color: AppColors.white,
+                            color: AppColors.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1210,8 +1299,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 3),
                   Text(
                     date,
-                    style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 0.42),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -1224,15 +1313,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   id,
-                  style: TextStyle(
-                    color: AppColors.white.withValues(alpha: 0.35),
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
                     fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Icon(
+                const Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.white.withValues(alpha: 0.28),
+                  color: AppColors.textHint,
                   size: 20,
                 ),
               ],
@@ -1246,56 +1335,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── Recent Activity ─────────────────────────────────────────────────────────
 
   Widget _buildRecentActivity() {
+    final cardDecoration = BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.border),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.primary.withValues(alpha: 0.05),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
     if (_loadingActivity && _recentActivity.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 24),
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.black,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
-        ),
-        child: const SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary,
-          ),
-        ),
+        decoration: cardDecoration,
+        child: const NestLoader(size: 32, showDots: false),
       );
     }
     if (_recentActivity.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppColors.black,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
-        ),
-        child: Text(
+        decoration: cardDecoration,
+        child: const Text(
           'No recent activity yet',
-          style: TextStyle(
-            color: AppColors.white.withValues(alpha: 0.55),
-            fontSize: 12.5,
-          ),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
         ),
       );
     }
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.black,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
-      ),
+      decoration: cardDecoration,
       child: Column(
         children: [
           for (int i = 0; i < _recentActivity.length; i++) ...[
             if (i > 0)
-              Divider(
+              const Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.white.withValues(alpha: 0.05),
+                color: AppColors.border,
                 indent: 16,
                 endIndent: 16,
               ),
@@ -1327,7 +1406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Text(
               a.message,
               style: const TextStyle(
-                color: AppColors.white,
+                color: AppColors.textPrimary,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 height: 1.3,
@@ -1432,7 +1511,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.white,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -1475,10 +1554,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openServicesHub() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => ServicesHubScreen(user: widget.user)),
-    );
+    Navigator.push(context, tabRoute(ServicesHubScreen(user: widget.user)));
   }
 
   void _onNavTap(int index) {
@@ -1501,10 +1577,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           break;
       }
       if (screen != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => screen!),
-        ).then((_) {
+        Navigator.push(context, tabRoute(screen)).then((_) {
           if (mounted) setState(() => _selectedTab = 0);
         });
       }
@@ -1532,9 +1605,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
     }
     if (screen != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => screen!)).then((
-        _,
-      ) {
+      Navigator.push(context, tabRoute(screen)).then((_) {
         if (mounted) setState(() => _selectedTab = 0);
         if (index == 3 && _isMember) _fetchOutstandingBills();
       });

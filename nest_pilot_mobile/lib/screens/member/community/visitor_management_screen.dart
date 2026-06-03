@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/socket_service.dart';
@@ -187,7 +188,7 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
   }
 
   Widget _buildHistoryTab() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return const Center(child: NestLoader());
     if (_logs.isEmpty)
       return const Center(child: Text('No visitor history found'));
 

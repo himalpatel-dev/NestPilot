@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import '../../services/community_service.dart';
 import 'package:intl/intl.dart';
 
@@ -64,7 +65,7 @@ class _VisitorReportScreenState extends State<VisitorReportScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _allVisitors.isEmpty
           ? const Center(child: Text('No visitor records found'))
           : ListView.builder(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
 
@@ -169,7 +170,7 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
         elevation: 0,
       ),
       body: _isLoadingSocieties
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
@@ -291,7 +292,7 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
                             ),
                           )
                         : _isLoadingFlats
-                            ? const Center(child: CircularProgressIndicator())
+                            ? const Center(child: NestLoader())
                             : _filteredFlats.isEmpty
                                 ? Center(
                                     child: Column(

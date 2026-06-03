@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/nest_loader.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -10,7 +11,7 @@ class LoadingWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
+          const NestLoader(),
           if (message != null) ...[const SizedBox(height: 16), Text(message!)],
         ],
       ),

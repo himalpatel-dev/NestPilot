@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
 import '../../widgets/app_button.dart';
@@ -148,7 +149,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
         elevation: 0,
       ),
       body: _isLoadingSocieties
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _societies.isEmpty
               ? Center(
                   child: Padding(
@@ -242,7 +243,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                                       ? const Center(
                                           child: Padding(
                                             padding: EdgeInsets.symmetric(vertical: 8.0),
-                                            child: CircularProgressIndicator(),
+                                            child: NestLoader(size: 32, showDots: false),
                                           ),
                                         )
                                       : _buildings.isEmpty

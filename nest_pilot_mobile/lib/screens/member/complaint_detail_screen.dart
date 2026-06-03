@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import 'package:intl/intl.dart';
 import '../../models/notice_complaint.dart';
 import '../../models/user_model.dart';
@@ -327,7 +328,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
           IconButton(
             onPressed: _isSubmitting ? null : _addComment,
             icon: _isSubmitting
-                ? const CircularProgressIndicator()
+                ? const NestLoader(size: 32, showDots: false)
                 : const Icon(Icons.send, color: Colors.blue),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/nest_loader.dart';
 import '../services/notification_service.dart';
 import '../models/notification_model.dart';
 import 'package:intl/intl.dart';
@@ -89,7 +90,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _notifications.isEmpty
           ? const Center(child: Text('No notifications'))
           : ListView.builder(

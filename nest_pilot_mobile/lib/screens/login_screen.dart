@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/nest_loader.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,8 +39,21 @@ class _LoginScreenState extends State<LoginScreen> {
       if (success && mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => OtpScreen(mobile: _mobileController.text),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                OtpScreen(mobile: _mobileController.text),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeInOut,
+                    ),
+                    child: child,
+                  );
+                },
           ),
         );
       }
@@ -84,7 +98,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Stack(
             children: [
               // Top 70% — background image with overlay text
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: -keyboardHeight * 0.6,
                 left: 0,
                 right: 0,
@@ -105,20 +121,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 182 * ts),
+                            SizedBox(height: 148 * ts),
                             Text(
                               'Smart\nNivaas',
                               style: AppTextStyles.brandHeading(ts),
                             ),
                             SizedBox(height: 20 * ts),
-                            Container(
-                              height: 3,
-                              width: 68 * ts,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
+
                             SizedBox(height: 18 * ts),
                             Text(
                               'Connected Living Made Simple',
@@ -140,7 +149,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Container(color: AppColors.cardBackground),
               ),
               // Rounded card overlapping the seam
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: cardTop,
                 left: 0,
                 right: 0,
@@ -227,7 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               // Center shield badge sitting on the seam
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: cardTop - 25,
                 left: 0,
                 right: 0,

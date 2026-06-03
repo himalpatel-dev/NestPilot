@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_bottom_nav.dart';
+import '../theme/tab_route.dart';
 
 import 'login_screen.dart';
 import 'notification_list_screen.dart';
@@ -25,6 +26,9 @@ import 'secretary/poll_create_screen.dart';
 import 'secretary/document_upload_screen.dart';
 import 'secretary/staff_add_screen.dart';
 import 'secretary/vehicle_management_screen.dart';
+import 'secretary/event_manage_screen.dart';
+import 'secretary/payment_mark_screen.dart';
+import 'secretary/complaint_manage_screen.dart';
 
 import 'member/notice_list_screen.dart';
 import 'member/complaint_list_screen.dart';
@@ -68,35 +72,32 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.black,
+        backgroundColor: AppColors.cardBackground,
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _selectedTab,
           bottomPadding: bottomPad,
           onTap: _onNavTap,
           items: _navItems(),
         ),
-        body: SafeArea(
-          bottom: false,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader(context)),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad + 24),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((ctx, i) {
-                    final s = sections[i];
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: i == sections.length - 1 ? 0 : 20,
-                      ),
-                      child: _Section(title: s.title, tiles: s.tiles),
-                    );
-                  }, childCount: sections.length),
-                ),
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((ctx, i) {
+                  final s = sections[i];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: i == sections.length - 1 ? 0 : 24,
+                    ),
+                    child: _Section(title: s.title, tiles: s.tiles),
+                  );
+                }, childCount: sections.length),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -168,42 +169,147 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     }
 
     if (screen != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => screen!)).then((
-        _,
-      ) {
+      Navigator.push(context, tabRoute(screen)).then((_) {
         if (mounted) setState(() => _selectedTab = 2);
       });
     }
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-      child: Row(
-        children: [
-          if (Navigator.canPop(context))
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.white.withValues(alpha: 0.9),
-                size: 22,
+    final safeTop = MediaQuery.of(context).padding.top;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final heroHeight = safeTop + 130.0;
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(32),
+        bottomRight: Radius.circular(32),
+      ),
+      child: SizedBox(
+        height: heroHeight,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Gradient background
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: [0.0, 0.6, 1.0],
+                  colors: [
+                    AppColors.heroGradientDeep,
+                    AppColors.primaryDark,
+                    AppColors.primary,
+                  ],
+                ),
               ),
             ),
-          if (Navigator.canPop(context)) const SizedBox(width: 16),
-          const Expanded(
-            child: Text(
-              'More',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+            // Decorative circles
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withValues(alpha: 0.06),
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-          if (Navigator.canPop(context)) const SizedBox(width: 22),
-        ],
+            Positioned(
+              right: 40,
+              top: -10,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            // Building image — right side, fades left
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: screenWidth * 0.50,
+              child: ShaderMask(
+                shaderCallback: (rect) => LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.40, 1.0],
+                  colors: [
+                    AppColors.transparent,
+                    AppColors.white.withValues(alpha: 0.35),
+                    AppColors.white.withValues(alpha: 0.60),
+                  ],
+                ).createShader(rect),
+                blendMode: BlendMode.dstIn,
+                child: Image.asset(
+                  'assets/dash2.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                ),
+              ),
+            ),
+            // Content
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back button row
+                    if (Navigator.canPop(context))
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: AppColors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    const Text(
+                      'Services',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'All your tools in one place',
+                      style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.70),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -361,7 +467,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         (c) => _go(c, const DocumentUploadScreen()),
       ),
     ]),
-    _HubSection('Billing', [
+    _HubSection('Billing & Payments', [
       _Tile(
         Icons.add_card_outlined,
         'Create Bill',
@@ -374,12 +480,44 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         AppColors.accentAmber,
         (c) => _go(c, const BillsManageScreen()),
       ),
+      _Tile(
+        Icons.payments_outlined,
+        'Mark Payment',
+        AppColors.accentTeal,
+        (c) => _go(c, const PaymentMarkScreen()),
+      ),
+    ]),
+    _HubSection('Community', [
+      _Tile(
+        Icons.event_outlined,
+        'Events',
+        AppColors.accentIndigo,
+        (c) => _go(c, const EventManageScreen()),
+      ),
+      _Tile(
+        Icons.report_problem_outlined,
+        'Complaints',
+        AppColors.accentRed,
+        (c) => _go(c, const ComplaintManageScreen()),
+      ),
     ]),
     _HubSection('Security', [
       _Tile(
-        Icons.person_pin_circle_outlined,
-        'Visitor Logs',
+        Icons.directions_run_outlined,
+        'Visitor Entry',
         AppColors.accentOrange,
+        (c) => _go(c, const SecurityDashboardScreen()),
+      ),
+      _Tile(
+        Icons.group_outlined,
+        'Inside Now',
+        AppColors.accentGreen,
+        (c) => _go(c, const CurrentVisitorsScreen()),
+      ),
+      _Tile(
+        Icons.history_outlined,
+        'Visitor Logs',
+        AppColors.accentBlue,
         (c) => _go(c, const VisitorReportScreen()),
       ),
     ]),
@@ -537,7 +675,7 @@ class _Section extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  color: AppColors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                 ),
@@ -576,7 +714,7 @@ class _Grid extends StatelessWidget {
                 Expanded(
                   child: i < rowTiles.length
                       ? _TileView(tile: rowTiles[i])
-                      : const SizedBox(height: 76),
+                      : const SizedBox(height: 90),
                 ),
               ],
             ],
@@ -601,7 +739,6 @@ class _TileView extends StatelessWidget {
         color: tile.color,
         label: tile.label,
         iconSize: 22,
-        height: 76,
       ),
     );
   }

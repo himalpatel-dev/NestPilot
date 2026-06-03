@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 
@@ -85,7 +86,7 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : TabBarView(
               controller: _tabController,
               children: [_buildFacilitiesTab(), _buildBookingsTab()],
@@ -317,11 +318,7 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
         ElevatedButton(
           onPressed: _isLoading ? null : _submit,
           child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const NestLoader(size: 28, showDots: false)
               : const Text('Add'),
         ),
       ],

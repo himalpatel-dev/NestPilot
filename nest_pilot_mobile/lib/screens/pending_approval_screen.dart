@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/nest_loader.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import 'login_screen.dart';
@@ -44,7 +45,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       body: SafeArea(
         child: Center(
           child: _isLoading
-              ? const CircularProgressIndicator()
+              ? const NestLoader(size: 32, showDots: false)
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(

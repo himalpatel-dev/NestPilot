@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import '../../services/community_service.dart';
 import 'package:intl/intl.dart';
 
@@ -58,7 +59,7 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Visitors Inside')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _insideVisitors.isEmpty
           ? const Center(child: Text('No visitors currently inside'))
           : ListView.builder(

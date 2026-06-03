@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 abstract final class AppColors {
   // Brand
-  static const Color primary = Color(0xFFFEC92D);
-  static const Color primaryDark = Color(0xFF806514);
-  static const Color primaryLight = Color(0xFFFEDB61);
+  static const Color primary = Color(0xFF566A83);
+  static const Color primaryDark = Color(0xFF34506F);
+  static const Color primaryLight = Color(0xFF7CA5D4);
 
   // Backgrounds
   static const Color cardBackground = Color(0xFFF8F1E5);
@@ -30,7 +30,10 @@ abstract final class AppColors {
   static const Color textShadow = Color(0xFF1A1A1A);
 
   // Dashboard — dark background / surface
-  static const Color dashBg = Color(0xFF000000);
+  static const Color dashBg = Color(0xFF1D1F24);
+
+  // Dashboard hero — gradient stops
+  static const Color heroGradientDeep = Color(0xFF243B55);
 
   // Dashboard — compact tile surface gradient layers
   static const Color tileSurfaceHigh = Color(0xFF26262E);

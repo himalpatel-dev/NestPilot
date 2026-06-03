@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/nest_loader.dart';
 import '../services/auth_service.dart';
 import '../services/society_service.dart';
 import '../models/society_structure.dart';
@@ -137,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Complete Registration')),
       body: _isFetchingData && _societies.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(

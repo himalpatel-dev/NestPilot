@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:intl/intl.dart';
@@ -97,7 +98,7 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : TabBarView(
               controller: _tabController,
               children: [_buildAmenitiesList(), _buildBookingsList()],

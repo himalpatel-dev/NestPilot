@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/nest_loader.dart';
 import '../../services/billing_payment_service.dart';
 import '../../services/admin_service.dart';
 import '../../models/user_model.dart';
@@ -153,7 +154,7 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                       ),
                       const SizedBox(height: 8),
                       if (_isFetchingBills)
-                        const Center(child: CircularProgressIndicator())
+                        const Center(child: NestLoader())
                       else if (_userBills.isEmpty)
                         const Text(
                           'No pending bills for this member',

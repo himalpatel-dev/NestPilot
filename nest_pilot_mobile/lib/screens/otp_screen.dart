@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../theme/nest_loader.dart';
 import 'dashboard_screen.dart';
 import 'pending_approval_screen.dart';
 import 'register_screen.dart';
@@ -138,7 +139,9 @@ class _OtpScreenState extends State<OtpScreen>
           height: double.infinity,
           child: Stack(
             children: [
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: -keyboardHeight * 0.6,
                 left: 0,
                 right: 0,
@@ -159,20 +162,13 @@ class _OtpScreenState extends State<OtpScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 182 * ts),
+                            SizedBox(height: 148 * ts),
                             Text(
                               'Smart\nNivaas',
                               style: AppTextStyles.brandHeading(ts),
                             ),
-                            SizedBox(height: 14 * ts),
-                            Container(
-                              height: 3,
-                              width: 64 * ts,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
+                            SizedBox(height: 20 * ts),
+
                             SizedBox(height: 18 * ts),
                             Text(
                               'Connected Living Made Simple',
@@ -192,7 +188,9 @@ class _OtpScreenState extends State<OtpScreen>
                 height: bottomHeight,
                 child: Container(color: AppColors.cardBackground),
               ),
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: cardTop,
                 left: 0,
                 right: 0,
@@ -246,9 +244,27 @@ class _OtpScreenState extends State<OtpScreen>
                                     onTap: () {
                                       Navigator.pushReplacement(
                                         context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
+                                        PageRouteBuilder(
+                                          transitionDuration: const Duration(
+                                            milliseconds: 400,
+                                          ),
+                                          reverseTransitionDuration:
+                                              const Duration(milliseconds: 300),
+                                          pageBuilder: (context, animation,
+                                                  secondaryAnimation) =>
                                               const LoginScreen(),
+                                          transitionsBuilder: (context,
+                                              animation,
+                                              secondaryAnimation,
+                                              child) {
+                                            return FadeTransition(
+                                              opacity: CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeInOut,
+                                              ),
+                                              child: child,
+                                            );
+                                          },
                                         ),
                                       );
                                     },
@@ -299,7 +315,7 @@ class _OtpScreenState extends State<OtpScreen>
                                       style: AppTextStyles.cardSubtext(s * 0.88)
                                           .copyWith(
                                             color: AppColors.primary,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w700,
                                             decoration:
                                                 TextDecoration.underline,
                                             decorationColor: AppColors.primary,
@@ -317,7 +333,9 @@ class _OtpScreenState extends State<OtpScreen>
                   ),
                 ),
               ),
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
                 top: cardTop - 25,
                 left: 0,
                 right: 0,
@@ -330,7 +348,7 @@ class _OtpScreenState extends State<OtpScreen>
                       color: AppColors.primary,
                       border: Border.all(
                         color: AppColors.cardBackground,
-                        width: 5,
+                        width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -348,6 +366,7 @@ class _OtpScreenState extends State<OtpScreen>
                   ),
                 ),
               ),
+              if (_isLoading) const Positioned.fill(child: NestLoadingOverlay()),
             ],
           ),
         ),
@@ -435,7 +454,7 @@ class _OtpFieldState extends State<_OtpField> {
       decoration: BoxDecoration(
         color: AppColors.transparent,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.primary),
       ),
       child: Row(
         children: [
@@ -577,18 +596,7 @@ class _VerifyOtpButton extends StatelessWidget {
                 highlightColor: AppColors.white.withValues(alpha: 0.08),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 18 * s),
-                  child: isLoading
-                      ? Center(
-                          child: SizedBox(
-                            height: 22 * s,
-                            width: 22 * s,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        )
-                      : Row(
+                  child: Row(
                           children: [
                             Icon(
                               Icons.check,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +69,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Daily Help')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NestLoader())
           : _staff.isEmpty
           ? const Center(child: Text('No daily help added yet'))
           : ListView.builder(
@@ -232,7 +233,7 @@ class _StaffAttendanceSheetState extends State<StaffAttendanceSheet> {
           const SizedBox(height: 8),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: NestLoader())
                 : _attendance.isEmpty
                 ? const Center(child: Text('No attendance records'))
                 : ListView.builder(
