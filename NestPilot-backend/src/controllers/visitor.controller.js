@@ -2,6 +2,7 @@ const db = require('../models');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const { Op } = require('sequelize');
+const auditService = require('../services/audit.service');
 
 // Resident: Pre-approve a guest
 const preApproveVisitor = async (req, res, next) => {
@@ -152,6 +153,26 @@ const logEntry = async (req, res, next) => {
         }
         // --- Notification Logic End ---
 
+        try {
+            const finalStatus = visitorLog.status;
+            if (finalStatus === 'INSIDE' || finalStatus === 'DENIED') {
+                let house_no = null;
+                const targetHouseId = visitorLog.house_id || resolvedHouseId;
+                if (targetHouseId) {
+                    const house = await db.House.findByPk(targetHouseId, { attributes: ['house_no'] });
+                    house_no = house ? house.house_no : null;
+                }
+                await auditService.logAction(
+                    req.user.id,
+                    req.user.society_id,
+                    finalStatus === 'INSIDE' ? 'APPROVED' : 'DENIED',
+                    'VISITOR_LOG',
+                    String(visitorLog.id),
+                    { new_value: { house_no }, ip_address: req.ip }
+                );
+            }
+        } catch (_) {}
+
         res.status(201).json(new ApiResponse(201, visitorLog, 'Visitor entry logged'));
     } catch (e) {
         await transaction.rollback();
@@ -249,6 +270,22 @@ const respondToVisitor = async (req, res, next) => {
         log.status = status === 'APPROVED' ? 'INSIDE' : 'DENIED';
         log.approval_by_user_id = req.user.id;
         await log.save();
+
+        try {
+            let house_no = null;
+            if (log.house_id) {
+                const house = await db.House.findByPk(log.house_id, { attributes: ['house_no'] });
+                house_no = house ? house.house_no : null;
+            }
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                status === 'APPROVED' ? 'APPROVED' : 'DENIED',
+                'VISITOR_LOG',
+                String(log.id),
+                { new_value: { house_no }, ip_address: req.ip }
+            );
+        } catch (_) {}
 
         res.status(200).json(new ApiResponse(200, log, `Visitor ${status}`));
     } catch (e) { next(e); }

@@ -1,5 +1,6 @@
 const api = require('../services/complaint.service');
 const ApiResponse = require('../utils/ApiResponse');
+const auditService = require('../services/audit.service');
 
 const create = async (req, res, next) => {
     try {
@@ -26,6 +27,22 @@ const updateStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
         const result = await api.updateStatus(req.params.id, status, req.user.society_id, req.user.id);
+
+        try {
+            const normalized = String(status || '').toUpperCase();
+            const trackedActions = ['RESOLVED', 'CLOSED', 'REOPENED', 'IN_PROGRESS'];
+            if (trackedActions.includes(normalized)) {
+                await auditService.logAction(
+                    req.user.id,
+                    req.user.society_id,
+                    normalized,
+                    'COMPLAINT',
+                    String(result.id),
+                    { new_value: { ref_code: `C-${result.id}` }, ip_address: req.ip }
+                );
+            }
+        } catch (_) {}
+
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };

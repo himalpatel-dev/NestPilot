@@ -1,5 +1,6 @@
 const api = require('../services/bill.service');
 const ApiResponse = require('../utils/ApiResponse');
+const auditService = require('../services/audit.service');
 
 const create = async (req, res, next) => {
     try {
@@ -16,6 +17,18 @@ const create = async (req, res, next) => {
 const publish = async (req, res, next) => {
     try {
         const result = await api.publishBill(req.params.id, req.user.society_id, req.user.id);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'GENERATED',
+                'BILL',
+                String(result.id),
+                { new_value: { title: result.title, ref_code: result.id }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
         res.status(200).json(new ApiResponse(200, result, 'Bill published and generated for members'));
     } catch (e) { next(e); }
 };

@@ -6,6 +6,8 @@ import '../config/roles.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/billing_payment_service.dart';
+import '../services/activity_service.dart';
+import '../models/activity_model.dart';
 import 'notification_list_screen.dart';
 import 'login_screen.dart';
 import 'super_admin/society_create_screen.dart';
@@ -16,7 +18,6 @@ import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
-import 'secretary/amenity_management_screen.dart';
 import 'secretary/member_list_screen.dart';
 import 'member/notice_list_screen.dart';
 import 'security/security_dashboard_screen.dart';
@@ -28,6 +29,7 @@ import 'member/community/visitor_management_screen.dart';
 import 'member/community/amenity_booking_screen.dart';
 import 'member/community/staff_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
+import 'services_hub_screen.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/dashboard_cards.dart';
@@ -47,11 +49,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loadingBills = false;
   int _selectedTab = 0;
 
+  List<ActivityModel> _recentActivity = const [];
+  bool _loadingActivity = false;
+
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
     _fetchOutstandingBills();
+    _fetchRecentActivity();
     _setupSocket();
   }
 
@@ -83,6 +89,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _unreadCount = res.unreadCount);
     } catch (e) {
       debugPrint('Notifications error: $e');
+    }
+  }
+
+  Future<void> _fetchRecentActivity() async {
+    debugPrint(
+      'RecentActivity fetch — role=${widget.user.role} isAdmin=$_isAdmin isSecurity=$_isSecurity',
+    );
+    if (!_isAdmin && !_isSecurity) return;
+    setState(() => _loadingActivity = true);
+    try {
+      final items = await ActivityService().getRecent(limit: 8);
+      debugPrint('RecentActivity items received: ${items.length}');
+      if (mounted) setState(() => _recentActivity = items);
+    } catch (e) {
+      debugPrint('Activity error: $e');
+    } finally {
+      if (mounted) setState(() => _loadingActivity = false);
     }
   }
 
@@ -160,7 +183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showProfileSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: AppColors.black,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -292,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: AppColors.black,
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _selectedTab,
           bottomPadding: bottomPad,
@@ -300,13 +323,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             setState(() => _selectedTab = i);
             _onNavTap(i);
           },
-          items: const [
-            AppNavItem(Icons.home_rounded, 'Home'),
-            AppNavItem(Icons.people_rounded, 'Community'),
-            AppNavItem(Icons.apps_rounded, 'Services'),
-            AppNavItem(Icons.account_balance_wallet_rounded, 'Payments'),
-            AppNavItem(Icons.person_rounded, 'Profile'),
-          ],
+          items: _navItems(),
         ),
         body: SafeArea(
           top: false,
@@ -315,6 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onRefresh: () async {
               await _fetchNotifications();
               await _fetchOutstandingBills();
+              await _fetchRecentActivity();
             },
             color: AppColors.black,
             backgroundColor: AppColors.primary,
@@ -344,6 +362,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: 14),
                         _buildRecentComplaints(),
                       ],
+                      if (_isAdmin || _isSecurity) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionHeader('Recent Activity'),
+                        const SizedBox(height: 14),
+                        _buildRecentActivity(),
+                      ],
                     ]),
                   ),
                 ),
@@ -364,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasSociety = (widget.user.societyName ?? '').isNotEmpty;
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: AppColors.black,
       child: Stack(
         children: [
           // Building image — right half, fades in from left edge
@@ -377,12 +401,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               shaderCallback: (rect) => const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.bottomRight,
-                stops: [0.0, 0.80, 0.90, 1.0],
+                stops: [0.0, 0.80, 0.70, 1.0],
                 colors: [
-                  Colors.transparent,
-                  Color.fromARGB(255, 0, 0, 0),
-                  Colors.white,
-                  Colors.white,
+                  AppColors.transparent,
+                  AppColors.black,
+                  AppColors.white,
+                  AppColors.white,
                 ],
               ).createShader(rect),
               blendMode: BlendMode.dstIn,
@@ -404,7 +428,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [const Color(0xFF0A0A0A), Colors.transparent],
+                  colors: [AppColors.black, AppColors.transparent],
                 ),
               ),
             ),
@@ -420,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, const Color(0xFF0A0A0A)],
+                  colors: [AppColors.transparent, AppColors.black],
                 ),
               ),
             ),
@@ -445,6 +469,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const Spacer(),
+                      GestureDetector(
+                        onTap: _openServicesHub,
+                        child: Icon(
+                          Icons.grid_view_rounded,
+                          color: AppColors.white.withValues(alpha: 0.9),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 18),
                       _buildNotifBell(),
                     ],
                   ),
@@ -517,10 +550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF0A0A0A),
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.black, width: 1.5),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primary.withValues(alpha: 0.60),
@@ -551,7 +581,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: cards[i].color,
               value: cards[i].value,
               label: cards[i].label,
-              onTap: cards[i].onTap,
             ),
           ),
         ],
@@ -577,29 +606,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? currency.format(_outstandingAmount)
                     : '₹0'),
           label: 'Maintenance Due',
-          onTap: () =>
-              _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
         ),
         _StatCard(
           icon: Icons.person_pin_circle_outlined,
           color: AppColors.accentBlue,
           value: '0',
           label: 'Visitors Today',
-          onTap: () => _go(const VisitorManagementScreen()),
         ),
         _StatCard(
           icon: Icons.notifications_outlined,
           color: AppColors.accentPurple,
           value: '$_unreadCount',
           label: 'Unread Notices',
-          onTap: _showNotifications,
         ),
         _StatCard(
           icon: Icons.report_problem_outlined,
           color: AppColors.accentRed,
           value: '0',
           label: 'Open Complaints',
-          onTap: () => _go(const ComplaintListScreen()),
         ),
       ];
     } else if (_isSecurity) {
@@ -609,28 +633,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: AppColors.accentGreen,
           value: '0',
           label: 'Inside Now',
-          onTap: () => _go(const CurrentVisitorsScreen()),
         ),
         _StatCard(
           icon: Icons.login_outlined,
           color: AppColors.accentBlue,
           value: '0',
           label: "Today's Entries",
-          onTap: () => _go(const VisitorReportScreen()),
         ),
         _StatCard(
           icon: Icons.notifications_outlined,
           color: AppColors.accentPurple,
           value: '$_unreadCount',
           label: 'Notifications',
-          onTap: _showNotifications,
         ),
         _StatCard(
           icon: Icons.cleaning_services_outlined,
           color: AppColors.accentPink,
           value: '0',
           label: 'Daily Help',
-          onTap: () => _go(const StaffListScreen()),
         ),
       ];
     } else if (_isSuperAdmin) {
@@ -640,28 +660,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: AppColors.accentOrange,
           value: '0',
           label: 'Societies',
-          onTap: () => _go(const SocietyCreateScreen()),
         ),
         _StatCard(
           icon: Icons.apartment_outlined,
           color: AppColors.accentBlue,
           value: '0',
           label: 'Buildings',
-          onTap: () => _go(const BuildingCreateScreen()),
         ),
         _StatCard(
           icon: Icons.door_front_door_outlined,
           color: AppColors.accentPurple,
           value: '0',
           label: 'Flats',
-          onTap: () => _go(const FlatsListScreen()),
         ),
         _StatCard(
           icon: Icons.people_outlined,
           color: AppColors.accentGreen,
           value: '0',
           label: 'Members',
-          onTap: () => _go(const FlatsListScreen()),
         ),
       ];
     } else {
@@ -671,28 +687,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: AppColors.accentAmber,
           value: '0',
           label: 'Pending',
-          onTap: () => _go(const PendingMembersScreen()),
         ),
         _StatCard(
           icon: Icons.contacts_outlined,
           color: AppColors.accentBlue,
           value: '0',
           label: 'Residents',
-          onTap: () => _go(const MemberListScreen()),
         ),
         _StatCard(
           icon: Icons.notifications_outlined,
           color: AppColors.accentPurple,
           value: '$_unreadCount',
           label: 'Notices',
-          onTap: _showNotifications,
         ),
         _StatCard(
           icon: Icons.report_problem_outlined,
           color: AppColors.accentRed,
           value: '0',
           label: 'Complaints',
-          onTap: () => _go(const ComplaintListScreen()),
         ),
       ];
     }
@@ -848,7 +860,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
+        color: AppColors.black,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
       ),
@@ -919,7 +931,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Tomorrow, 10:00 AM\nto 12:00 PM',
                       style: TextStyle(
-                        color: Color(0x7AFFFFFF),
+                        color: AppColors.textSecondary,
                         fontSize: 10.5,
                         height: 1.35,
                       ),
@@ -970,7 +982,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
+        color: AppColors.black,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
       ),
@@ -1056,7 +1068,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Community Hall\n7:00 PM',
                       style: TextStyle(
-                        color: Color(0x7AFFFFFF),
+                        color: AppColors.textSecondary,
                         fontSize: 10.5,
                         height: 1.35,
                       ),
@@ -1136,7 +1148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF141414),
+          color: AppColors.black,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
         ),
@@ -1231,6 +1243,166 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ─── Recent Activity ─────────────────────────────────────────────────────────
+
+  Widget _buildRecentActivity() {
+    if (_loadingActivity && _recentActivity.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.black,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+        ),
+        child: const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+    if (_recentActivity.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.black,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+        ),
+        child: Text(
+          'No recent activity yet',
+          style: TextStyle(
+            color: AppColors.white.withValues(alpha: 0.55),
+            fontSize: 12.5,
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < _recentActivity.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.white.withValues(alpha: 0.05),
+                indent: 16,
+                endIndent: 16,
+              ),
+            _activityTile(_recentActivity[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _activityTile(ActivityModel a) {
+    final palette = _activityPalette(a);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: palette.color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(palette.icon, color: palette.color, size: 17),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              a.message,
+              style: const TextStyle(
+                color: AppColors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (a.createdAt != null)
+            Text(
+              _relativeTime(a.createdAt!),
+              style: TextStyle(
+                color: palette.color.withValues(alpha: 0.85),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  _ActivityPalette _activityPalette(ActivityModel a) {
+    switch (a.entityType) {
+      case 'VISITOR_LOG':
+      case 'VISITOR':
+        return _ActivityPalette(
+          icon: a.action == 'DENIED'
+              ? Icons.block_outlined
+              : Icons.person_outline,
+          color: a.action == 'DENIED'
+              ? AppColors.accentRed
+              : AppColors.accentGreen,
+        );
+      case 'BILL':
+        return _ActivityPalette(
+          icon: Icons.receipt_long_outlined,
+          color: AppColors.accentBlue,
+        );
+      case 'COMPLAINT':
+        return _ActivityPalette(
+          icon: Icons.report_problem_outlined,
+          color: a.action == 'RESOLVED' || a.action == 'CLOSED'
+              ? AppColors.accentGreen
+              : AppColors.accentAmber,
+        );
+      case 'NOTICE':
+        return _ActivityPalette(
+          icon: Icons.campaign_outlined,
+          color: AppColors.accentPurple,
+        );
+      default:
+        return _ActivityPalette(
+          icon: Icons.history_outlined,
+          color: AppColors.primary,
+        );
+    }
+  }
+
+  String _relativeTime(DateTime when) {
+    final diff = DateTime.now().difference(when);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return '$h hr${h == 1 ? '' : 's'} ago';
+    }
+    if (diff.inDays < 7) {
+      final d = diff.inDays;
+      return '$d day${d == 1 ? '' : 's'} ago';
+    }
+    return DateFormat('d MMM').format(when);
+  }
+
   // ─── Section header ──────────────────────────────────────────────────────────
 
   Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
@@ -1281,8 +1453,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
+
+  List<AppNavItem> _navItems() {
+    if (_isSecretary) {
+      return const [
+        AppNavItem(Icons.home_rounded, 'Home'),
+        AppNavItem(Icons.contacts_rounded, 'Residents'),
+        AppNavItem(Icons.apps_rounded, 'Services'),
+        AppNavItem(Icons.receipt_long_rounded, 'Bills'),
+        AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
+      ];
+    }
+    return const [
+      AppNavItem(Icons.home_rounded, 'Home'),
+      AppNavItem(Icons.people_rounded, 'Community'),
+      AppNavItem(Icons.apps_rounded, 'Services'),
+      AppNavItem(Icons.account_balance_wallet_rounded, 'Payments'),
+      AppNavItem(Icons.person_rounded, 'Profile'),
+    ];
+  }
+
+  void _openServicesHub() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ServicesHubScreen(user: widget.user)),
+    );
+  }
+
   void _onNavTap(int index) {
     if (index == 0) return;
+
+    if (_isSecretary) {
+      Widget? screen;
+      switch (index) {
+        case 1:
+          screen = const MemberListScreen();
+          break;
+        case 2:
+          screen = ServicesHubScreen(user: widget.user);
+          break;
+        case 3:
+          screen = const BillsManageScreen();
+          break;
+        case 4:
+          screen = const VisitorReportScreen();
+          break;
+      }
+      if (screen != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => screen!),
+        ).then((_) {
+          if (mounted) setState(() => _selectedTab = 0);
+        });
+      }
+      return;
+    }
+
     Widget? screen;
     switch (index) {
       case 1:
@@ -1291,11 +1519,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : const NoticeCreateScreen();
         break;
       case 2:
-        screen = _isMember
-            ? const AmenityBookingScreen()
-            : _isSecurity
-            ? const SecurityDashboardScreen()
-            : const AmenityManagementScreen();
+        screen = ServicesHubScreen(user: widget.user);
         break;
       case 3:
         screen = _isMember
@@ -1334,13 +1558,11 @@ class _StatCard {
   final Color color;
   final String value;
   final String label;
-  final VoidCallback onTap;
   const _StatCard({
     required this.icon,
     required this.color,
     required this.value,
     required this.label,
-    required this.onTap,
   });
 }
 
@@ -1350,4 +1572,10 @@ class _Action {
   final Color color;
   final VoidCallback onTap;
   const _Action(this.icon, this.label, this.color, this.onTap);
+}
+
+class _ActivityPalette {
+  final IconData icon;
+  final Color color;
+  const _ActivityPalette({required this.icon, required this.color});
 }

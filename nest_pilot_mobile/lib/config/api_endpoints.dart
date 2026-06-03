@@ -68,4 +68,7 @@ class ApiEndpoints {
   // Notifications
   static const String notifications = '/api/notifications';
   static String readNotification(String id) => '/api/notifications/$id/read';
+
+  // Activity
+  static const String recentActivity = '/api/activity/recent';
 }
