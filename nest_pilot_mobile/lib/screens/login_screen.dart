@@ -258,6 +258,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
+              // Custom loader overlay
+              //   if (_isLoading) const Positioned.fill(child: NestLoadingOverlay()),
             ],
           ),
         ),
