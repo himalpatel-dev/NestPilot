@@ -20,7 +20,6 @@ import 'super_admin/flat_create_screen.dart';
 import 'super_admin/flats_list_screen.dart';
 import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
-import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
 import 'secretary/bills_dashboard_screen.dart';
 import 'secretary/visitor_dashboard_screen.dart';

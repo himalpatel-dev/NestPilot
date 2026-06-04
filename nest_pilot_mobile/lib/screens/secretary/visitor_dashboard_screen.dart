@@ -166,20 +166,18 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
 
   Widget _buildHeader(BuildContext context) {
     final safeTop = MediaQuery.of(context).padding.top;
-    final screenW = MediaQuery.of(context).size.width;
-    final heroH = safeTop + 185.0;
+    final heroH = safeTop + 245.0;
     final stats = _data;
+    final dateStr = DateFormat('EEE, dd MMM').format(DateTime.now());
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
+    return ClipPath(
+      clipper: _HeaderClipper(),
       child: SizedBox(
         height: heroH,
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Gradient background
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -194,128 +192,301 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
                 ),
               ),
             ),
+            // Outer hollow ring — top right
             Positioned(
-              right: -30,
-              top: -30,
+              right: -50,
+              top: -50,
               child: Container(
-                width: 160,
-                height: 160,
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.06),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.09),
+                    width: 22,
+                  ),
                 ),
               ),
             ),
+            // Inner hollow ring — mid right
             Positioned(
-              right: 40,
-              top: -10,
+              right: 10,
+              top: 10,
               child: Container(
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.05),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.07),
+                    width: 12,
+                  ),
                 ),
               ),
             ),
+            // Rotated accent rectangle — lower left
             Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: screenW * 0.48,
-              child: ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.40, 1.0],
-                  colors: [
-                    AppColors.transparent,
-                    AppColors.white.withValues(alpha: 0.20),
-                    AppColors.white.withValues(alpha: 0.45),
-                  ],
-                ).createShader(rect),
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/dash2.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
+              left: -30,
+              bottom: 50,
+              child: Transform.rotate(
+                angle: -0.4,
+                child: Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    color: AppColors.white.withValues(alpha: 0.045),
+                  ),
                 ),
               ),
             ),
+            // Content
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (Navigator.canPop(context))
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
+                    // ── Top bar: back + LIVE + date ──────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (Navigator.canPop(context))
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.white.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: AppColors.white,
+                                size: 16,
+                              ),
+                            ),
+                          )
+                        else
+                          const SizedBox.shrink(),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGreen.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: AppColors.accentGreen
+                                        .withValues(alpha: 0.35)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.accentGreen,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  const Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      color: AppColors.accentGreen,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                dateStr,
+                                style: TextStyle(
+                                  color: AppColors.white.withValues(alpha: 0.80),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // ── Title with icon badge ─────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             color: AppColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(13),
                             border: Border.all(
-                              color: AppColors.white.withValues(alpha: 0.25),
-                            ),
+                                color: AppColors.white.withValues(alpha: 0.28)),
                           ),
                           alignment: Alignment.center,
                           child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
+                            Icons.supervisor_account_rounded,
                             color: AppColors.white,
-                            size: 16,
+                            size: 22,
                           ),
                         ),
-                      ),
-                    const Spacer(),
-                    const Text(
-                      'Visitor Dashboard',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Monitor society visitor activity',
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.70),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _HeroStatChip(
-                            value: _loading ? '—' : '${stats?.insideCount ?? 0}',
-                            label: 'Visitors\nInside',
-                            color: AppColors.accentGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _HeroStatChip(
-                            value: _loading ? '—' : '${stats?.pendingCount ?? 0}',
-                            label: 'Pending\nApprovals',
-                            color: AppColors.accentOrange,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _HeroStatChip(
-                            value: _loading ? '—' : '${stats?.todayCount ?? 0}',
-                            label: "Today's\nEntries",
-                            color: AppColors.accentBlue,
-                          ),
+                        const SizedBox(width: 13),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Visitor Dashboard',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                                height: 1.1,
+                              ),
+                            ),
+                            Text(
+                              'Monitor society visitor activity',
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.62),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
+                    ),
+                    const Spacer(),
+                    // ── Stats panel ───────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.09),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: AppColors.white.withValues(alpha: 0.15)),
+                      ),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Featured: visitors inside
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.accentGreen,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        'CURRENTLY INSIDE',
+                                        style: TextStyle(
+                                          color: AppColors.white
+                                              .withValues(alpha: 0.55),
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _loading ? '—' : '${stats?.insideCount ?? 0}',
+                                    style: const TextStyle(
+                                      color: AppColors.accentGreen,
+                                      fontSize: 38,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.0,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'visitors active',
+                                    style: TextStyle(
+                                      color:
+                                          AppColors.white.withValues(alpha: 0.45),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Vertical divider
+                            Container(
+                              width: 1,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              color: AppColors.white.withValues(alpha: 0.18),
+                            ),
+                            // Right column: pending + today
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _MiniStatRow(
+                                    value: _loading
+                                        ? '—'
+                                        : '${stats?.pendingCount ?? 0}',
+                                    label: 'Pending',
+                                    color: AppColors.accentOrange,
+                                  ),
+                                  Container(
+                                    height: 1,
+                                    color: AppColors.white.withValues(alpha: 0.10),
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 8),
+                                  ),
+                                  _MiniStatRow(
+                                    value: _loading
+                                        ? '—'
+                                        : '${stats?.todayCount ?? 0}',
+                                    label: "Today's",
+                                    color: AppColors.accentBlue,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -560,56 +731,6 @@ class _VisitorDashboardScreenState extends State<VisitorDashboardScreen> {
             ),
           ),
       ],
-    );
-  }
-}
-
-// ─── Hero stat chip ───────────────────────────────────────────────────────────
-
-class _HeroStatChip extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-  const _HeroStatChip({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.20)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.75),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-              height: 1.3,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }
@@ -943,6 +1064,70 @@ class _HistoryStatTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Header wave clipper ──────────────────────────────────────────────────────
+
+class _HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 24);
+    path.quadraticBezierTo(
+      size.width * 0.5,
+      size.height + 18,
+      size.width,
+      size.height - 24,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_HeaderClipper oldClipper) => false;
+}
+
+// ─── Mini stat row (right column in stats panel) ──────────────────────────────
+
+class _MiniStatRow extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  const _MiniStatRow({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            height: 1.0,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppColors.white.withValues(alpha: 0.60),
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
