@@ -332,6 +332,61 @@ const verifyPassCode = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getDashboard = async (req, res, next) => {
+    try {
+        const societyId = req.user.society_id;
+        const qt = { type: db.sequelize.QueryTypes.SELECT };
+
+        const statsRows = await db.sequelize.query(
+            `SELECT
+                COUNT(CASE WHEN status = 'INSIDE' THEN 1 END) AS inside_count,
+                COUNT(CASE WHEN status = 'WAITING_APPROVAL' THEN 1 END) AS pending_count,
+                COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) AS today_count
+             FROM visitor_logs WHERE society_id = :societyId`,
+            { replacements: { societyId }, ...qt }
+        );
+
+        const visitorsRows = await db.sequelize.query(
+            `SELECT vl.id,
+                v.name AS visitor_name,
+                CASE WHEN h.wing IS NOT NULL AND h.wing != ''
+                     THEN h.wing || '-' || h.house_no ELSE h.house_no END AS flat_no,
+                vl.entry_time, vl.status
+             FROM visitor_logs vl
+             LEFT JOIN visitors v ON v.id = vl.visitor_id
+             LEFT JOIN tbl_houses h ON h.id = vl.house_id
+             WHERE vl.society_id = :societyId AND DATE(vl.created_at) = CURRENT_DATE
+             ORDER BY vl.created_at DESC LIMIT 20`,
+            { replacements: { societyId }, ...qt }
+        );
+
+        const historyRows = await db.sequelize.query(
+            `SELECT
+                COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE - INTERVAL '1 day' THEN 1 END) AS yesterday_count,
+                COUNT(CASE WHEN created_at >= DATE_TRUNC('week', CURRENT_DATE) THEN 1 END) AS week_count,
+                COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) AS month_count
+             FROM visitor_logs WHERE society_id = :societyId`,
+            { replacements: { societyId }, ...qt }
+        );
+
+        const s = statsRows[0] || {};
+        const h = historyRows[0] || {};
+        res.status(200).json(new ApiResponse(200, {
+            stats: {
+                inside_count: parseInt(s.inside_count || 0),
+                pending_count: parseInt(s.pending_count || 0),
+                today_count: parseInt(s.today_count || 0)
+            },
+            today_visitors: visitorsRows || [],
+            history: {
+                yesterday_count: parseInt(h.yesterday_count || 0),
+                week_count: parseInt(h.week_count || 0),
+                month_count: parseInt(h.month_count || 0)
+            }
+        }));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     preApproveVisitor,
     logEntry,
@@ -340,5 +395,6 @@ module.exports = {
     respondToVisitor,
     getInsideVisitors,
     getAllSocietyVisitors,
-    verifyPassCode
+    verifyPassCode,
+    getDashboard
 };

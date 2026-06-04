@@ -12,6 +12,7 @@ router.get('/my', controller.getMyVisitors);
 router.post('/respond', controller.respondToVisitor);
 
 // Security / Admin Actions (In a real app, we'd have a specific SECURITY_GUARD role)
+router.get('/dashboard', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.getDashboard);
 router.post('/entry', role(['SOCIETY_ADMIN', 'SECURITY_GUARD', 'MEMBER']), controller.logEntry);
 router.post('/exit', role(['SOCIETY_ADMIN', 'SECURITY_GUARD', 'MEMBER']), controller.logExit);
 router.get('/inside', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.getInsideVisitors);

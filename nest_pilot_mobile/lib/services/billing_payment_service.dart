@@ -46,6 +46,24 @@ class BillService {
     return response['success'] ?? false;
   }
 
+  Future<BillsDashboardData> getDashboardData({String? month}) async {
+    final endpoint = month != null
+        ? '${ApiEndpoints.billsDashboard}?month=$month'
+        : ApiEndpoints.billsDashboard;
+    try {
+      final response = await _apiService.get(endpoint);
+      if (response['success'] == true) {
+        return BillsDashboardData.fromJson(
+          response['data'] as Map<String, dynamic>,
+        );
+      }
+    } catch (_) {}
+    return BillsDashboardData(
+      stats: BillDashboardStats.empty(),
+      recentPayments: [],
+    );
+  }
+
   Future<bool> publishBill(String id) async {
     final response = await _apiService.post(ApiEndpoints.publishBill(id), {});
     return response['success'] ?? false;

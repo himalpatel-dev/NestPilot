@@ -109,9 +109,43 @@ const getSocietyMembers = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getDashboardStats = async (req, res, next) => {
+    try {
+        const societyId = req.user.society_id;
+
+        const [pendingMembers, totalResidents, totalNotices, totalComplaints] = await Promise.all([
+            db.User.count({
+                where: { society_id: societyId, status: 'pending' }
+            }),
+            db.User.count({
+                where: { society_id: societyId, status: 'active' },
+                include: [{
+                    model: db.Role,
+                    where: { code: 'MEMBER' },
+                    required: true
+                }]
+            }),
+            db.Notice.count({
+                where: { society_id: societyId }
+            }),
+            db.Complaint.count({
+                where: { society_id: societyId }
+            }),
+        ]);
+
+        res.status(200).json(new ApiResponse(200, {
+            pending_members: pendingMembers,
+            total_residents: totalResidents,
+            total_notices: totalNotices,
+            total_complaints: totalComplaints,
+        }));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getPendingUsers,
     approveUser,
     rejectUser,
-    getSocietyMembers
+    getSocietyMembers,
+    getDashboardStats
 };

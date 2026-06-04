@@ -9,6 +9,7 @@ router.use(auth);
 // Admin Bill Mgmt
 router.post('/', role(['SOCIETY_ADMIN']), controller.create);
 router.get('/', role(['SOCIETY_ADMIN']), controller.getAll);
+router.get('/dashboard', role(['SOCIETY_ADMIN']), controller.getDashboard);
 router.get('/user/:userId', role(['SOCIETY_ADMIN']), controller.getUserBills);
 router.post('/:id/publish', role(['SOCIETY_ADMIN']), controller.publish);
 

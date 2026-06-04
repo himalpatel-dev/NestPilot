@@ -6,6 +6,7 @@ class ApiEndpoints {
   static const String me = '/api/auth/me';
 
   // Approvals
+  static const String dashboardStats = '/api/admin/dashboard-stats';
   static const String pendingUsers = '/api/admin/pending-users';
   static const String societyMembers = '/api/admin/members';
   static String approveUser(String id) => '/api/admin/users/$id/approve';
@@ -13,6 +14,7 @@ class ApiEndpoints {
 
   // Society Setup
   static const String societies = '/api/society';
+  static const String houseStats = '/api/society/house-stats';
   static String societyBuildings(String id) => '/api/societies/$id/buildings';
   static String buildingFlats(String id) => '/api/buildings/$id/flats';
   static String societyFlats(String id) => '/api/societies/$id/flats';
@@ -32,10 +34,14 @@ class ApiEndpoints {
   static const String myBills = '/api/bills/my';
   static String userBills(String userId) => '/api/bills/user/$userId';
 
+  static const String billsDashboard = '/api/bills/dashboard';
+
   // Payments
   static const String syncPayments = '/api/payments/offline-sync';
   static const String myPayments = '/api/payments/my';
   static String paymentReceipt(String id) => '/api/payments/receipts/$id';
+
+  static const String visitorsDashboard = '/api/visitors/dashboard';
 
   // Vehicles
   static const String vehicles = '/api/vehicles';

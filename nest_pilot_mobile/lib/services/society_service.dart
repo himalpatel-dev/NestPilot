@@ -75,6 +75,14 @@ class SocietyService {
     return response['success'] ?? false;
   }
 
+  Future<HouseStats?> getHouseStats() async {
+    final response = await _apiService.get(ApiEndpoints.houseStats);
+    if (response['success'] == true && response['data'] != null) {
+      return HouseStats.fromJson(response['data'] as Map<String, dynamic>);
+    }
+    return null;
+  }
+
   Future<bool> createFlat({
     required String buildingId,
     required String number,

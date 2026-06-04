@@ -1,4 +1,5 @@
 import '../config/api_endpoints.dart';
+import '../models/society_structure.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 
@@ -23,6 +24,14 @@ class AdminService {
           .toList();
     }
     return [];
+  }
+
+  Future<DashboardStats?> getDashboardStats() async {
+    final response = await _apiService.get(ApiEndpoints.dashboardStats);
+    if (response['success'] == true && response['data'] != null) {
+      return DashboardStats.fromJson(response['data'] as Map<String, dynamic>);
+    }
+    return null;
   }
 
   Future<bool> approveUser(String id) async {

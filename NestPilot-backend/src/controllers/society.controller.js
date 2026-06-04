@@ -86,6 +86,14 @@ const getFlatsBySociety = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getHouseOccupancyStats = async (req, res, next) => {
+    try {
+        const societyId = req.user.society_id;
+        const data = await societyService.getHouseOccupancyStats(societyId);
+        res.status(200).json(new ApiResponse(200, data));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getSociety,
     createSociety,
@@ -96,6 +104,7 @@ module.exports = {
     createBuildingForSociety,
     getFlatsByBuilding,
     createFlatForBuilding,
-    getFlatsBySociety
+    getFlatsBySociety,
+    getHouseOccupancyStats
 };
 

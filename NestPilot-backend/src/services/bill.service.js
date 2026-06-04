@@ -149,9 +149,69 @@ const getMemberBills = async (userId, societyId) => {
 };
 
 
+const getDashboardData = async (societyId, month = null) => {
+    const queryType = { type: db.sequelize.QueryTypes.SELECT };
+
+    let monthClause = '';
+    const params = { societyId };
+
+    if (month) {
+        const parts = month.split('-');
+        params.year = parseInt(parts[0]);
+        params.mon = parseInt(parts[1]);
+        monthClause = `AND EXTRACT(YEAR FROM payment_date) = :year AND EXTRACT(MONTH FROM payment_date) = :mon`;
+    }
+
+    const collectedRows = await db.sequelize.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total_collected
+         FROM tbl_payments
+         WHERE society_id = :societyId ${monthClause}`,
+        { replacements: params, ...queryType }
+    );
+
+    const pendingRows = await db.sequelize.query(
+        `SELECT
+            COALESCE(SUM(mb.amount + mb.penalty_amount), 0) AS total_pending,
+            COUNT(mb.id) AS pending_count
+         FROM tbl_member_bills mb
+         INNER JOIN tbl_bills b ON b.id = mb.bill_id AND b.society_id = :societyId
+         WHERE mb.status IN ('PENDING', 'OVERDUE', 'PARTIAL')`,
+        { replacements: { societyId }, ...queryType }
+    );
+
+    const recentRows = await db.sequelize.query(
+        `SELECT
+            p.id,
+            CAST(p.amount AS FLOAT) AS amount,
+            p.payment_mode,
+            p.payment_date,
+            CASE WHEN h.wing IS NOT NULL AND h.wing != ''
+                 THEN h.wing || '-' || h.house_no
+                 ELSE h.house_no END AS flat_no,
+            u.full_name AS member_name
+         FROM tbl_payments p
+         LEFT JOIN tbl_houses h ON h.id = p.house_id
+         LEFT JOIN tbl_users u ON u.id = p.user_id
+         WHERE p.society_id = :societyId ${monthClause}
+         ORDER BY p.payment_date DESC
+         LIMIT 10`,
+        { replacements: params, ...queryType }
+    );
+
+    return {
+        stats: {
+            total_collected: parseFloat(collectedRows[0]?.total_collected || 0),
+            total_pending: parseFloat(pendingRows[0]?.total_pending || 0),
+            pending_bills_count: parseInt(pendingRows[0]?.pending_count || 0)
+        },
+        recent_payments: recentRows || []
+    };
+};
+
 module.exports = {
     createBill,
     publishBill,
     getMemberBills,
-    getBillsBySociety
+    getBillsBySociety,
+    getDashboardData
 };

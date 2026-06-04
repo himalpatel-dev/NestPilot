@@ -1,3 +1,30 @@
+class HouseStats {
+  final int totalHouses;
+  final int occupiedHouses;
+  final int vacantHouses;
+  final int ownerCount;
+  final int tenantCount;
+
+  const HouseStats({
+    required this.totalHouses,
+    required this.occupiedHouses,
+    required this.vacantHouses,
+    required this.ownerCount,
+    required this.tenantCount,
+  });
+
+  factory HouseStats.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '0') ?? 0);
+    return HouseStats(
+      totalHouses: toInt(json['total_houses']),
+      occupiedHouses: toInt(json['occupied_houses']),
+      vacantHouses: toInt(json['vacant_houses']),
+      ownerCount: toInt(json['owner_count']),
+      tenantCount: toInt(json['tenant_count']),
+    );
+  }
+}
+
 class Society {
   final String id;
   final String name;
@@ -83,6 +110,30 @@ class Flat {
       wing: json['wing']?.toString(),
       unitType: json['unit_type'] ?? 'FLAT',
       areaSqft: json['area_sqft']?.toString(),
+    );
+  }
+}
+
+class DashboardStats {
+  final int pendingMembers;
+  final int totalResidents;
+  final int totalNotices;
+  final int totalComplaints;
+
+  const DashboardStats({
+    required this.pendingMembers,
+    required this.totalResidents,
+    required this.totalNotices,
+    required this.totalComplaints,
+  });
+
+  factory DashboardStats.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '0') ?? 0);
+    return DashboardStats(
+      pendingMembers: toInt(json['pending_members']),
+      totalResidents: toInt(json['total_residents']),
+      totalNotices: toInt(json['total_notices']),
+      totalComplaints: toInt(json['total_complaints']),
     );
   }
 }

@@ -72,129 +72,120 @@ class _AppBottomNavState extends State<AppBottomNav>
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.transparent,
-      padding: EdgeInsets.fromLTRB(10, 8, 10, widget.bottomPadding + 10),
+      padding: EdgeInsets.only(bottom: widget.bottomPadding),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.zero,
         child: Container(
-            height: 65,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.border, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final tabW = constraints.maxWidth / widget.items.length;
-                return AnimatedBuilder(
-                  animation: _ctrl,
-                  builder: (context, _) {
-                    final t = _ctrl.value;
-                    final pos = _slideAnim.value;
-                    return Stack(
-                      children: [
-                        // Sliding spotlight — follows the animated position
-                        Positioned(
-                          left: pos * tabW,
-                          width: tabW,
-                          top: 0,
-                          bottom: 0,
-                          child: CustomPaint(
-                            painter: _SpotlightPainter(color: AppColors.primary),
-                          ),
+          height: 65,
+          decoration: BoxDecoration(
+            color: AppColors.transparent,
+            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final tabW = constraints.maxWidth / widget.items.length;
+              return AnimatedBuilder(
+                animation: _ctrl,
+                builder: (context, _) {
+                  final t = _ctrl.value;
+                  final pos = _slideAnim.value;
+                  return Stack(
+                    children: [
+                      // Sliding spotlight — follows the animated position
+                      Positioned(
+                        left: pos * tabW,
+                        width: tabW,
+                        top: 0,
+                        bottom: 0,
+                        child: CustomPaint(
+                          painter: _SpotlightPainter(color: AppColors.primary),
                         ),
+                      ),
 
-                        // Tab items
-                        Row(
-                          children: List.generate(widget.items.length, (i) {
-                            final isTo = i == _toIndex;
-                            final isFrom = i == _fromIndex;
+                      // Tab items
+                      Row(
+                        children: List.generate(widget.items.length, (i) {
+                          final isTo = i == _toIndex;
+                          final isFrom = i == _fromIndex;
 
-                            // 0 = unselected, 1 = selected colour
-                            final double colorT;
-                            if (isTo) {
-                              colorT = Curves.easeOut.transform(t);
-                            } else if (isFrom && _fromIndex != _toIndex) {
-                              colorT = 1.0 - Curves.easeIn.transform(t);
-                            } else {
-                              colorT = 0.0;
-                            }
+                          // 0 = unselected, 1 = selected colour
+                          final double colorT;
+                          if (isTo) {
+                            colorT = Curves.easeOut.transform(t);
+                          } else if (isFrom && _fromIndex != _toIndex) {
+                            colorT = 1.0 - Curves.easeIn.transform(t);
+                          } else {
+                            colorT = 0.0;
+                          }
 
-                            final double scale;
-                            if (isTo) {
-                              scale = 1.0 +
-                                  0.12 *
-                                      Curves.easeOutBack.transform(t);
-                            } else if (isFrom && _fromIndex != _toIndex) {
-                              scale = 1.12 - 0.12 * Curves.easeIn.transform(t);
-                            } else {
-                              scale = 1.0;
-                            }
+                          final double scale;
+                          if (isTo) {
+                            scale =
+                                1.0 + 0.12 * Curves.easeOutBack.transform(t);
+                          } else if (isFrom && _fromIndex != _toIndex) {
+                            scale = 1.12 - 0.12 * Curves.easeIn.transform(t);
+                          } else {
+                            scale = 1.0;
+                          }
 
-                            final iconColor = Color.lerp(
-                              AppColors.textSecondary,
-                              AppColors.primary,
-                              colorT,
-                            )!;
-                            final labelColor = Color.lerp(
-                              AppColors.textSecondary,
-                              AppColors.primary,
-                              colorT,
-                            )!;
-                            final labelWeight = FontWeight.lerp(
-                              FontWeight.w500,
-                              FontWeight.w700,
-                              colorT,
-                            )!;
+                          final iconColor = Color.lerp(
+                            AppColors.textSecondary,
+                            AppColors.primary,
+                            colorT,
+                          )!;
+                          final labelColor = Color.lerp(
+                            AppColors.textSecondary,
+                            AppColors.primary,
+                            colorT,
+                          )!;
+                          final labelWeight = FontWeight.lerp(
+                            FontWeight.w500,
+                            FontWeight.w700,
+                            colorT,
+                          )!;
 
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () => widget.onTap(i),
-                                behavior: HitTestBehavior.opaque,
-                                child: SizedBox(
-                                  height: 64,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Transform.scale(
-                                        scale: scale,
-                                        child: Icon(
-                                          widget.items[i].icon,
-                                          size: 22,
-                                          color: iconColor,
-                                        ),
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => widget.onTap(i),
+                              behavior: HitTestBehavior.opaque,
+                              child: SizedBox(
+                                height: 64,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Transform.scale(
+                                      scale: scale,
+                                      child: Icon(
+                                        widget.items[i].icon,
+                                        size: 22,
+                                        color: iconColor,
                                       ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        widget.items[i].label,
-                                        style: TextStyle(
-                                          fontSize: 9.5,
-                                          fontWeight: labelWeight,
-                                          color: labelColor,
-                                          letterSpacing: 0.2,
-                                        ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      widget.items[i].label,
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: labelWeight,
+                                        color: labelColor,
+                                        letterSpacing: 0.2,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            );
-                          }),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ),
+      ),
     );
   }
 }
@@ -218,7 +209,7 @@ class _SpotlightPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AppColors.primary.withValues(alpha: 0.08),
+          AppColors.primary.withValues(alpha: 0.18),
           AppColors.primary.withValues(alpha: 0.0),
         ],
         stops: const [0.0, 1.0],
@@ -232,7 +223,7 @@ class _SpotlightPainter extends CustomPainter {
     const double barR = 4.0;
 
     final glowPaint = Paint()
-      ..color = AppColors.primary.withValues(alpha: 0.25)
+      ..color = AppColors.primary.withValues(alpha: 0.35)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawRRect(
       RRect.fromRectAndRadius(

@@ -277,6 +277,26 @@ class CommunityService {
     throw Exception(response['message']);
   }
 
+  Future<VisitorDashboardData> getVisitorDashboard() async {
+    try {
+      final response = await _apiService.get(ApiEndpoints.visitorsDashboard);
+      if (response['success'] == true) {
+        return VisitorDashboardData.fromJson(
+          response['data'] as Map<String, dynamic>,
+        );
+      }
+    } catch (_) {}
+    return VisitorDashboardData(
+      insideCount: 0,
+      pendingCount: 0,
+      todayCount: 0,
+      todayVisitors: [],
+      yesterdayCount: 0,
+      weekCount: 0,
+      monthCount: 0,
+    );
+  }
+
   Future<List<dynamic>> getAllSocietyVisitors() async {
     final response = await _apiService.get('${ApiEndpoints.visitors}/all');
     if (response['success']) {

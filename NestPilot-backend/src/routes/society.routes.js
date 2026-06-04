@@ -10,6 +10,7 @@ router.get('/', auth.optional, societyController.getSociety);
 router.post('/buildings', auth, role(['SOCIETY_ADMIN']), societyController.createBuilding);
 router.post('/houses', auth, role(['SOCIETY_ADMIN']), societyController.createHouse);
 router.get('/houses', auth, societyController.getAllHouses);
+router.get('/house-stats', auth, societyController.getHouseOccupancyStats);
 
 // Super admin specific or nested routes
 router.get('/:id/buildings', societyController.getBuildingsBySociety);

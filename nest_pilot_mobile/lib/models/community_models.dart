@@ -373,3 +373,68 @@ class Document {
     );
   }
 }
+
+class VisitorDashboardEntry {
+  final int id;
+  final String visitorName;
+  final String? flatNo;
+  final DateTime? entryTime;
+  final String status;
+
+  VisitorDashboardEntry({
+    required this.id,
+    required this.visitorName,
+    this.flatNo,
+    this.entryTime,
+    required this.status,
+  });
+
+  factory VisitorDashboardEntry.fromJson(Map<String, dynamic> json) {
+    return VisitorDashboardEntry(
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      visitorName: json['visitor_name'] ?? json['visitorName'] ?? 'Unknown',
+      flatNo: json['flat_no'] ?? json['flatNo'],
+      entryTime: json['entry_time'] != null
+          ? DateTime.tryParse(json['entry_time'].toString())
+          : null,
+      status: json['status'] ?? 'WAITING_APPROVAL',
+    );
+  }
+}
+
+class VisitorDashboardData {
+  final int insideCount;
+  final int pendingCount;
+  final int todayCount;
+  final List<VisitorDashboardEntry> todayVisitors;
+  final int yesterdayCount;
+  final int weekCount;
+  final int monthCount;
+
+  VisitorDashboardData({
+    required this.insideCount,
+    required this.pendingCount,
+    required this.todayCount,
+    required this.todayVisitors,
+    required this.yesterdayCount,
+    required this.weekCount,
+    required this.monthCount,
+  });
+
+  factory VisitorDashboardData.fromJson(Map<String, dynamic> json) {
+    final stats = json['stats'] as Map<String, dynamic>? ?? {};
+    final history = json['history'] as Map<String, dynamic>? ?? {};
+    return VisitorDashboardData(
+      insideCount: int.tryParse((stats['inside_count'] ?? 0).toString()) ?? 0,
+      pendingCount: int.tryParse((stats['pending_count'] ?? 0).toString()) ?? 0,
+      todayCount: int.tryParse((stats['today_count'] ?? 0).toString()) ?? 0,
+      todayVisitors: ((json['today_visitors'] ?? []) as List)
+          .map((e) => VisitorDashboardEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      yesterdayCount:
+          int.tryParse((history['yesterday_count'] ?? 0).toString()) ?? 0,
+      weekCount: int.tryParse((history['week_count'] ?? 0).toString()) ?? 0,
+      monthCount: int.tryParse((history['month_count'] ?? 0).toString()) ?? 0,
+    );
+  }
+}

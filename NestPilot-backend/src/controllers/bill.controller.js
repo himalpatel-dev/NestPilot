@@ -66,10 +66,19 @@ const getUserBills = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getDashboard = async (req, res, next) => {
+    try {
+        const month = req.query.month || null;
+        const result = await api.getDashboardData(req.user.society_id, month);
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     create,
     publish,
     getMyBills,
     getAll,
-    getUserBills
+    getUserBills,
+    getDashboard
 };

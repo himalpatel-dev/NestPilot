@@ -20,6 +20,8 @@ import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
+import 'secretary/bills_dashboard_screen.dart';
+import 'secretary/visitor_dashboard_screen.dart';
 import 'secretary/amenity_management_screen.dart';
 import 'secretary/member_list_screen.dart';
 import 'secretary/poll_create_screen.dart';
@@ -47,7 +49,12 @@ import 'common/visitor_report_screen.dart';
 
 class ServicesHubScreen extends StatefulWidget {
   final UserModel user;
-  const ServicesHubScreen({super.key, required this.user});
+  final bool embedded;
+  const ServicesHubScreen({
+    super.key,
+    required this.user,
+    this.embedded = true,
+  });
 
   @override
   State<ServicesHubScreen> createState() => _ServicesHubScreenState();
@@ -73,12 +80,14 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.cardBackground,
-        bottomNavigationBar: AppBottomNav(
-          selectedIndex: _selectedTab,
-          bottomPadding: bottomPad,
-          onTap: _onNavTap,
-          items: _navItems(),
-        ),
+        bottomNavigationBar: widget.embedded
+            ? null
+            : AppBottomNav(
+                selectedIndex: _selectedTab,
+                bottomPadding: bottomPad,
+                onTap: _onNavTap,
+                items: _navItems(),
+              ),
         body: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -143,10 +152,10 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
           screen = const MemberListScreen();
           break;
         case 3:
-          screen = const BillsManageScreen();
+          screen = const BillsDashboardScreen();
           break;
         case 4:
-          screen = const VisitorReportScreen();
+          screen = const VisitorDashboardScreen();
           break;
       }
     } else {

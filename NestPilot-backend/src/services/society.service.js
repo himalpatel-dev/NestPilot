@@ -55,6 +55,47 @@ const getFlatsBySocietyId = async (societyId) => {
     });
 };
 
+const getHouseOccupancyStats = async (societyId) => {
+    const [totalHouses, occupiedHouses, ownerCount, tenantCount] = await Promise.all([
+        db.House.count({
+            where: { society_id: societyId, is_active: true }
+        }),
+        db.House.count({
+            where: { society_id: societyId, is_active: true },
+            include: [{
+                model: db.UserHouseMapping,
+                where: { is_active: true },
+                required: true
+            }],
+            distinct: true
+        }),
+        db.UserHouseMapping.count({
+            where: { is_active: true, relation_type: 'OWNER' },
+            include: [{
+                model: db.House,
+                where: { society_id: societyId, is_active: true },
+                required: true
+            }]
+        }),
+        db.UserHouseMapping.count({
+            where: { is_active: true, relation_type: 'TENANT' },
+            include: [{
+                model: db.House,
+                where: { society_id: societyId, is_active: true },
+                required: true
+            }]
+        }),
+    ]);
+
+    return {
+        total_houses: totalHouses,
+        occupied_houses: occupiedHouses,
+        vacant_houses: totalHouses - occupiedHouses,
+        owner_count: ownerCount,
+        tenant_count: tenantCount,
+    };
+};
+
 module.exports = {
     getSocietyDetails,
     createSociety,
@@ -65,6 +106,7 @@ module.exports = {
     getBuildingById,
     getBuildingsBySocietyId,
     getFlatsByBuildingId,
-    getFlatsBySocietyId
+    getFlatsBySocietyId,
+    getHouseOccupancyStats
 };
 

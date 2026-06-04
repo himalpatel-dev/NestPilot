@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../models/society_structure.dart';
 import '../../services/admin_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/society_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
@@ -24,12 +26,14 @@ class MemberListScreen extends StatefulWidget {
 
 class _MemberListScreenState extends State<MemberListScreen> {
   final AdminService _adminService = AdminService();
+  final SocietyService _societyService = SocietyService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   // Secretary tab index for "Residents" — matches dashboard nav order.
   static const int _residentsTabIndex = 1;
 
   List<UserModel> _members = [];
+  HouseStats? _houseStats;
   bool _isLoading = true;
   String? _error;
   String _query = '';
@@ -53,9 +57,13 @@ class _MemberListScreenState extends State<MemberListScreen> {
       _error = null;
     });
     try {
-      final members = await _adminService.getSocietyMembers();
+      final results = await Future.wait([
+        _adminService.getSocietyMembers(),
+        _societyService.getHouseStats(),
+      ]);
       setState(() {
-        _members = members;
+        _members = results[0] as List<UserModel>;
+        _houseStats = results[1] as HouseStats?;
         _isLoading = false;
       });
     } catch (e) {
@@ -68,24 +76,10 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
   // ─── Derived stats ─────────────────────────────────────────────────────────
 
-  int get _ownerCount =>
-      _members.where((m) => _isOwner(m.relationType)).length;
-
-  int get _tenantCount =>
-      _members.where((m) => _isTenant(m.relationType)).length;
-
-  int get _occupiedCount {
-    final flats = <String>{};
-    for (final m in _members) {
-      final f = m.flatNumber;
-      if (f != null && f.isNotEmpty) flats.add(f);
-    }
-    return flats.length;
-  }
-
-  // Vacant flats are not derivable from the members endpoint alone.
-  // Shown as 0 until a flats endpoint is wired in for this society.
-  int get _vacantCount => 0;
+  int get _ownerCount => _houseStats?.ownerCount ?? 0;
+  int get _tenantCount => _houseStats?.tenantCount ?? 0;
+  int get _occupiedCount => _houseStats?.occupiedHouses ?? 0;
+  int get _vacantCount => _houseStats?.vacantHouses ?? 0;
 
   bool _isOwner(String? rel) {
     final r = (rel ?? '').toUpperCase();
@@ -156,18 +150,20 @@ class _MemberListScreenState extends State<MemberListScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.cardBackground,
-        bottomNavigationBar: AppBottomNav(
-          selectedIndex: _residentsTabIndex,
-          bottomPadding: bottomPad,
-          onTap: _onNavTap,
-          items: const [
-            AppNavItem(Icons.home_rounded, 'Home'),
-            AppNavItem(Icons.contacts_rounded, 'Residents'),
-            AppNavItem(Icons.apps_rounded, 'Services'),
-            AppNavItem(Icons.receipt_long_rounded, 'Bills'),
-            AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
-          ],
-        ),
+        bottomNavigationBar: widget.embedded
+            ? null
+            : AppBottomNav(
+                selectedIndex: _residentsTabIndex,
+                bottomPadding: bottomPad,
+                onTap: _onNavTap,
+                items: const [
+                  AppNavItem(Icons.home_rounded, 'Home'),
+                  AppNavItem(Icons.contacts_rounded, 'Residents'),
+                  AppNavItem(Icons.apps_rounded, 'Services'),
+                  AppNavItem(Icons.receipt_long_rounded, 'Bills'),
+                  AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
+                ],
+              ),
         body: RefreshIndicator(
           color: AppColors.white,
           backgroundColor: AppColors.primary,

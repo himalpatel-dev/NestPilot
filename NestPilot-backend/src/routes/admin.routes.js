@@ -7,6 +7,7 @@ const role = require('../middlewares/role.middleware');
 router.use(auth);
 router.use(role(['SOCIETY_ADMIN']));
 
+router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/pending-users', adminController.getPendingUsers);
 router.get('/members', adminController.getSocietyMembers);
 router.post('/users/:id/approve', adminController.approveUser);

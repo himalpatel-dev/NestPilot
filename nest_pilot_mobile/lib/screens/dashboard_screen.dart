@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../config/roles.dart';
+import '../models/society_structure.dart';
+import '../services/admin_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/billing_payment_service.dart';
@@ -20,6 +22,8 @@ import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
+import 'secretary/bills_dashboard_screen.dart';
+import 'secretary/visitor_dashboard_screen.dart';
 import 'secretary/member_list_screen.dart';
 import 'member/notice_list_screen.dart';
 import 'security/security_dashboard_screen.dart';
@@ -36,7 +40,6 @@ import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/dashboard_cards.dart';
 import '../theme/app_bottom_nav.dart';
-import '../theme/tab_route.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -51,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _outstandingAmount = 0.0;
   bool _loadingBills = false;
   int _selectedTab = 0;
+  DashboardStats? _dashStats;
 
   List<ActivityModel> _recentActivity = const [];
   bool _loadingActivity = false;
@@ -61,7 +65,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchNotifications();
     _fetchOutstandingBills();
     _fetchRecentActivity();
+    _fetchDashboardStats();
     _setupSocket();
+  }
+
+  Future<void> _fetchDashboardStats() async {
+    if (!_isAdmin) return;
+    try {
+      final stats = await AdminService().getDashboardStats();
+      if (mounted) setState(() => _dashStats = stats);
+    } catch (e) {
+      debugPrint('Dashboard stats error: $e');
+    }
   }
 
   @override
@@ -180,6 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool get _isMember => widget.user.role == UserRoles.member;
   bool get _isSecurity => widget.user.role == UserRoles.securityGuard;
   bool get _isSuperAdmin => widget.user.role == UserRoles.superAdmin;
+  bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
 
   // ─── Profile sheet ──────────────────────────────────────────────────────────
 
@@ -322,64 +338,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
         bottomNavigationBar: AppBottomNav(
           selectedIndex: _selectedTab,
           bottomPadding: bottomPad,
-          onTap: (i) {
-            setState(() => _selectedTab = i);
-            _onNavTap(i);
-          },
+          onTap: _onNavTap,
           items: _navItems(),
         ),
-        body: SafeArea(
-          top: false,
-          bottom: false,
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await _fetchNotifications();
-              await _fetchOutstandingBills();
-              await _fetchRecentActivity();
-            },
-            color: AppColors.white,
-            backgroundColor: AppColors.primary,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: _buildHero()),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildMyOverview(),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader('Quick Actions'),
-                      const SizedBox(height: 14),
-                      _buildQuickActions(),
-                      if (_isMember || _isAdmin) ...[
-                        const SizedBox(height: 24),
-                        _buildNoticeAndEvent(),
-                      ],
-                      if (_isMember) ...[
-                        const SizedBox(height: 24),
-                        _buildSectionHeader(
-                          'My Complaints',
-                          onViewAll: () => _go(const ComplaintListScreen()),
-                        ),
-                        const SizedBox(height: 14),
-                        _buildRecentComplaints(),
-                      ],
-                      if (_isAdmin || _isSecurity) ...[
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Recent Activity'),
-                        const SizedBox(height: 14),
-                        _buildRecentActivity(),
-                      ],
-                    ]),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        body: IndexedStack(
+          index: _selectedTab,
+          children: _buildTabScreens(bottomPad),
         ),
       ),
     );
+  }
+
+  List<Widget> _buildTabScreens(double bottomPad) {
+    final homeTab = SafeArea(
+      top: false,
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await _fetchNotifications();
+          await _fetchOutstandingBills();
+          await _fetchRecentActivity();
+          await _fetchDashboardStats();
+        },
+        color: AppColors.white,
+        backgroundColor: AppColors.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildHero()),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildStatsGrid(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Quick Actions'),
+                  const SizedBox(height: 14),
+                  _buildQuickActions(),
+                  if (_isMember || _isAdmin) ...[
+                    const SizedBox(height: 24),
+                    _buildNoticeAndEvent(),
+                  ],
+                  if (_isMember) ...[
+                    const SizedBox(height: 24),
+                    _buildSectionHeader(
+                      'My Complaints',
+                      onViewAll: () => _go(const ComplaintListScreen()),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildRecentComplaints(),
+                  ],
+                  if (_isAdmin || _isSecurity) ...[
+                    const SizedBox(height: 24),
+                    _buildSectionHeader('Recent Activity'),
+                    const SizedBox(height: 14),
+                    _buildRecentActivity(),
+                  ],
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (_isSecretary) {
+      return [
+        homeTab,
+        const MemberListScreen(embedded: true),
+        ServicesHubScreen(user: widget.user, embedded: true),
+        const BillsDashboardScreen(),
+        const VisitorDashboardScreen(),
+      ];
+    }
+
+    return [
+      homeTab,
+      _isMember ? const NoticeListScreen() : const NoticeCreateScreen(),
+      ServicesHubScreen(user: widget.user, embedded: true),
+      _isMember ? const BillsListScreen() : const BillsManageScreen(),
+      const SizedBox.shrink(), // profile is shown as a sheet
+    ];
   }
 
   // ─── Hero ───────────────────────────────────────────────────────────────────
@@ -401,7 +440,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // ── Layer 1: rich diagonal gradient ───────────────────────
+            // ── gradient background ───────────────────────────────────
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -417,7 +456,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // ── Layer 3: building image — right 58%, fades left ───────
+            // ── building image — right side, fades left ───────────────
             Positioned(
               right: 0,
               top: 0,
@@ -443,7 +482,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // ── Layer 4: bottom sheen so image edge is smooth ─────────
+            // ── bottom sheen ──────────────────────────────────────────
             Positioned(
               left: 0,
               right: 0,
@@ -463,7 +502,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // ── Layer 5: content ──────────────────────────────────────
+            // ── content ───────────────────────────────────────────────
             SafeArea(
               bottom: false,
               child: Padding(
@@ -633,9 +672,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── My Overview (stats grid) ────────────────────────────────────────────────
-
-  Widget _buildMyOverview() => _buildStatsGrid();
+  // ─── Stats grid ──────────────────────────────────────────────────────────────
 
   Widget _buildStatsGrid() {
     final cards = _getStatCards();
@@ -749,29 +786,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ];
     } else {
+      final s = _dashStats;
       return [
         _StatCard(
           icon: Icons.person_add_outlined,
           color: AppColors.accentAmber,
-          value: '0',
+          value: s == null ? '...' : '${s.pendingMembers}',
           label: 'Pending',
         ),
         _StatCard(
           icon: Icons.contacts_outlined,
           color: AppColors.accentBlue,
-          value: '0',
+          value: s == null ? '...' : '${s.totalResidents}',
           label: 'Residents',
         ),
         _StatCard(
           icon: Icons.notifications_outlined,
           color: AppColors.accentPurple,
-          value: '$_unreadCount',
+          value: s == null ? '...' : '${s.totalNotices}',
           label: 'Notices',
         ),
         _StatCard(
           icon: Icons.report_problem_outlined,
           color: AppColors.accentRed,
-          value: '0',
+          value: s == null ? '...' : '${s.totalComplaints}',
           label: 'Complaints',
         ),
       ];
@@ -971,50 +1009,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.accentAmber.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.campaign_outlined,
-                  color: AppColors.accentAmber,
-                  size: 18,
-                ),
+          const SizedBox(
+            height: 48,
+            child: Center(
+              child: Text(
+                'No notices yet',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Water Supply\nMaintenance',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Tomorrow, 10:00 AM\nto 12:00 PM',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 10.5,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
           GestureDetector(
@@ -1031,7 +1033,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'View Notice',
+                    'View Notices',
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 11,
@@ -1053,7 +1055,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildUpcomingEventCard() {
-    final now = DateTime.now();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1096,69 +1097,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      DateFormat('MMM').format(now).toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('dd').format(now),
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
+          const SizedBox(
+            height: 48,
+            child: Center(
+              child: Text(
+                'No upcoming events',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Annual General\nMeeting',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Community Hall\n7:00 PM',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 10.5,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
           GestureDetector(
@@ -1173,7 +1119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'View Event',
+                    'View Events',
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 11,
@@ -1197,137 +1143,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── Recent Complaints ───────────────────────────────────────────────────────
 
   Widget _buildRecentComplaints() {
-    return Column(
-      children: [
-        _complaintTile(
-          title: 'Lift not working',
-          status: 'In Progress',
-          statusColor: AppColors.accentAmber,
-          date: 'Raised on 20 May, 10:30 AM',
-          id: '#C-1245',
-        ),
-        const SizedBox(height: 10),
-        _complaintTile(
-          title: 'Water Leakage',
-          status: 'Resolved',
-          statusColor: AppColors.accentGreen,
-          date: 'Resolved on 18 May, 09:15 AM',
-          id: '#C-1244',
-        ),
-      ],
-    );
-  }
-
-  Widget _complaintTile({
-    required String title,
-    required String status,
-    required Color statusColor,
-    required String date,
-    required String id,
-  }) {
-    return GestureDetector(
-      onTap: () => _go(const ComplaintListScreen()),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.report_problem_outlined,
-                color: statusColor,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    date,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  id,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textHint,
-                  size: 20,
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Text(
+        'No recent complaints',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
       ),
     );
   }
@@ -1532,8 +1364,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
-
   List<AppNavItem> _navItems() {
     if (_isSecretary) {
       return const [
@@ -1553,63 +1383,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
   }
 
-  void _openServicesHub() {
-    Navigator.push(context, tabRoute(ServicesHubScreen(user: widget.user)));
-  }
-
   void _onNavTap(int index) {
-    if (index == 0) return;
-
-    if (_isSecretary) {
-      Widget? screen;
-      switch (index) {
-        case 1:
-          screen = const MemberListScreen();
-          break;
-        case 2:
-          screen = ServicesHubScreen(user: widget.user);
-          break;
-        case 3:
-          screen = const BillsManageScreen();
-          break;
-        case 4:
-          screen = const VisitorReportScreen();
-          break;
-      }
-      if (screen != null) {
-        Navigator.push(context, tabRoute(screen)).then((_) {
-          if (mounted) setState(() => _selectedTab = 0);
-        });
-      }
+    if (!_isSecretary && index == 4) {
+      _showProfileSheet();
       return;
     }
-
-    Widget? screen;
-    switch (index) {
-      case 1:
-        screen = _isMember
-            ? const NoticeListScreen()
-            : const NoticeCreateScreen();
-        break;
-      case 2:
-        screen = ServicesHubScreen(user: widget.user);
-        break;
-      case 3:
-        screen = _isMember
-            ? const BillsListScreen()
-            : const BillsManageScreen();
-        break;
-      case 4:
-        setState(() => _selectedTab = 0);
-        _showProfileSheet();
-        return;
-    }
-    if (screen != null) {
-      Navigator.push(context, tabRoute(screen)).then((_) {
-        if (mounted) setState(() => _selectedTab = 0);
-        if (index == 3 && _isMember) _fetchOutstandingBills();
-      });
-    }
+    setState(() => _selectedTab = index);
+    if (index == 3 && _isMember) _fetchOutstandingBills();
   }
 
   // ─── Navigation helper ───────────────────────────────────────────────────────
