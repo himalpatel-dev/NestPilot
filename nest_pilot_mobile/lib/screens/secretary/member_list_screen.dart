@@ -9,8 +9,10 @@ import '../../services/society_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
+import '../../theme/app_dashboard_header.dart';
 import '../../theme/tab_route.dart';
 import '../dashboard_screen.dart';
+import '../notification_list_screen.dart';
 import '../services_hub_screen.dart';
 import '../common/visitor_report_screen.dart';
 import '../login_screen.dart';
@@ -145,7 +147,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
@@ -171,15 +173,47 @@ class _MemberListScreenState extends State<MemberListScreen> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(
+                child: AppDashboardHeader(
+                  leftAction: !widget.embedded
+                      ? appHeaderBackButton(context)
+                      : null,
+                  title: 'Residents',
+                  subtitle: 'Manage society members',
+                  onNotificationTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationListScreen()),
+                  ),
+                  stats: [
+                    AppHeaderStat(
+                      value:
+                          '${_occupiedCount + _vacantCount}/$_occupiedCount',
+                      label: 'Total',
+                      color: AppColors.accentBlue,
+                      icon: Icons.apartment_rounded,
+                    ),
+                    AppHeaderStat(
+                      value: '$_ownerCount',
+                      label: 'Owners',
+                      color: AppColors.accentOrange,
+                      icon: Icons.vpn_key_rounded,
+                    ),
+                    AppHeaderStat(
+                      value: '$_tenantCount',
+                      label: 'Tenants',
+                      color: AppColors.accentPurple,
+                      icon: Icons.people_rounded,
+                    ),
+                  ],
+                ),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     _buildSearchBar(),
                     const SizedBox(height: 16),
-                    _buildStatsGrid(),
-                    const SizedBox(height: 22),
                     _buildListHeader(),
                     const SizedBox(height: 12),
                     _buildList(),
@@ -253,133 +287,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
     }
   }
 
-  // ─── Header (top bar) ──────────────────────────────────────────────────────
-
-  Widget _buildHeader() {
-    final safeTop = MediaQuery.of(context).padding.top;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final heroHeight = safeTop + 130.0;
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-      child: SizedBox(
-        height: heroHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: [0.0, 0.6, 1.0],
-                  colors: [
-                    AppColors.heroGradientDeep,
-                    AppColors.primaryDark,
-                    AppColors.primary,
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              right: -30, top: -30,
-              child: Container(
-                width: 160, height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.06),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 40, top: -10,
-              child: Container(
-                width: 90, height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 0, top: 0, bottom: 0,
-              width: screenWidth * 0.50,
-              child: ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.40, 1.0],
-                  colors: [
-                    AppColors.transparent,
-                    AppColors.white.withValues(alpha: 0.30),
-                    AppColors.white.withValues(alpha: 0.55),
-                  ],
-                ).createShader(rect),
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/dash2.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
-                ),
-              ),
-            ),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!widget.embedded)
-                      GestureDetector(
-                        onTap: () => Navigator.maybePop(context),
-                        child: Container(
-                          width: 36, height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.white.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    const Text(
-                      'Residents',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_members.length} members registered',
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.70),
-                        fontSize: 12.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ─── Search bar ────────────────────────────────────────────────────────────
 
@@ -459,89 +366,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
     );
   }
 
-  // ─── Stats grid (Owners / Tenants / Occupied / Vacant) ─────────────────────
-
-  Widget _buildStatsGrid() {
-    final tiles = <_ResidentStat>[
-      _ResidentStat(
-        value: '$_ownerCount',
-        label: 'Owners',
-        color: AppColors.accentOrange,
-      ),
-      _ResidentStat(
-        value: '$_tenantCount',
-        label: 'Tenants',
-        color: AppColors.accentPurple,
-      ),
-      _ResidentStat(
-        value: '$_occupiedCount',
-        label: 'Occupied',
-        color: AppColors.accentBlue,
-      ),
-      _ResidentStat(
-        value: '$_vacantCount',
-        label: 'Vacant',
-        color: AppColors.accentGreen,
-      ),
-    ];
-
-    return Row(
-      children: [
-        for (int i = 0; i < tiles.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: _statTile(tiles[i])),
-        ],
-      ],
-    );
-  }
-
-  Widget _statTile(_ResidentStat s) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: s.color.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              s.value,
-              style: TextStyle(
-                color: s.color,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            s.label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ─── List header (title + sort) ────────────────────────────────────────────
 
@@ -1085,15 +909,5 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 }
 
-class _ResidentStat {
-  final String value;
-  final String label;
-  final Color color;
-  const _ResidentStat({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-}
 
 enum _SortMode { flat, name, relation }

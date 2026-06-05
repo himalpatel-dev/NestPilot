@@ -4,6 +4,7 @@ import '../models/user_model.dart';
 import '../config/roles.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_dashboard_header.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_bottom_nav.dart';
 import '../theme/tab_route.dart';
@@ -61,11 +62,28 @@ class ServicesHubScreen extends StatefulWidget {
 }
 
 class _ServicesHubScreenState extends State<ServicesHubScreen> {
-  // Services tab pre-selected on this screen.
   int _selectedTab = 2;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   bool get _isMember => widget.user.role == UserRoles.member;
   bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(
+        () => _searchQuery = _searchController.text.trim().toLowerCase(),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +93,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
@@ -91,20 +109,41 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         body: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverToBoxAdapter(
+              child: AppDashboardHeader(
+                leftAction: Navigator.canPop(context)
+                    ? appHeaderBackButton(context)
+                    : null,
+                title: 'Services',
+                subtitle: 'All your tools in one place',
+                onNotificationTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationListScreen(),
+                  ),
+                ),
+                bottomSection: _buildSearchBar(),
+              ),
+            ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((ctx, i) {
-                  final s = sections[i];
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: i == sections.length - 1 ? 0 : 24,
+              sliver: _searchQuery.isEmpty
+                  ? SliverList(
+                      delegate: SliverChildBuilderDelegate((ctx, i) {
+                        final s = sections[i];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: i == sections.length - 1 ? 0 : 24,
+                          ),
+                          child: _Section(title: s.title, tiles: s.tiles),
+                        );
+                      }, childCount: sections.length),
+                    )
+                  : SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildSearchResults(sections),
+                      ]),
                     ),
-                    child: _Section(title: s.title, tiles: s.tiles),
-                  );
-                }, childCount: sections.length),
-              ),
             ),
           ],
         ),
@@ -112,7 +151,174 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     );
   }
 
-  // ─── Bottom nav: items + tap routing (mirrors dashboard) ──────────────────
+  // ─── Search bar ──────────────────────────────────────────────────────────────
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 37,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(width: 13),
+          const Icon(
+            Icons.search_rounded,
+            color: AppColors.textSecondary,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onTapOutside: (_) => FocusScope.of(context).unfocus(),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                height: 1.2,
+              ),
+              cursorColor: AppColors.primary,
+              cursorHeight: 16,
+              decoration: InputDecoration(
+                hintText: 'Search services...',
+                hintStyle: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.65),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  height: 1.2,
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          if (_searchQuery.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => _searchController.clear(),
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                  size: 13,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 13),
+        ],
+      ),
+    );
+  }
+
+  // ─── Search results ──────────────────────────────────────────────────────────
+
+  Widget _buildSearchResults(List<_HubSection> sections) {
+    final tiles = _filterTiles(sections);
+    if (tiles.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: AppColors.textSecondary.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No services found',
+              style: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.6),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Try different keywords',
+              style: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.40),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return _Grid(tiles: tiles);
+  }
+
+  List<_Tile> _filterTiles(List<_HubSection> sections) {
+    final words = _searchQuery
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return [];
+
+    final scores = <_Tile, int>{};
+    for (final section in sections) {
+      for (final tile in section.tiles) {
+        final s = _scoreTile(tile, words);
+        if (s > 0) scores[tile] = s;
+      }
+    }
+    final result = scores.keys.toList();
+    result.sort((a, b) => scores[b]!.compareTo(scores[a]!));
+    return result;
+  }
+
+  int _scoreTile(_Tile tile, List<String> words) {
+    final label = tile.label.toLowerCase();
+    final terms = [label, ...tile.tags];
+    int total = 0;
+    for (final word in words) {
+      int best = 0;
+      for (final term in terms) {
+        if (term == word) {
+          best = best > 100 ? best : 100;
+        } else if (term.startsWith(word)) {
+          best = best > 70 ? best : 70;
+        } else if (term.contains(word)) {
+          best = best > 50 ? best : 50;
+        } else if (word.length >= 3 && _fuzzyMatch(term, word)) {
+          best = best > 20 ? best : 20;
+        }
+      }
+      total += best;
+    }
+    return total;
+  }
+
+  bool _fuzzyMatch(String text, String pattern) {
+    int pi = 0;
+    for (int i = 0; i < text.length && pi < pattern.length; i++) {
+      if (text[i] == pattern[pi]) pi++;
+    }
+    return pi == pattern.length;
+  }
+
+  // ─── Bottom nav ───────────────────────────────────────────────────────────────
 
   List<AppNavItem> _navItems() {
     if (_isSecretary) {
@@ -134,17 +340,12 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
   }
 
   void _onNavTap(int index) {
-    // Services tab — already here.
     if (index == 2) return;
-
-    // Home — pop back to the dashboard underneath.
     if (index == 0) {
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
-
     setState(() => _selectedTab = index);
-
     Widget? screen;
     if (_isSecretary) {
       switch (index) {
@@ -171,12 +372,10 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
               : const BillsManageScreen();
           break;
         case 4:
-          // Profile — no profile screen yet; just pop home.
           Navigator.of(context).popUntil((route) => route.isFirst);
           return;
       }
     }
-
     if (screen != null) {
       Navigator.push(context, tabRoute(screen)).then((_) {
         if (mounted) setState(() => _selectedTab = 2);
@@ -184,146 +383,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     }
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final safeTop = MediaQuery.of(context).padding.top;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final heroHeight = safeTop + 130.0;
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-      child: SizedBox(
-        height: heroHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Gradient background
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: [0.0, 0.6, 1.0],
-                  colors: [
-                    AppColors.heroGradientDeep,
-                    AppColors.primaryDark,
-                    AppColors.primary,
-                  ],
-                ),
-              ),
-            ),
-            // Decorative circles
-            Positioned(
-              right: -30,
-              top: -30,
-              child: Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.06),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 40,
-              top: -10,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            // Building image — right side, fades left
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: screenWidth * 0.50,
-              child: ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.40, 1.0],
-                  colors: [
-                    AppColors.transparent,
-                    AppColors.white.withValues(alpha: 0.35),
-                    AppColors.white.withValues(alpha: 0.60),
-                  ],
-                ).createShader(rect),
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/dash2.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
-                ),
-              ),
-            ),
-            // Content
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Back button row
-                    if (Navigator.canPop(context))
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.white.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    const Text(
-                      'Services',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'All your tools in one place',
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.70),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Role-driven section model ───────────────────────────────────────────────
+  // ─── Role-driven section model ────────────────────────────────────────────────
 
   List<_HubSection> _sectionsForRole(String role) {
     switch (role) {
@@ -347,24 +407,37 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Notices',
         AppColors.accentAmber,
         (c) => _go(c, const NoticeListScreen()),
+        ['announcement', 'news', 'update', 'broadcast', 'circular', 'alert'],
       ),
       _Tile(
         Icons.how_to_vote_outlined,
         'Polls',
         AppColors.accentPurple,
         (c) => _go(c, const PollListScreen()),
+        ['vote', 'survey', 'decision', 'opinion', 'question'],
       ),
       _Tile(
         Icons.folder_open_outlined,
         'Documents',
         AppColors.accentGreen,
         (c) => _go(c, const DocumentListScreen()),
+        ['doc', 'file', 'pdf', 'upload', 'download', 'paper', 'record', 'form'],
       ),
       _Tile(
         Icons.directions_car_outlined,
         'Vehicles',
         AppColors.accentBlue,
         (c) => _go(c, const VehicleListScreen()),
+        [
+          'car',
+          'bike',
+          'parking',
+          'motor',
+          'transport',
+          'sticker',
+          'two wheeler',
+          'four wheeler',
+        ],
       ),
     ]),
     _HubSection('Services', [
@@ -373,24 +446,59 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Amenities',
         AppColors.accentIndigo,
         (c) => _go(c, const AmenityBookingScreen()),
+        [
+          'gym',
+          'pool',
+          'hall',
+          'club',
+          'book',
+          'booking',
+          'facility',
+          'sport',
+          'court',
+          'ground',
+        ],
       ),
       _Tile(
         Icons.report_problem_outlined,
         'Complaints',
         AppColors.accentRed,
         (c) => _go(c, const ComplaintListScreen()),
+        [
+          'issue',
+          'problem',
+          'report',
+          'complain',
+          'fix',
+          'repair',
+          'request',
+          'raise',
+          'grievance',
+        ],
       ),
       _Tile(
         Icons.cleaning_services_outlined,
         'Daily Help',
         AppColors.accentPink,
         (c) => _go(c, const StaffListScreen()),
+        [
+          'maid',
+          'cook',
+          'servant',
+          'helper',
+          'housekeeping',
+          'staff',
+          'worker',
+          'cleaning',
+          'domestic',
+        ],
       ),
       _Tile(
         Icons.person_add_outlined,
         'Visitors',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorManagementScreen()),
+        ['guest', 'pass', 'entry', 'invite', 'visitor', 'outsider', 'log'],
       ),
     ]),
     _HubSection('Payments', [
@@ -399,12 +507,34 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'My Bills',
         AppColors.accentAmber,
         (c) => _go(c, const BillsListScreen()),
+        [
+          'payment',
+          'dues',
+          'maintenance',
+          'fees',
+          'rent',
+          'pay',
+          'charge',
+          'bill',
+          'amount',
+          'monthly',
+        ],
       ),
       _Tile(
         Icons.account_balance_outlined,
         'Ledger',
         AppColors.accentTeal,
         (c) => _go(c, const LedgerScreen()),
+        [
+          'history',
+          'statement',
+          'account',
+          'record',
+          'transaction',
+          'balance',
+          'paid',
+          'receipt',
+        ],
       ),
     ]),
     _HubSection('Settings', [
@@ -413,12 +543,14 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Notifications',
         AppColors.accentOrange,
         (c) => _go(c, const NotificationListScreen()),
+        ['alert', 'notify', 'push', 'message', 'reminder', 'bell'],
       ),
       _Tile(
         Icons.logout_rounded,
         'Logout',
         AppColors.accentRed,
         (c) => _logout(c),
+        ['sign out', 'exit', 'signout', 'quit', 'leave'],
       ),
     ]),
   ];
@@ -430,24 +562,54 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Pending',
         AppColors.accentAmber,
         (c) => _go(c, const PendingMembersScreen()),
+        [
+          'approve',
+          'request',
+          'new member',
+          'join',
+          'pending member',
+          'waiting',
+          'acceptance',
+        ],
       ),
       _Tile(
         Icons.contacts_outlined,
         'Residents',
         AppColors.accentBlue,
         (c) => _go(c, const MemberListScreen()),
+        [
+          'member',
+          'flat',
+          'tenant',
+          'owner',
+          'resident',
+          'people',
+          'family',
+          'occupant',
+          'contact',
+        ],
       ),
       _Tile(
         Icons.campaign_outlined,
         'Notices',
         AppColors.accentPurple,
         (c) => _go(c, const NoticeCreateScreen()),
+        [
+          'announcement',
+          'news',
+          'broadcast',
+          'alert',
+          'update',
+          'circular',
+          'information',
+        ],
       ),
       _Tile(
         Icons.how_to_vote_outlined,
         'Polls',
         AppColors.accentPink,
         (c) => _go(c, const PollCreateScreen()),
+        ['vote', 'survey', 'decision', 'opinion', 'question'],
       ),
     ]),
     _HubSection('Operations', [
@@ -456,24 +618,58 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Amenities',
         AppColors.accentIndigo,
         (c) => _go(c, const AmenityManagementScreen()),
+        [
+          'gym',
+          'pool',
+          'hall',
+          'club',
+          'book',
+          'booking',
+          'facility',
+          'sport',
+          'court',
+          'ground',
+        ],
       ),
       _Tile(
         Icons.cleaning_services_outlined,
         'Staff',
         AppColors.accentPink,
         (c) => _go(c, const StaffAddScreen()),
+        [
+          'maid',
+          'employee',
+          'worker',
+          'helper',
+          'housekeeping',
+          'daily help',
+          'cleaning',
+          'domestic',
+          'add staff',
+        ],
       ),
       _Tile(
         Icons.directions_car_outlined,
         'Vehicles',
         AppColors.accentBlue,
         (c) => _go(c, const VehicleManagementScreen()),
+        [
+          'car',
+          'bike',
+          'parking',
+          'motor',
+          'sticker',
+          'transport',
+          'two wheeler',
+          'four wheeler',
+        ],
       ),
       _Tile(
         Icons.folder_open_outlined,
         'Documents',
         AppColors.accentGreen,
         (c) => _go(c, const DocumentUploadScreen()),
+        ['doc', 'file', 'pdf', 'upload', 'paper', 'record', 'form', 'download'],
       ),
     ]),
     _HubSection('Billing & Payments', [
@@ -482,18 +678,50 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Create Bill',
         AppColors.accentGreen,
         (c) => _go(c, const BillCreateScreen()),
+        [
+          'generate',
+          'new',
+          'billing',
+          'invoice',
+          'bill generate',
+          'make bill',
+          'add bill',
+        ],
       ),
       _Tile(
         Icons.receipt_long_outlined,
         'Manage Bills',
         AppColors.accentAmber,
         (c) => _go(c, const BillsManageScreen()),
+        [
+          'bill list',
+          'billing',
+          'view bills',
+          'invoice list',
+          'all bills',
+          'dues list',
+        ],
       ),
       _Tile(
         Icons.payments_outlined,
         'Mark Payment',
         AppColors.accentTeal,
         (c) => _go(c, const PaymentMarkScreen()),
+        [
+          'payment',
+          'pay',
+          'dues',
+          'maintenance',
+          'collect',
+          'mark',
+          'record',
+          'rent',
+          'fees',
+          'paid',
+          'receipt',
+          'bill pay',
+          'collected',
+        ],
       ),
     ]),
     _HubSection('Community', [
@@ -502,12 +730,33 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Events',
         AppColors.accentIndigo,
         (c) => _go(c, const EventManageScreen()),
+        [
+          'event',
+          'celebration',
+          'party',
+          'gathering',
+          'programme',
+          'function',
+          'occasion',
+          'festival',
+        ],
       ),
       _Tile(
         Icons.report_problem_outlined,
         'Complaints',
         AppColors.accentRed,
         (c) => _go(c, const ComplaintManageScreen()),
+        [
+          'issue',
+          'problem',
+          'report',
+          'complain',
+          'fix',
+          'repair',
+          'request',
+          'grievance',
+          'raise',
+        ],
       ),
     ]),
     _HubSection('Security', [
@@ -516,18 +765,52 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Visitor Entry',
         AppColors.accentOrange,
         (c) => _go(c, const SecurityDashboardScreen()),
+        [
+          'gate',
+          'guard',
+          'entry',
+          'guest',
+          'visitor',
+          'log in',
+          'check in',
+          'security',
+          'allow',
+          'approve entry',
+        ],
       ),
       _Tile(
         Icons.group_outlined,
         'Inside Now',
         AppColors.accentGreen,
         (c) => _go(c, const CurrentVisitorsScreen()),
+        [
+          'current',
+          'present',
+          'inside',
+          'visitor',
+          'who',
+          'guest',
+          'active',
+          'inside now',
+          'ongoing',
+        ],
       ),
       _Tile(
         Icons.history_outlined,
         'Visitor Logs',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorReportScreen()),
+        [
+          'history',
+          'past',
+          'log',
+          'visitor',
+          'report',
+          'guest',
+          'exit',
+          'record',
+          'visit history',
+        ],
       ),
     ]),
     _HubSection('Settings', [
@@ -536,12 +819,14 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Notifications',
         AppColors.accentOrange,
         (c) => _go(c, const NotificationListScreen()),
+        ['alert', 'notify', 'push', 'message', 'reminder', 'bell'],
       ),
       _Tile(
         Icons.logout_rounded,
         'Logout',
         AppColors.accentRed,
         (c) => _logout(c),
+        ['sign out', 'exit', 'signout', 'quit', 'leave'],
       ),
     ]),
   ];
@@ -553,18 +838,50 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Entry',
         AppColors.accentOrange,
         (c) => _go(c, const SecurityDashboardScreen()),
+        [
+          'gate',
+          'log',
+          'check in',
+          'guest',
+          'visitor',
+          'security',
+          'mark',
+          'entry',
+          'allow',
+          'approve',
+        ],
       ),
       _Tile(
         Icons.group_outlined,
         'Inside Now',
         AppColors.accentGreen,
         (c) => _go(c, const CurrentVisitorsScreen()),
+        [
+          'current',
+          'present',
+          'visitor',
+          'who',
+          'guest',
+          'active',
+          'inside',
+          'ongoing',
+        ],
       ),
       _Tile(
         Icons.history_outlined,
         'Logs',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorReportScreen()),
+        [
+          'history',
+          'past',
+          'log',
+          'visitor',
+          'report',
+          'guest',
+          'exit',
+          'record',
+        ],
       ),
     ]),
     _HubSection('Community', [
@@ -573,6 +890,17 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Daily Help',
         AppColors.accentPink,
         (c) => _go(c, const StaffListScreen()),
+        [
+          'maid',
+          'cook',
+          'servant',
+          'helper',
+          'staff',
+          'housekeeping',
+          'cleaning',
+          'worker',
+          'domestic',
+        ],
       ),
     ]),
     _HubSection('Settings', [
@@ -581,12 +909,14 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Notifications',
         AppColors.accentOrange,
         (c) => _go(c, const NotificationListScreen()),
+        ['alert', 'notify', 'push', 'message', 'bell'],
       ),
       _Tile(
         Icons.logout_rounded,
         'Logout',
         AppColors.accentRed,
         (c) => _logout(c),
+        ['sign out', 'exit', 'signout', 'quit'],
       ),
     ]),
   ];
@@ -598,24 +928,36 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Societies',
         AppColors.accentOrange,
         (c) => _go(c, const SocietyCreateScreen()),
+        [
+          'society',
+          'create society',
+          'new society',
+          'apartment',
+          'complex',
+          'housing',
+          'colony',
+        ],
       ),
       _Tile(
         Icons.apartment_outlined,
         'Buildings',
         AppColors.accentBlue,
         (c) => _go(c, const BuildingCreateScreen()),
+        ['building', 'tower', 'block', 'wing', 'floor', 'structure'],
       ),
       _Tile(
         Icons.door_front_door_outlined,
         'Add Flat',
         AppColors.accentPurple,
         (c) => _go(c, const FlatCreateScreen()),
+        ['flat', 'unit', 'apartment', 'room', 'house', 'add flat', 'new flat'],
       ),
       _Tile(
         Icons.list_alt_outlined,
         'Flats',
         AppColors.accentTeal,
         (c) => _go(c, const FlatsListScreen()),
+        ['flat list', 'unit list', 'all flats', 'rooms', 'units', 'view flats'],
       ),
     ]),
     _HubSection('Settings', [
@@ -624,12 +966,14 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         'Notifications',
         AppColors.accentOrange,
         (c) => _go(c, const NotificationListScreen()),
+        ['alert', 'notify', 'push', 'message', 'bell'],
       ),
       _Tile(
         Icons.logout_rounded,
         'Logout',
         AppColors.accentRed,
         (c) => _logout(c),
+        ['sign out', 'exit', 'signout', 'quit'],
       ),
     ]),
   ];
@@ -649,7 +993,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
   }
 }
 
-// ─── Section block ──────────────────────────────────────────────────────────
+// ─── Section block ───────────────────────────────────────────────────────────
 
 class _Section extends StatelessWidget {
   final String title;
@@ -698,8 +1042,6 @@ class _Section extends StatelessWidget {
   }
 }
 
-// 4-column responsive grid. Each tile is a self-contained AppIconTile, so
-// no dividers are needed — the tile borders provide visual separation.
 class _Grid extends StatelessWidget {
   final List<_Tile> tiles;
   const _Grid({required this.tiles});
@@ -753,7 +1095,7 @@ class _TileView extends StatelessWidget {
   }
 }
 
-// ─── Data ───────────────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 class _HubSection {
   final String title;
@@ -766,5 +1108,12 @@ class _Tile {
   final String label;
   final Color color;
   final void Function(BuildContext context) onTap;
-  const _Tile(this.icon, this.label, this.color, this.onTap);
+  final List<String> tags;
+  const _Tile(
+    this.icon,
+    this.label,
+    this.color,
+    this.onTap, [
+    this.tags = const [],
+  ]);
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../config/roles.dart';
+import '../theme/app_colors.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'pending_approval_screen.dart';
@@ -12,13 +14,59 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _fadeController;
+  late final AnimationController _slideController;
+  late final AnimationController _ringController;
+  late final AnimationController _glowController;
+
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+
   final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+
+    _fadeController.forward();
+    _slideController.forward();
     _checkAuth();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    _ringController.dispose();
+    _glowController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAuth() async {
@@ -29,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
       return;
@@ -40,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
       return;
@@ -50,14 +98,12 @@ class _SplashScreenState extends State<SplashScreen> {
       if (user.status == UserStatus.pending) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const PendingApprovalScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const PendingApprovalScreen()),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DashboardScreen(user: user)),
+          MaterialPageRoute(builder: (_) => DashboardScreen(user: user)),
         );
       }
     }
@@ -65,146 +111,351 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF0F172A), // Slate 900
-              Color(0xFF1E1B4B), // Indigo 950
-              Color(0xFF2E1044), // Violet-Black
+    final size = MediaQuery.of(context).size;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, 0.55, 1.0],
+              colors: [
+                AppColors.heroGradientDeep,
+                AppColors.primaryDark,
+                AppColors.primary,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // ── Dot grid overlay ─────────────────────────────────────────────
+              Positioned.fill(
+                child: CustomPaint(painter: _DotGridPainter()),
+              ),
+
+              // ── Ambient blobs ─────────────────────────────────────────────────
+              Positioned(
+                top: -130,
+                left: -110,
+                child: _Blob(
+                  size: 400,
+                  color: AppColors.primaryLight.withValues(alpha: 0.18),
+                ),
+              ),
+              Positioned(
+                bottom: -150,
+                right: -110,
+                child: _Blob(
+                  size: 380,
+                  color: AppColors.heroGradientDeep.withValues(alpha: 0.85),
+                ),
+              ),
+              Positioned(
+                top: size.height * 0.40,
+                right: -90,
+                child: _Blob(
+                  size: 240,
+                  color: AppColors.accentBlue.withValues(alpha: 0.09),
+                ),
+              ),
+              Positioned(
+                top: size.height * 0.15,
+                left: -70,
+                child: _Blob(
+                  size: 180,
+                  color: AppColors.primaryLight.withValues(alpha: 0.10),
+                ),
+              ),
+
+              // ── Main content ──────────────────────────────────────────────────
+              SafeArea(
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Spacer(flex: 5),
+
+                          // Logo + expanding rings
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Expanding pulse rings
+                              AnimatedBuilder(
+                                animation: _ringController,
+                                builder: (_, _) => SizedBox(
+                                  width: 280,
+                                  height: 280,
+                                  child: CustomPaint(
+                                    painter: _RingsPainter(
+                                      _ringController.value,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Logo circle with breathing glow
+                              AnimatedBuilder(
+                                animation: _glowController,
+                                builder: (_, child) {
+                                  final g = _glowController.value;
+                                  return Container(
+                                    width: 92,
+                                    height: 92,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          AppColors.white.withValues(
+                                            alpha: 0.24 + g * 0.08,
+                                          ),
+                                          AppColors.white.withValues(
+                                            alpha: 0.09 + g * 0.05,
+                                          ),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: AppColors.white.withValues(
+                                          alpha: 0.26 + g * 0.14,
+                                        ),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primaryLight
+                                              .withValues(
+                                                alpha: 0.15 + g * 0.30,
+                                              ),
+                                          blurRadius: 18 + g * 22,
+                                          spreadRadius: 2 + g * 10,
+                                        ),
+                                      ],
+                                    ),
+                                    child: child,
+                                  );
+                                },
+                                child: const Icon(
+                                  Icons.home_work_rounded,
+                                  size: 46,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // App name
+                          const Text(
+                            'Smart Nivaas',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              height: 1.0,
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Tagline
+                          Text(
+                            'Connected Living Made Simple',
+                            style: TextStyle(
+                              color: AppColors.white.withValues(alpha: 0.58),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+
+                          const Spacer(flex: 6),
+
+                          const _LoadingDots(),
+
+                          const SizedBox(height: 52),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
         ),
-        child: Stack(
-          children: [
-            // Top Right Soft Glow
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withOpacity(0.15),
-                      blurRadius: 120,
-                      spreadRadius: 30,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Bottom Left Soft Glow
-            Positioned(
-              bottom: -100,
-              left: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.12),
-                      blurRadius: 120,
-                      spreadRadius: 30,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Main Branding Content
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Premium Brand Logo Widget
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF818CF8), // Light Indigo
-                          Color(0xFF4F46E5), // Indigo
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6366F1).withOpacity(0.4),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.home_work_rounded,
-                        size: 58,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // App Name
-                  const Text(
-                    'Smart Nivaas',
-                    style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 4),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Tagline
-                  Text(
-                    'Connected Living Made Simple',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.indigo.shade200,
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 64),
-                  // Modern Loading Indicator
-                  SizedBox(
-                    width: 150,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: const LinearProgressIndicator(
-                        backgroundColor: Colors.white10,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF818CF8),
-                        ),
-                        minHeight: 4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+// ── Background blob ───────────────────────────────────────────────────────────
+
+class _Blob extends StatelessWidget {
+  final double size;
+  final Color color;
+  const _Blob({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
         ),
       ),
+    );
+  }
+}
+
+// ── Dot grid background ───────────────────────────────────────────────────────
+
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.fill;
+
+    const spacing = 30.0;
+    const dotR = 1.1;
+
+    for (double x = spacing / 2; x < size.width; x += spacing) {
+      for (double y = spacing / 2; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), dotR, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotGridPainter _) => false;
+}
+
+// ── Expanding rings painter ───────────────────────────────────────────────────
+
+class _RingsPainter extends CustomPainter {
+  final double progress;
+  const _RingsPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const minR = 52.0;
+    const maxR = 138.0;
+    const rings = 3;
+
+    for (int i = 0; i < rings; i++) {
+      final t = ((progress + i / rings) % 1.0);
+      final eased = t * t * (3 - 2 * t); // smoothstep
+      final radius = minR + (maxR - minR) * eased;
+      final opacity = (1.0 - t) * 0.38;
+
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = Colors.white.withValues(alpha: opacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4 - eased * 0.6,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingsPainter old) => old.progress != progress;
+}
+
+// ── Staggered loading dots ────────────────────────────────────────────────────
+
+class _LoadingDots extends StatefulWidget {
+  const _LoadingDots();
+
+  @override
+  State<_LoadingDots> createState() => _LoadingDotsState();
+}
+
+class _LoadingDotsState extends State<_LoadingDots>
+    with TickerProviderStateMixin {
+  late final List<AnimationController> _controllers;
+  late final List<Animation<double>> _anims;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (i) {
+      final c = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 550),
+      );
+      Future.delayed(Duration(milliseconds: i * 170), () {
+        if (mounted) c.repeat(reverse: true);
+      });
+      return c;
+    });
+    _anims = _controllers
+        .map((c) => CurvedAnimation(parent: c, curve: Curves.easeInOut))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: AnimatedBuilder(
+            animation: _anims[i],
+            builder: (_, _) => Opacity(
+              opacity: 0.25 + _anims[i].value * 0.75,
+              child: Transform.scale(
+                scale: 0.75 + _anims[i].value * 0.25,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.white.withValues(alpha: 0.40),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

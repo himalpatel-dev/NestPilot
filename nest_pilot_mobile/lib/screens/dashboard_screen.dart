@@ -37,6 +37,7 @@ import 'member/community/poll_list_screen.dart';
 import 'services_hub_screen.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_dashboard_header.dart';
 import '../theme/dashboard_cards.dart';
 import '../theme/app_bottom_nav.dart';
 
@@ -329,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
@@ -369,8 +370,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildStatsGrid(),
-                  const SizedBox(height: 24),
                   _buildSectionHeader('Quick Actions'),
                   const SizedBox(height: 14),
                   _buildQuickActions(),
@@ -425,392 +424,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildHero() {
     final hasFlat = (widget.user.flatNumber ?? '').isNotEmpty;
     final hasSociety = (widget.user.societyName ?? '').isNotEmpty;
-    final safeTop = MediaQuery.of(context).padding.top;
-    final heroHeight = safeTop + 220.0;
-    final screenWidth = MediaQuery.of(context).size.width;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(36),
-        bottomRight: Radius.circular(36),
-      ),
-      child: SizedBox(
-        height: heroHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // ── gradient background ───────────────────────────────────
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                  stops: [0.2, 0.9, 1.0],
-                  colors: [
-                    AppColors.heroGradientDeep,
-                    AppColors.primaryDark,
-                    AppColors.primary,
-                  ],
-                ),
-              ),
-            ),
+    String subtitle;
+    if (hasFlat && hasSociety) {
+      subtitle = 'Flat ${widget.user.flatNumber} · ${widget.user.societyName}';
+    } else if (hasFlat) {
+      subtitle = 'Flat ${widget.user.flatNumber}';
+    } else if (hasSociety) {
+      subtitle = widget.user.societyName!;
+    } else {
+      subtitle = _roleLabel(widget.user.role);
+    }
 
-            // ── building image — right side, fades left ───────────────
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: screenWidth * 0.45,
-              child: ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.38, 1.0],
-                  colors: [
-                    AppColors.transparent,
-                    AppColors.white.withValues(alpha: 0.45),
-                    AppColors.white.withValues(alpha: 0.70),
-                  ],
-                ).createShader(rect),
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/dash2.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                ),
-              ),
-            ),
-
-            // ── bottom sheen ──────────────────────────────────────────
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 60,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.transparent,
-                      AppColors.primaryDark.withValues(alpha: 0.50),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── content ───────────────────────────────────────────────
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Top bar: bell only ─────────────────────────────
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.82),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.white.withValues(alpha: 0.20),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: _buildNotifBell(),
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // ── Greeting + name (single compact block) ─────────
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${_getGreeting()}  👋\n',
-                            style: TextStyle(
-                              color: AppColors.white.withValues(alpha: 0.72),
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w400,
-                              height: 1.6,
-                            ),
-                          ),
-                          TextSpan(
-                            text: widget.user.fullName,
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // ── Compact info chip ──────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.13),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.white.withValues(alpha: 0.22),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (hasFlat) ...[
-                            Icon(
-                              Icons.door_front_door_rounded,
-                              color: AppColors.white.withValues(alpha: 0.85),
-                              size: 12,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Flat ${widget.user.flatNumber}',
-                              style: TextStyle(
-                                color: AppColors.white.withValues(alpha: 0.90),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            if (hasSociety) ...[
-                              Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                ),
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.white.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                          if (hasSociety)
-                            Text(
-                              widget.user.societyName!,
-                              style: TextStyle(
-                                color: AppColors.white.withValues(alpha: 0.75),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            )
-                          else if (!hasFlat)
-                            Text(
-                              _roleLabel(widget.user.role),
-                              style: TextStyle(
-                                color: AppColors.white.withValues(alpha: 0.90),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    return AppDashboardHeader(
+      leftAction: Text(
+        '${_getGreeting()} 👋',
+        style: TextStyle(
+          color: AppColors.white.withValues(alpha: 0.75),
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
         ),
       ),
+      title: widget.user.fullName,
+      subtitle: subtitle,
+      unreadCount: _unreadCount,
+      onNotificationTap: _showNotifications,
+      stats: _headerStats(),
     );
   }
 
-  Widget _buildNotifBell() {
-    return GestureDetector(
-      onTap: _showNotifications,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.cardBackground.withValues(alpha: 0.9),
-            size: 26,
-          ),
-          if (_unreadCount > 0)
-            Positioned(
-              right: 1,
-              top: 1,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.black, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.60),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Stats grid ──────────────────────────────────────────────────────────────
-
-  Widget _buildStatsGrid() {
-    final cards = _getStatCards();
-    return Row(
-      children: [
-        for (int i = 0; i < cards.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: DashStatCard(
-              icon: cards[i].icon,
-              color: cards[i].color,
-              value: cards[i].value,
-              label: cards[i].label,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  List<_StatCard> _getStatCards() {
-    final currency = NumberFormat.currency(
-      locale: 'HI',
-      symbol: '₹',
-      decimalDigits: 0,
-    );
+  List<AppHeaderStat> _headerStats() {
+    final currency =
+        NumberFormat.currency(locale: 'HI', symbol: '₹', decimalDigits: 0);
 
     if (_isMember) {
       return [
-        _StatCard(
-          icon: Icons.account_balance_wallet_outlined,
-          color: AppColors.accentAmber,
+        AppHeaderStat(
           value: _loadingBills
               ? '...'
               : (_outstandingAmount > 0
-                    ? currency.format(_outstandingAmount)
-                    : '₹0'),
-          label: 'Maintenance Due',
+                  ? currency.format(_outstandingAmount)
+                  : '₹0'),
+          label: 'Due',
+          color: AppColors.accentAmber,
+          icon: Icons.account_balance_wallet_outlined,
         ),
-        _StatCard(
-          icon: Icons.person_pin_circle_outlined,
-          color: AppColors.accentBlue,
-          value: '0',
-          label: 'Visitors Today',
-        ),
-        _StatCard(
-          icon: Icons.notifications_outlined,
-          color: AppColors.accentPurple,
-          value: '$_unreadCount',
-          label: 'Unread Notices',
-        ),
-        _StatCard(
-          icon: Icons.report_problem_outlined,
-          color: AppColors.accentRed,
-          value: '0',
-          label: 'Open Complaints',
-        ),
+        AppHeaderStat(
+            value: '0',
+            label: 'Visitors',
+            color: AppColors.accentBlue,
+            icon: Icons.person_pin_circle_outlined),
+        AppHeaderStat(
+            value: '$_unreadCount',
+            label: 'Notices',
+            color: AppColors.accentPurple,
+            icon: Icons.notifications_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: 'Complaints',
+            color: AppColors.accentRed,
+            icon: Icons.report_problem_outlined),
       ];
     } else if (_isSecurity) {
       return [
-        _StatCard(
-          icon: Icons.group_outlined,
-          color: AppColors.accentGreen,
-          value: '0',
-          label: 'Inside Now',
-        ),
-        _StatCard(
-          icon: Icons.login_outlined,
-          color: AppColors.accentBlue,
-          value: '0',
-          label: "Today's Entries",
-        ),
-        _StatCard(
-          icon: Icons.notifications_outlined,
-          color: AppColors.accentPurple,
-          value: '$_unreadCount',
-          label: 'Notifications',
-        ),
-        _StatCard(
-          icon: Icons.cleaning_services_outlined,
-          color: AppColors.accentPink,
-          value: '0',
-          label: 'Daily Help',
-        ),
+        AppHeaderStat(
+            value: '0',
+            label: 'Inside Now',
+            color: AppColors.accentGreen,
+            icon: Icons.group_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: "Today's Entries",
+            color: AppColors.accentBlue,
+            icon: Icons.login_outlined),
+        AppHeaderStat(
+            value: '$_unreadCount',
+            label: 'Notifications',
+            color: AppColors.accentPurple,
+            icon: Icons.notifications_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: 'Daily Help',
+            color: AppColors.accentPink,
+            icon: Icons.cleaning_services_outlined),
       ];
     } else if (_isSuperAdmin) {
       return [
-        _StatCard(
-          icon: Icons.business_outlined,
-          color: AppColors.accentOrange,
-          value: '0',
-          label: 'Societies',
-        ),
-        _StatCard(
-          icon: Icons.apartment_outlined,
-          color: AppColors.accentBlue,
-          value: '0',
-          label: 'Buildings',
-        ),
-        _StatCard(
-          icon: Icons.door_front_door_outlined,
-          color: AppColors.accentPurple,
-          value: '0',
-          label: 'Flats',
-        ),
-        _StatCard(
-          icon: Icons.people_outlined,
-          color: AppColors.accentGreen,
-          value: '0',
-          label: 'Members',
-        ),
+        AppHeaderStat(
+            value: '0',
+            label: 'Societies',
+            color: AppColors.accentOrange,
+            icon: Icons.business_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: 'Buildings',
+            color: AppColors.accentBlue,
+            icon: Icons.apartment_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: 'Flats',
+            color: AppColors.accentPurple,
+            icon: Icons.door_front_door_outlined),
+        AppHeaderStat(
+            value: '0',
+            label: 'Members',
+            color: AppColors.accentGreen,
+            icon: Icons.people_outlined),
       ];
     } else {
       final s = _dashStats;
       return [
-        _StatCard(
-          icon: Icons.person_add_outlined,
-          color: AppColors.accentAmber,
-          value: s == null ? '...' : '${s.pendingMembers}',
-          label: 'Pending',
-        ),
-        _StatCard(
-          icon: Icons.contacts_outlined,
-          color: AppColors.accentBlue,
-          value: s == null ? '...' : '${s.totalResidents}',
-          label: 'Residents',
-        ),
-        _StatCard(
-          icon: Icons.notifications_outlined,
-          color: AppColors.accentPurple,
-          value: s == null ? '...' : '${s.totalNotices}',
-          label: 'Notices',
-        ),
-        _StatCard(
-          icon: Icons.report_problem_outlined,
-          color: AppColors.accentRed,
-          value: s == null ? '...' : '${s.totalComplaints}',
-          label: 'Complaints',
-        ),
+        AppHeaderStat(
+            value: s == null ? '...' : '${s.totalResidents}',
+            label: 'Residents',
+            color: AppColors.accentBlue,
+            icon: Icons.contacts_outlined),
+        AppHeaderStat(
+            value: s == null ? '...' : '${s.totalNotices}',
+            label: 'Notices',
+            color: AppColors.accentPurple,
+            icon: Icons.notifications_outlined),
+        AppHeaderStat(
+            value: s == null ? '...' : '${s.totalComplaints}',
+            label: 'Complaints',
+            color: AppColors.accentRed,
+            icon: Icons.report_problem_outlined),
       ];
     }
   }
@@ -819,20 +557,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildQuickActions() {
     final actions = _getQuickActions();
-    return Row(
-      children: [
-        for (int i = 0; i < actions.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: DashActionCard(
-              icon: actions[i].icon,
-              color: actions[i].color,
-              label: actions[i].label,
-              onTap: actions[i].onTap,
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
-      ],
+      ),
+      child: Row(
+        children: [
+          for (int i = 0; i < actions.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(
+              child: DashActionCard(
+                icon: actions[i].icon,
+                color: actions[i].color,
+                label: actions[i].label,
+                onTap: actions[i].onTap,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1402,19 +1156,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 // ─── Data classes ────────────────────────────────────────────────────────────
-
-class _StatCard {
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String label;
-  const _StatCard({
-    required this.icon,
-    required this.color,
-    required this.value,
-    required this.label,
-  });
-}
 
 class _Action {
   final IconData icon;

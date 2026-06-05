@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import '../../models/billing_payment.dart';
 import '../../services/billing_payment_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_dashboard_header.dart';
+import '../../theme/app_icons.dart';
+import '../notification_list_screen.dart';
 import 'bill_create_screen.dart';
 import 'bills_manage_screen.dart';
 import 'payment_mark_screen.dart';
@@ -39,18 +42,23 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
       final result = await _service.getDashboardData(
         month: DateFormat('yyyy-MM').format(_month),
       );
-      if (mounted) setState(() { _data = result; _loading = false; });
+      if (mounted)
+        setState(() {
+          _data = result;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
   Future<void> _pickMonth() async {
     final now = DateTime.now();
-    final months = List.generate(
-      12,
-      (i) => DateTime(now.year, now.month - i),
-    );
+    final months = List.generate(12, (i) => DateTime(now.year, now.month - i));
     final picked = await showModalBottomSheet<DateTime>(
       context: context,
       backgroundColor: AppColors.cardBackground,
@@ -114,7 +122,7 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
@@ -127,7 +135,38 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: _buildHeader(context, stats),
+                child: AppDashboardHeader(
+                  title: 'Bills Dashboard',
+                  subtitle: 'Manage society collections',
+                  onNotificationTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationListScreen(),
+                    ),
+                  ),
+                  stats: [
+                    AppHeaderStat(
+                      value: _loading ? '—' : _fmt(stats?.totalPending ?? 0),
+                      label: 'Pending Dues',
+                      color: AppColors.accentRed,
+                      icon: Icons.receipt_long_rounded,
+                    ),
+                    AppHeaderStat(
+                      value: _loading ? '—' : _fmt(stats?.totalCollected ?? 0),
+                      label: 'Collected',
+                      color: AppColors.accentGreen,
+                      icon: Icons.check_circle_outline_rounded,
+                    ),
+                    AppHeaderStat(
+                      value: _loading
+                          ? '—'
+                          : '${stats?.pendingBillsCount ?? 0}',
+                      label: 'Pending Bills',
+                      color: AppColors.accentAmber,
+                      icon: Icons.pending_outlined,
+                    ),
+                  ],
+                ),
               ),
               if (_error != null)
                 SliverFillRemaining(
@@ -169,164 +208,6 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
     );
   }
 
-  // ─── Header ─────────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(BuildContext context, BillDashboardStats? stats) {
-    final screenW = MediaQuery.of(context).size.width;
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.6, 1.0],
-            colors: [
-              AppColors.heroGradientDeep,
-              AppColors.primaryDark,
-              AppColors.primary,
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -30,
-              top: -30,
-              child: Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.06),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 40,
-              top: -10,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.white.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: screenW * 0.48,
-              child: ShaderMask(
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: const [0.0, 0.40, 1.0],
-                  colors: [
-                    AppColors.transparent,
-                    AppColors.white.withValues(alpha: 0.20),
-                    AppColors.white.withValues(alpha: 0.45),
-                  ],
-                ).createShader(rect),
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  'assets/dash2.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
-                ),
-              ),
-            ),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (Navigator.canPop(context))
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.white.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'Bills Dashboard',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Manage society collections',
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.70),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatChip(
-                            value: _loading ? '—' : _fmt(stats?.totalPending ?? 0),
-                            label: 'Pending Dues',
-                            color: AppColors.accentRed,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _StatChip(
-                            value: _loading ? '—' : _fmt(stats?.totalCollected ?? 0),
-                            label: 'Collected',
-                            color: AppColors.accentGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _StatChip(
-                            value: _loading ? '—' : '${stats?.pendingBillsCount ?? 0}',
-                            label: 'Pending Bills',
-                            color: AppColors.accentAmber,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ─── Quick actions ────────────────────────────────────────────────────────
 
   Widget _buildQuickActions(BuildContext context) {
@@ -339,50 +220,58 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
           Row(
             children: [
               Expanded(
-                child: _ActionTile(
-                  icon: Icons.add_card_outlined,
-                  label: 'Generate\nBills',
-                  color: AppColors.accentGreen,
+                child: GestureDetector(
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const BillCreateScreen()),
                   ),
+                  child: const AppIconTile(
+                    icon: Icons.add_card_outlined,
+                    label: 'Create Bills',
+                    color: AppColors.accentGreen,
+                  ),
                 ),
               ),
               Expanded(
-                child: _ActionTile(
-                  icon: Icons.payments_outlined,
-                  label: 'Record\nPayment',
-                  color: AppColors.accentBlue,
+                child: GestureDetector(
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const PaymentMarkScreen(),
                     ),
                   ),
+                  child: const AppIconTile(
+                    icon: Icons.payments_outlined,
+                    label: 'Payment',
+                    color: AppColors.accentBlue,
+                  ),
                 ),
               ),
               Expanded(
-                child: _ActionTile(
-                  icon: Icons.notifications_active_outlined,
-                  label: 'Send\nReminder',
-                  color: AppColors.accentAmber,
+                child: GestureDetector(
                   onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Reminders sent to pending members'),
                     ),
                   ),
+                  child: const AppIconTile(
+                    icon: Icons.notifications_active_outlined,
+                    label: 'Send Reminder',
+                    color: AppColors.accentAmber,
+                  ),
                 ),
               ),
               Expanded(
-                child: _ActionTile(
-                  icon: Icons.download_outlined,
-                  label: 'Download\nReport',
-                  color: AppColors.accentPurple,
+                child: GestureDetector(
                   onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Report download coming soon'),
                     ),
+                  ),
+                  child: const AppIconTile(
+                    icon: Icons.download_outlined,
+                    label: 'Download Report',
+                    color: AppColors.accentPurple,
                   ),
                 ),
               ),
@@ -562,68 +451,11 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
             Column(
               children: [
                 for (int i = 0; i < payments.length; i++) ...[
-                  if (i > 0)
-                    const Divider(
-                      height: 1,
-                      color: Color(0xFFF3F4F6),
-                    ),
+                  if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6)),
                   _PaymentRow(payment: payments[i]),
                 ],
               ],
             ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Stat chip (header strip) ─────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-  const _StatChip({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.20),
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.80),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-          ),
         ],
       ),
     );
@@ -687,55 +519,6 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ─── Quick-action tile ────────────────────────────────────────────────────────
-
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }
@@ -840,7 +623,8 @@ class _PaymentRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    if (payment.flatNo != null && payment.flatNo!.isNotEmpty) ...[
+                    if (payment.flatNo != null &&
+                        payment.flatNo!.isNotEmpty) ...[
                       Text(
                         payment.flatNo!,
                         style: const TextStyle(
@@ -872,7 +656,9 @@ class _PaymentRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  DateFormat('d MMM, hh:mm a').format(payment.paymentDate.toLocal()),
+                  DateFormat(
+                    'd MMM, hh:mm a',
+                  ).format(payment.paymentDate.toLocal()),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -955,8 +741,10 @@ class _DonutPainter extends CustomPainter {
 
     if (fraction < 0.995) {
       final gap = fraction > 0.005 ? 0.06 : 0.0;
-      final sweep =
-          (2 * math.pi * (1 - fraction) - gap).clamp(0.0, 2 * math.pi);
+      final sweep = (2 * math.pi * (1 - fraction) - gap).clamp(
+        0.0,
+        2 * math.pi,
+      );
       if (sweep > 0.01) {
         canvas.drawArc(
           Rect.fromCircle(center: center, radius: radius),
