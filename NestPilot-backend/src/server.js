@@ -64,10 +64,13 @@ const startServer = async () => {
 
         // ...
 
+        const runModulePermissionSeeder = require('./seeders/modulePermissionSeeder');
+
         // Connect to DB and start server
         db.sequelize.sync(syncOptions) // Auto-create/update tables from models
-            .then(() => {
+            .then(async () => {
                 console.log("Database synced successfully (Tables created/updated).");
+                await runModulePermissionSeeder();
 
                 const server = http.createServer(app);
                 socketUtil.init(server); // Initialize Socket.IO

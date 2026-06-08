@@ -82,4 +82,11 @@ class ApiEndpoints {
   static const String events = '/api/events';
   static String eventDetail(String id) => '/api/events/$id';
   static String registerEvent(String id) => '/api/events/$id/register';
+
+  // Roles & Permissions
+  static const String roles = '/api/roles';
+  static const String rolesEnum = '/api/roles/enum';
+  static const String modules = '/api/roles/modules';
+  static String roleById(int id) => '/api/roles/$id';
+  static String rolePermissions(int id) => '/api/roles/$id/permissions';
 }

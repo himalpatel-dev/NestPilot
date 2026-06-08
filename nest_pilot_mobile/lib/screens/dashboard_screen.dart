@@ -18,6 +18,7 @@ import 'super_admin/society_create_screen.dart';
 import 'super_admin/building_create_screen.dart';
 import 'super_admin/flat_create_screen.dart';
 import 'super_admin/flats_list_screen.dart';
+import 'super_admin/role_management_screen.dart';
 import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
@@ -373,6 +374,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildSectionHeader('Quick Actions'),
                   const SizedBox(height: 14),
                   _buildQuickActions(),
+                  if (_isSuperAdmin) ...[
+                    const SizedBox(height: 24),
+                    _buildSectionHeader('System Management'),
+                    const SizedBox(height: 14),
+                    _buildSystemManagement(),
+                  ],
                   if (_isMember || _isAdmin) ...[
                     const SizedBox(height: 24),
                     _buildNoticeAndEvent(),
@@ -700,6 +707,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ];
     }
+  }
+
+  // ─── System Management (SuperAdmin) ─────────────────────────────────────────
+
+  Widget _buildSystemManagement() {
+    final tiles = [
+      _SystemTile(
+        icon: Icons.shield_outlined,
+        color: AppColors.accentIndigo,
+        title: 'Roles & Permissions',
+        subtitle: 'Create roles and configure module access',
+        onTap: () => _go(const RoleManagementScreen()),
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < tiles.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, indent: 60, color: AppColors.border),
+            _buildSystemTile(tiles[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemTile(_SystemTile tile) {
+    return InkWell(
+      onTap: tile.onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: tile.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              alignment: Alignment.center,
+              child: Icon(tile.icon, color: tile.color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tile.title,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tile.subtitle,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textHint,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ─── Notice + Event ──────────────────────────────────────────────────────────
@@ -1163,6 +1261,21 @@ class _Action {
   final Color color;
   final VoidCallback onTap;
   const _Action(this.icon, this.label, this.color, this.onTap);
+}
+
+class _SystemTile {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _SystemTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 }
 
 class _ActivityPalette {

@@ -1,14 +1,13 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class Role extends Model {
+    class Module extends Model {
         static associate(models) {
-            Role.hasMany(models.User, { foreignKey: 'role_id' });
-            Role.hasMany(models.RolePermission, { foreignKey: 'role_id', as: 'permissions' });
+            Module.hasMany(models.RolePermission, { foreignKey: 'module_id', as: 'permissions' });
         }
     }
 
-    Role.init({
+    Module.init({
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -27,10 +26,9 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
-        is_system: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
-            comment: 'System roles (SUPER_ADMIN, SOCIETY_ADMIN, MEMBER) cannot be deleted'
+        sort_order: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0
         },
         is_active: {
             type: DataTypes.BOOLEAN,
@@ -38,10 +36,10 @@ module.exports = (sequelize, DataTypes) => {
         }
     }, {
         sequelize,
-        modelName: 'Role',
-        tableName: 'tbl_roles',
-        underscored: true,
+        modelName: 'Module',
+        tableName: 'tbl_modules',
+        underscored: true
     });
 
-    return Role;
+    return Module;
 };
