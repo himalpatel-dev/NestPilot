@@ -3,6 +3,8 @@ import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/auth_service.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 
 class VehicleListScreen extends StatefulWidget {
   const VehicleListScreen({super.key});
@@ -140,12 +142,17 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final perms = PermissionService();
+    final canCreate = perms.canCreate(ModuleCodes.vehicles);
+    final canDelete = perms.canDelete(ModuleCodes.vehicles);
     return Scaffold(
       appBar: AppBar(title: const Text('My Vehicles')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addVehicle,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton(
+              onPressed: _addVehicle,
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: _isLoading
           ? const Center(child: NestLoader())
           : _vehicles.isEmpty
@@ -174,10 +181,12 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(v.model ?? v.type),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteVehicle(v.id),
-                    ),
+                    trailing: canDelete
+                        ? IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteVehicle(v.id),
+                          )
+                        : null,
                   ),
                 );
               },

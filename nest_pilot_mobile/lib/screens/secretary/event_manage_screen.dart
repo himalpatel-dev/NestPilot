@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/event_model.dart';
 import '../../services/event_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
 
 
@@ -94,6 +96,9 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final perms = PermissionService();
+    final canCreate = perms.canCreate(ModuleCodes.events);
+    final canDelete = perms.canDelete(ModuleCodes.events);
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
       appBar: AppBar(
@@ -108,29 +113,30 @@ class _EventManageScreenState extends State<EventManageScreen> {
           style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: _openCreateSheet,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  '+ Add Event',
-                  style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w700),
+          if (canCreate)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: GestureDetector(
+                onTap: _openCreateSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '+ Add Event',
+                    style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _events.isEmpty
-              ? _buildEmpty()
+              ? _buildEmpty(canCreate: canCreate)
               : RefreshIndicator(
                   onRefresh: _load,
                   color: AppColors.white,
@@ -141,14 +147,14 @@ class _EventManageScreenState extends State<EventManageScreen> {
                     separatorBuilder: (ctx, i) => const SizedBox(height: 12),
                     itemBuilder: (_, i) => _EventCard(
                       event: _events[i],
-                      onDelete: () => _deleteEvent(_events[i]),
+                      onDelete: canDelete ? () => _deleteEvent(_events[i]) : null,
                     ),
                   ),
                 ),
     );
   }
 
-  Widget _buildEmpty() => Center(
+  Widget _buildEmpty({required bool canCreate}) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -158,18 +164,20 @@ class _EventManageScreenState extends State<EventManageScreen> {
               'No events yet',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _openCreateSheet,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Create Event'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            if (canCreate) ...[
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _openCreateSheet,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Create Event'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       );
@@ -179,9 +187,9 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
 class _EventCard extends StatelessWidget {
   final EventModel event;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
-  const _EventCard({required this.event, required this.onDelete});
+  const _EventCard({required this.event, this.onDelete});
 
   Color get _typeColor {
     switch (event.eventType) {
@@ -236,10 +244,11 @@ class _EventCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: onDelete,
-                child: const Icon(Icons.cancel_outlined, color: AppColors.accentRed, size: 20),
-              ),
+              if (onDelete != null)
+                GestureDetector(
+                  onTap: onDelete,
+                  child: const Icon(Icons.cancel_outlined, color: AppColors.accentRed, size: 20),
+                ),
             ],
           ),
           const SizedBox(height: 10),

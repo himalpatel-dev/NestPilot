@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
+import '../services/permission_service.dart';
 import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -48,6 +49,12 @@ class _OtpScreenState extends State<OtpScreen>
             (route) => false,
           );
         } else {
+          try {
+            await PermissionService().load(force: true);
+          } catch (_) {
+            // Non-fatal: gated UI hides actions until perms load successfully.
+          }
+          if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(

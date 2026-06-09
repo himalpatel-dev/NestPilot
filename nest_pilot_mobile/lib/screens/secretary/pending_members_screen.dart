@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/admin_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/user_model.dart';
 import '../../widgets/status_widgets.dart';
 
@@ -63,6 +65,7 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canApprove = PermissionService().canApprove(ModuleCodes.users);
     return Scaffold(
       appBar: AppBar(title: const Text('Pending Approvals')),
       body: _isLoading
@@ -92,22 +95,24 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
                         '${user.mobile}\nFlat: ${user.flatNumber ?? 'N/A'}',
                       ),
                       isThreeLine: true,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                            ),
-                            onPressed: () => _handleApproval(user.id, true),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel, color: Colors.red),
-                            onPressed: () => _handleApproval(user.id, false),
-                          ),
-                        ],
-                      ),
+                      trailing: canApprove
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                  onPressed: () => _handleApproval(user.id, true),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.cancel, color: Colors.red),
+                                  onPressed: () => _handleApproval(user.id, false),
+                                ),
+                              ],
+                            )
+                          : null,
                     ),
                   );
                 },

@@ -4,9 +4,8 @@ import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:intl/intl.dart';
 
-import 'package:nest_pilot_mobile/services/auth_service.dart';
-import 'package:nest_pilot_mobile/config/roles.dart';
-import '../../../models/user_model.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 import '../../secretary/staff_add_screen.dart';
 
 class StaffListScreen extends StatefulWidget {
@@ -18,20 +17,12 @@ class StaffListScreen extends StatefulWidget {
 
 class _StaffListScreenState extends State<StaffListScreen> {
   final CommunityService _service = CommunityService();
-  final AuthService _authService = AuthService();
   List<ServiceStaff> _staff = [];
   bool _isLoading = true;
-  UserModel? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    final user = await _authService.getMe();
-    if (mounted) setState(() => _currentUser = user);
     _fetchStaff();
   }
 
@@ -64,7 +55,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _currentUser?.role == UserRoles.societyAdmin;
+    final canCreate = PermissionService().canCreate(ModuleCodes.staff);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daily Help')),
@@ -100,7 +91,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                 );
               },
             ),
-      floatingActionButton: isAdmin
+      floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () async {
                 final res = await Navigator.push(

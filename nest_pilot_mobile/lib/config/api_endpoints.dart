@@ -87,6 +87,7 @@ class ApiEndpoints {
   static const String roles = '/api/roles';
   static const String rolesEnum = '/api/roles/enum';
   static const String modules = '/api/roles/modules';
+  static const String myPermissions = '/api/roles/my-permissions';
   static String roleById(int id) => '/api/roles/$id';
   static String rolePermissions(int id) => '/api/roles/$id/permissions';
 }

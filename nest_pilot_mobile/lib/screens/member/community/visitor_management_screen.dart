@@ -3,6 +3,8 @@ import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/socket_service.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 import 'package:intl/intl.dart';
 
 class VisitorManagementScreen extends StatefulWidget {
@@ -169,25 +171,35 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
 
   @override
   Widget build(BuildContext context) {
+    final perms = PermissionService();
+    final canInvite  = perms.canCreate(ModuleCodes.visitors);
+    final canApprove = perms.canApprove(ModuleCodes.visitors);
+
+    final tabs = <Widget>[
+      const Tab(text: 'History'),
+      if (canInvite) const Tab(text: 'Invite Guest'),
+    ];
+    final tabBodies = <Widget>[
+      _buildHistoryTab(canApprove: canApprove),
+      if (canInvite) _buildInviteTab(),
+    ];
+
+    // Re-create controller if length changed (perm-driven).
+    if (_tabController.length != tabs.length) {
+      _tabController.dispose();
+      _tabController = TabController(length: tabs.length, vsync: this);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Visitors'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'History'),
-            Tab(text: 'Invite Guest'),
-          ],
-        ),
+        bottom: TabBar(controller: _tabController, tabs: tabs),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildHistoryTab(), _buildInviteTab()],
-      ),
+      body: TabBarView(controller: _tabController, children: tabBodies),
     );
   }
 
-  Widget _buildHistoryTab() {
+  Widget _buildHistoryTab({required bool canApprove}) {
     if (_isLoading) return const Center(child: NestLoader());
     if (_logs.isEmpty)
       return const Center(child: Text('No visitor history found'));
@@ -244,7 +256,7 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
                   ),
               ],
             ),
-            trailing: isWaiting
+            trailing: isWaiting && canApprove
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

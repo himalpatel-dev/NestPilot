@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/billing_payment_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/billing_payment.dart';
 import '../../widgets/status_widgets.dart';
 
@@ -62,6 +64,8 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canPublish = PermissionService().canApprove(ModuleCodes.bills) ||
+        PermissionService().canUpdate(ModuleCodes.bills);
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Bills')),
       body: _isLoading
@@ -107,10 +111,12 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
                       ),
                       isThreeLine: true,
                       trailing: bill.status == 'DRAFT'
-                          ? ElevatedButton(
-                              onPressed: () => _publishBill(bill.id),
-                              child: const Text('Publish'),
-                            )
+                          ? (canPublish
+                              ? ElevatedButton(
+                                  onPressed: () => _publishBill(bill.id),
+                                  child: const Text('Publish'),
+                                )
+                              : const Icon(Icons.edit_note_outlined, color: Colors.orange))
                           : const Icon(Icons.check_circle, color: Colors.green),
                     ),
                   );

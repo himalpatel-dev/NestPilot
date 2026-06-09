@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
+import '../services/permission_service.dart';
 import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
@@ -101,6 +102,13 @@ class _SplashScreenState extends State<SplashScreen>
           MaterialPageRoute(builder: (_) => const PendingApprovalScreen()),
         );
       } else {
+        try {
+          await PermissionService().load(force: true);
+        } catch (_) {
+          // If permissions fail to load we still let the user in;
+          // gated UI will simply hide actions until a refresh succeeds.
+        }
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => DashboardScreen(user: user)),

@@ -196,6 +196,60 @@ const updateRolePermissions = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+/**
+ * Returns the effective permission map for the currently logged-in user.
+ * SUPER_ADMIN gets full access on every active module.
+ * Shape: { permissions: [{ module_code, module_name, sort_order, can_view, can_create, can_update, can_delete, can_approve }, ...] }
+ */
+const getMyPermissions = async (req, res, next) => {
+    try {
+        if (!req.user || !req.user.role_id) throw new ApiError(401, 'Unauthorized');
+
+        const superAdminRole = await db.Role.findOne({ where: { code: 'SUPER_ADMIN' } });
+        const isSuperAdmin = superAdminRole && req.user.role_id === superAdminRole.id;
+
+        const modules = await db.Module.findAll({
+            where: { is_active: true },
+            order: [['sort_order', 'ASC']],
+        });
+
+        let permByModuleId = {};
+        if (!isSuperAdmin) {
+            const perms = await db.RolePermission.findAll({
+                where: { role_id: req.user.role_id },
+            });
+            perms.forEach(p => { permByModuleId[p.module_id] = p; });
+        }
+
+        const result = modules.map(mod => {
+            if (isSuperAdmin) {
+                return {
+                    module_id: mod.id,
+                    module_code: mod.code,
+                    module_name: mod.name,
+                    sort_order: mod.sort_order,
+                    can_view: true, can_create: true, can_update: true,
+                    can_delete: true, can_approve: true,
+                };
+            }
+            const p = permByModuleId[mod.id];
+            return {
+                module_id: mod.id,
+                module_code: mod.code,
+                module_name: mod.name,
+                sort_order: mod.sort_order,
+                can_view: p ? p.can_view : false,
+                can_create: p ? p.can_create : false,
+                can_update: p ? p.can_update : false,
+                can_delete: p ? p.can_delete : false,
+                can_approve: p ? p.can_approve : false,
+            };
+        });
+
+        res.json(new ApiResponse(200, { permissions: result }));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getAllRoles,
     getRolesEnum,
@@ -205,4 +259,5 @@ module.exports = {
     deleteRole,
     getRolePermissions,
     updateRolePermissions,
+    getMyPermissions,
 };

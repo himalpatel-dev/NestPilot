@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../config/roles.dart';
+import '../config/modules.dart';
 import '../models/society_structure.dart';
 import '../services/admin_service.dart';
 import '../services/auth_service.dart';
+import '../services/permission_service.dart';
 import '../services/notification_service.dart';
 import '../services/billing_payment_service.dart';
 import '../services/activity_service.dart';
@@ -371,10 +373,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildSectionHeader('Quick Actions'),
-                  const SizedBox(height: 14),
-                  _buildQuickActions(),
-                  if (_isSuperAdmin) ...[
+                  if (_getQuickActions().isNotEmpty) ...[
+                    _buildSectionHeader('Quick Actions'),
+                    const SizedBox(height: 14),
+                    _buildQuickActions(),
+                  ],
+                  if (PermissionService().canView(ModuleCodes.roles)) ...[
                     const SizedBox(height: 24),
                     _buildSectionHeader('System Management'),
                     const SizedBox(height: 14),
@@ -598,129 +602,163 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<_Action> _getQuickActions() {
+    List<_Action> all;
     if (_isMember) {
-      return [
+      all = [
         _Action(
           Icons.person_add_outlined,
           'Invite\nGuest',
           AppColors.accentBlue,
           () => _go(const VisitorManagementScreen()),
+          module: ModuleCodes.visitors,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.credit_card_outlined,
           'Pay\nMaintenance',
           AppColors.accentGreen,
           () => _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
+          module: ModuleCodes.bills,
         ),
         _Action(
           Icons.campaign_outlined,
           'Raise\nComplaint',
           AppColors.accentRed,
           () => _go(const ComplaintListScreen()),
+          module: ModuleCodes.complaints,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.calendar_today_outlined,
           'Book\nAmenities',
           AppColors.accentIndigo,
           () => _go(const AmenityBookingScreen()),
+          module: ModuleCodes.amenities,
+          requiredAction: PermAction.create,
         ),
       ];
     } else if (_isSecurity) {
-      return [
+      all = [
         _Action(
           Icons.directions_run_outlined,
           'Visitor\nEntry',
           AppColors.accentOrange,
           () => _go(const SecurityDashboardScreen()),
+          module: ModuleCodes.visitors,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.history_outlined,
           'Visitor\nLogs',
           AppColors.accentBlue,
           () => _go(const VisitorReportScreen()),
+          module: ModuleCodes.visitors,
         ),
         _Action(
           Icons.group_outlined,
           'Inside\nNow',
           AppColors.accentGreen,
           () => _go(const CurrentVisitorsScreen()),
+          module: ModuleCodes.visitors,
         ),
         _Action(
           Icons.cleaning_services_outlined,
           'Daily\nHelp',
           AppColors.accentPink,
           () => _go(const StaffListScreen()),
+          module: ModuleCodes.staff,
         ),
       ];
     } else if (_isSuperAdmin) {
-      return [
+      all = [
         _Action(
           Icons.business_outlined,
           'Create\nSociety',
           AppColors.accentPink,
           () => _go(const SocietyCreateScreen()),
+          module: ModuleCodes.buildings,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.apartment_outlined,
           'Add\nBuilding',
           AppColors.accentBlue,
           () => _go(const BuildingCreateScreen()),
+          module: ModuleCodes.buildings,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.door_front_door_outlined,
           'Add\nFlat',
           AppColors.accentOrange,
           () => _go(const FlatCreateScreen()),
+          module: ModuleCodes.buildings,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.list_alt_outlined,
           'Flats\nList',
           AppColors.accentTeal,
           () => _go(const FlatsListScreen()),
+          module: ModuleCodes.buildings,
         ),
       ];
     } else {
-      return [
+      all = [
         _Action(
           Icons.person_add_alt_1_outlined,
           'Pending',
           AppColors.accentAmber,
           () => _go(const PendingMembersScreen()),
+          module: ModuleCodes.users,
+          requiredAction: PermAction.approve,
         ),
         _Action(
           Icons.campaign_outlined,
           'Notices',
           AppColors.accentPurple,
           () => _go(const NoticeCreateScreen()),
+          module: ModuleCodes.notices,
+          requiredAction: PermAction.create,
         ),
         _Action(
           Icons.warning_amber_rounded,
           'Complaints',
           AppColors.accentGreen,
           () => _go(const ComplaintListScreen()),
+          module: ModuleCodes.complaints,
         ),
         _Action(
           Icons.payment_outlined,
           'Payments',
           AppColors.accentBlue,
           () => _go(const PaymentMarkScreen()),
+          module: ModuleCodes.bills,
+          requiredAction: PermAction.update,
         ),
       ];
     }
+    final perms = PermissionService();
+    return all
+        .where((a) => a.module == null || perms.can(a.module!, a.requiredAction))
+        .toList();
   }
 
   // ─── System Management (SuperAdmin) ─────────────────────────────────────────
 
   Widget _buildSystemManagement() {
-    final tiles = [
+    final perms = PermissionService();
+    final tiles = <_SystemTile>[
       _SystemTile(
         icon: Icons.shield_outlined,
         color: AppColors.accentIndigo,
         title: 'Roles & Permissions',
         subtitle: 'Create roles and configure module access',
         onTap: () => _go(const RoleManagementScreen()),
+        module: ModuleCodes.roles,
       ),
-    ];
+    ].where((t) => t.module == null || perms.can(t.module!, t.requiredAction)).toList();
+    if (tiles.isEmpty) return const SizedBox.shrink();
 
     return Container(
       decoration: BoxDecoration(
@@ -1260,7 +1298,18 @@ class _Action {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _Action(this.icon, this.label, this.color, this.onTap);
+  /// Module this action belongs to (null = no gate, always shown).
+  final String? module;
+  /// Action required on [module] for this entry to be shown.
+  final String requiredAction;
+  const _Action(
+    this.icon,
+    this.label,
+    this.color,
+    this.onTap, {
+    this.module,
+    this.requiredAction = PermAction.view,
+  });
 }
 
 class _SystemTile {
@@ -1269,12 +1318,16 @@ class _SystemTile {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final String? module;
+  final String requiredAction;
   const _SystemTile({
     required this.icon,
     required this.color,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.module,
+    this.requiredAction = PermAction.view,
   });
 }
 

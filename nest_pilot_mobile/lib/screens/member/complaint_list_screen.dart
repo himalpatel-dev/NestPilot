@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/notice_complaint_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/notice_complaint.dart';
 import '../../widgets/status_widgets.dart';
 import 'complaint_create_screen.dart';
@@ -126,15 +128,17 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                 },
               ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ComplaintCreateScreen(),
-          ),
-        ).then((_) => _fetchComplaints()),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: PermissionService().canCreate(ModuleCodes.complaints)
+          ? FloatingActionButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ComplaintCreateScreen(),
+                ),
+              ).then((_) => _fetchComplaints()),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }

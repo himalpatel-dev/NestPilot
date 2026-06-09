@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import 'package:intl/intl.dart';
 
 class CurrentVisitorsScreen extends StatefulWidget {
@@ -56,6 +58,7 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canMarkExit = PermissionService().canUpdate(ModuleCodes.visitors);
     return Scaffold(
       appBar: AppBar(title: const Text('Visitors Inside')),
       body: _isLoading
@@ -86,14 +89,16 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
                         ),
                       ],
                     ),
-                    trailing: ElevatedButton(
-                      onPressed: () => _markExit(log['id']),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Exit'),
-                    ),
+                    trailing: canMarkExit
+                        ? ElevatedButton(
+                            onPressed: () => _markExit(log['id']),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Exit'),
+                          )
+                        : null,
                   ),
                 );
               },

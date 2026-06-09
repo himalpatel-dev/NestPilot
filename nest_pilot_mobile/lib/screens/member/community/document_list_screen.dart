@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
-import 'package:nest_pilot_mobile/services/auth_service.dart';
-import 'package:nest_pilot_mobile/config/roles.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 import 'package:nest_pilot_mobile/config/app_config.dart';
-import '../../../models/user_model.dart';
 import '../../secretary/document_upload_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,20 +17,12 @@ class DocumentListScreen extends StatefulWidget {
 
 class _DocumentListScreenState extends State<DocumentListScreen> {
   final CommunityService _service = CommunityService();
-  final AuthService _authService = AuthService();
   List<Document> _documents = [];
   bool _isLoading = true;
-  UserModel? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    final user = await _authService.getMe();
-    if (mounted) setState(() => _currentUser = user);
     _fetchDocuments();
   }
 
@@ -136,7 +127,9 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _currentUser?.role == UserRoles.societyAdmin;
+    final perms = PermissionService();
+    final canUpload = perms.canCreate(ModuleCodes.documents);
+    final canDelete = perms.canDelete(ModuleCodes.documents);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Documents')),
@@ -229,7 +222,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                               ],
                             ),
                           ),
-                          if (isAdmin)
+                          if (canDelete)
                             IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
@@ -246,7 +239,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                 );
               },
             ),
-      floatingActionButton: isAdmin
+      floatingActionButton: canUpload
           ? FloatingActionButton.extended(
               onPressed: () async {
                 final res = await Navigator.push(

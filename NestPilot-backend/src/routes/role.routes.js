@@ -9,6 +9,9 @@ const ROLES = require('../constants/roles');
 router.get('/enum', auth, roleCtrl.getRolesEnum);
 router.get('/modules', auth, roleCtrl.getModules);
 
+// Current user's effective permissions — used by the mobile app to filter menus and gate action buttons.
+router.get('/my-permissions', auth, roleCtrl.getMyPermissions);
+
 // Role CRUD — SUPER_ADMIN manages, SOCIETY_ADMIN can read
 router.get('/', auth, authorize([ROLES.SUPER_ADMIN, ROLES.SOCIETY_ADMIN]), roleCtrl.getAllRoles);
 router.post('/', auth, authorize([ROLES.SUPER_ADMIN]), roleCtrl.createRole);

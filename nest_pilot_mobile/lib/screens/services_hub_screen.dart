@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user_model.dart';
 import '../config/roles.dart';
+import '../config/modules.dart';
 import '../services/auth_service.dart';
+import '../services/permission_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dashboard_header.dart';
 import '../theme/app_icons.dart';
@@ -386,154 +388,133 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
   // ─── Role-driven section model ────────────────────────────────────────────────
 
   List<_HubSection> _sectionsForRole(String role) {
-    switch (role) {
-      case UserRoles.member:
-        return _memberSections();
-      case UserRoles.societyAdmin:
-        return _secretarySections();
-      case UserRoles.securityGuard:
-        return _securitySections();
-      case UserRoles.superAdmin:
-        return _superAdminSections();
-      default:
-        return _memberSections();
+    final raw = switch (role) {
+      UserRoles.member       => _memberSections(),
+      UserRoles.societyAdmin => _secretarySections(),
+      UserRoles.securityGuard => _securitySections(),
+      UserRoles.superAdmin    => _superAdminSections(),
+      _                       => _memberSections(),
+    };
+    return _applyPermissionFilter(raw);
+  }
+
+  /// Drop tiles whose module the user can't access. Drop sections that end up empty.
+  List<_HubSection> _applyPermissionFilter(List<_HubSection> sections) {
+    final perms = PermissionService();
+    final out = <_HubSection>[];
+    for (final s in sections) {
+      final allowed = s.tiles
+          .where((t) => t.module == null || perms.can(t.module!, t.requiredAction))
+          .toList();
+      if (allowed.isNotEmpty) {
+        out.add(_HubSection(s.title, allowed));
+      }
     }
+    return out;
   }
 
   List<_HubSection> _memberSections() => [
     _HubSection('Community', [
-      _Tile(
+      _Tile.gated(
         Icons.campaign_outlined,
         'Notices',
         AppColors.accentAmber,
         (c) => _go(c, const NoticeListScreen()),
-        ['announcement', 'news', 'update', 'broadcast', 'circular', 'alert'],
+        ModuleCodes.notices,
+        tags: const ['announcement', 'news', 'update', 'broadcast', 'circular', 'alert'],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.how_to_vote_outlined,
         'Polls',
         AppColors.accentPurple,
         (c) => _go(c, const PollListScreen()),
-        ['vote', 'survey', 'decision', 'opinion', 'question'],
+        ModuleCodes.polls,
+        tags: const ['vote', 'survey', 'decision', 'opinion', 'question'],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.folder_open_outlined,
         'Documents',
         AppColors.accentGreen,
         (c) => _go(c, const DocumentListScreen()),
-        ['doc', 'file', 'pdf', 'upload', 'download', 'paper', 'record', 'form'],
+        ModuleCodes.documents,
+        tags: const ['doc', 'file', 'pdf', 'upload', 'download', 'paper', 'record', 'form'],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.directions_car_outlined,
         'Vehicles',
         AppColors.accentBlue,
         (c) => _go(c, const VehicleListScreen()),
-        [
-          'car',
-          'bike',
-          'parking',
-          'motor',
-          'transport',
-          'sticker',
-          'two wheeler',
-          'four wheeler',
+        ModuleCodes.vehicles,
+        tags: const [
+          'car', 'bike', 'parking', 'motor', 'transport', 'sticker',
+          'two wheeler', 'four wheeler',
         ],
       ),
     ]),
     _HubSection('Services', [
-      _Tile(
+      _Tile.gated(
         Icons.calendar_today_outlined,
         'Amenities',
         AppColors.accentIndigo,
         (c) => _go(c, const AmenityBookingScreen()),
-        [
-          'gym',
-          'pool',
-          'hall',
-          'club',
-          'book',
-          'booking',
-          'facility',
-          'sport',
-          'court',
-          'ground',
+        ModuleCodes.amenities,
+        tags: const [
+          'gym', 'pool', 'hall', 'club', 'book', 'booking', 'facility',
+          'sport', 'court', 'ground',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.report_problem_outlined,
         'Complaints',
         AppColors.accentRed,
         (c) => _go(c, const ComplaintListScreen()),
-        [
-          'issue',
-          'problem',
-          'report',
-          'complain',
-          'fix',
-          'repair',
-          'request',
-          'raise',
-          'grievance',
+        ModuleCodes.complaints,
+        tags: const [
+          'issue', 'problem', 'report', 'complain', 'fix', 'repair',
+          'request', 'raise', 'grievance',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.cleaning_services_outlined,
         'Daily Help',
         AppColors.accentPink,
         (c) => _go(c, const StaffListScreen()),
-        [
-          'maid',
-          'cook',
-          'servant',
-          'helper',
-          'housekeeping',
-          'staff',
-          'worker',
-          'cleaning',
-          'domestic',
+        ModuleCodes.staff,
+        tags: const [
+          'maid', 'cook', 'servant', 'helper', 'housekeeping', 'staff',
+          'worker', 'cleaning', 'domestic',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.person_add_outlined,
         'Visitors',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorManagementScreen()),
-        ['guest', 'pass', 'entry', 'invite', 'visitor', 'outsider', 'log'],
+        ModuleCodes.visitors,
+        tags: const ['guest', 'pass', 'entry', 'invite', 'visitor', 'outsider', 'log'],
       ),
     ]),
     _HubSection('Payments', [
-      _Tile(
+      _Tile.gated(
         Icons.receipt_long_outlined,
         'My Bills',
         AppColors.accentAmber,
         (c) => _go(c, const BillsListScreen()),
-        [
-          'payment',
-          'dues',
-          'maintenance',
-          'fees',
-          'rent',
-          'pay',
-          'charge',
-          'bill',
-          'amount',
-          'monthly',
+        ModuleCodes.bills,
+        tags: const [
+          'payment', 'dues', 'maintenance', 'fees', 'rent', 'pay',
+          'charge', 'bill', 'amount', 'monthly',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.account_balance_outlined,
         'Ledger',
         AppColors.accentTeal,
         (c) => _go(c, const LedgerScreen()),
-        [
-          'history',
-          'statement',
-          'account',
-          'record',
-          'transaction',
-          'balance',
-          'paid',
-          'receipt',
+        ModuleCodes.bills,
+        tags: const [
+          'history', 'statement', 'account', 'record', 'transaction',
+          'balance', 'paid', 'receipt',
         ],
       ),
     ]),
@@ -557,259 +538,190 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   List<_HubSection> _secretarySections() => [
     _HubSection('Administration', [
-      _Tile(
+      _Tile.gated(
         Icons.person_add_alt_1_outlined,
         'Pending',
         AppColors.accentAmber,
         (c) => _go(c, const PendingMembersScreen()),
-        [
-          'approve',
-          'request',
-          'new member',
-          'join',
-          'pending member',
-          'waiting',
-          'acceptance',
+        ModuleCodes.users,
+        requiredAction: PermAction.approve,
+        tags: const [
+          'approve', 'request', 'new member', 'join', 'pending member',
+          'waiting', 'acceptance',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.contacts_outlined,
         'Residents',
         AppColors.accentBlue,
         (c) => _go(c, const MemberListScreen()),
-        [
-          'member',
-          'flat',
-          'tenant',
-          'owner',
-          'resident',
-          'people',
-          'family',
-          'occupant',
-          'contact',
+        ModuleCodes.users,
+        tags: const [
+          'member', 'flat', 'tenant', 'owner', 'resident', 'people',
+          'family', 'occupant', 'contact',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.campaign_outlined,
         'Notices',
         AppColors.accentPurple,
         (c) => _go(c, const NoticeCreateScreen()),
-        [
-          'announcement',
-          'news',
-          'broadcast',
-          'alert',
-          'update',
-          'circular',
-          'information',
+        ModuleCodes.notices,
+        requiredAction: PermAction.create,
+        tags: const [
+          'announcement', 'news', 'broadcast', 'alert', 'update',
+          'circular', 'information',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.how_to_vote_outlined,
         'Polls',
         AppColors.accentPink,
         (c) => _go(c, const PollCreateScreen()),
-        ['vote', 'survey', 'decision', 'opinion', 'question'],
+        ModuleCodes.polls,
+        requiredAction: PermAction.create,
+        tags: const ['vote', 'survey', 'decision', 'opinion', 'question'],
       ),
     ]),
     _HubSection('Operations', [
-      _Tile(
+      _Tile.gated(
         Icons.calendar_today_outlined,
         'Amenities',
         AppColors.accentIndigo,
         (c) => _go(c, const AmenityManagementScreen()),
-        [
-          'gym',
-          'pool',
-          'hall',
-          'club',
-          'book',
-          'booking',
-          'facility',
-          'sport',
-          'court',
-          'ground',
+        ModuleCodes.amenities,
+        tags: const [
+          'gym', 'pool', 'hall', 'club', 'book', 'booking', 'facility',
+          'sport', 'court', 'ground',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.cleaning_services_outlined,
         'Staff',
         AppColors.accentPink,
         (c) => _go(c, const StaffAddScreen()),
-        [
-          'maid',
-          'employee',
-          'worker',
-          'helper',
-          'housekeeping',
-          'daily help',
-          'cleaning',
-          'domestic',
-          'add staff',
+        ModuleCodes.staff,
+        requiredAction: PermAction.create,
+        tags: const [
+          'maid', 'employee', 'worker', 'helper', 'housekeeping',
+          'daily help', 'cleaning', 'domestic', 'add staff',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.directions_car_outlined,
         'Vehicles',
         AppColors.accentBlue,
         (c) => _go(c, const VehicleManagementScreen()),
-        [
-          'car',
-          'bike',
-          'parking',
-          'motor',
-          'sticker',
-          'transport',
-          'two wheeler',
-          'four wheeler',
+        ModuleCodes.vehicles,
+        tags: const [
+          'car', 'bike', 'parking', 'motor', 'sticker', 'transport',
+          'two wheeler', 'four wheeler',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.folder_open_outlined,
         'Documents',
         AppColors.accentGreen,
         (c) => _go(c, const DocumentUploadScreen()),
-        ['doc', 'file', 'pdf', 'upload', 'paper', 'record', 'form', 'download'],
+        ModuleCodes.documents,
+        requiredAction: PermAction.create,
+        tags: const ['doc', 'file', 'pdf', 'upload', 'paper', 'record', 'form', 'download'],
       ),
     ]),
     _HubSection('Billing & Payments', [
-      _Tile(
+      _Tile.gated(
         Icons.add_card_outlined,
         'Create Bill',
         AppColors.accentGreen,
         (c) => _go(c, const BillCreateScreen()),
-        [
-          'generate',
-          'new',
-          'billing',
-          'invoice',
-          'bill generate',
-          'make bill',
-          'add bill',
+        ModuleCodes.bills,
+        requiredAction: PermAction.create,
+        tags: const [
+          'generate', 'new', 'billing', 'invoice', 'bill generate',
+          'make bill', 'add bill',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.receipt_long_outlined,
         'Manage Bills',
         AppColors.accentAmber,
         (c) => _go(c, const BillsManageScreen()),
-        [
-          'bill list',
-          'billing',
-          'view bills',
-          'invoice list',
-          'all bills',
-          'dues list',
+        ModuleCodes.bills,
+        tags: const [
+          'bill list', 'billing', 'view bills', 'invoice list',
+          'all bills', 'dues list',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.payments_outlined,
         'Mark Payment',
         AppColors.accentTeal,
         (c) => _go(c, const PaymentMarkScreen()),
-        [
-          'payment',
-          'pay',
-          'dues',
-          'maintenance',
-          'collect',
-          'mark',
-          'record',
-          'rent',
-          'fees',
-          'paid',
-          'receipt',
-          'bill pay',
-          'collected',
+        ModuleCodes.bills,
+        requiredAction: PermAction.update,
+        tags: const [
+          'payment', 'pay', 'dues', 'maintenance', 'collect', 'mark',
+          'record', 'rent', 'fees', 'paid', 'receipt', 'bill pay', 'collected',
         ],
       ),
     ]),
     _HubSection('Community', [
-      _Tile(
+      _Tile.gated(
         Icons.event_outlined,
         'Events',
         AppColors.accentIndigo,
         (c) => _go(c, const EventManageScreen()),
-        [
-          'event',
-          'celebration',
-          'party',
-          'gathering',
-          'programme',
-          'function',
-          'occasion',
-          'festival',
+        ModuleCodes.events,
+        tags: const [
+          'event', 'celebration', 'party', 'gathering', 'programme',
+          'function', 'occasion', 'festival',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.report_problem_outlined,
         'Complaints',
         AppColors.accentRed,
         (c) => _go(c, const ComplaintManageScreen()),
-        [
-          'issue',
-          'problem',
-          'report',
-          'complain',
-          'fix',
-          'repair',
-          'request',
-          'grievance',
-          'raise',
+        ModuleCodes.complaints,
+        tags: const [
+          'issue', 'problem', 'report', 'complain', 'fix', 'repair',
+          'request', 'grievance', 'raise',
         ],
       ),
     ]),
     _HubSection('Security', [
-      _Tile(
+      _Tile.gated(
         Icons.directions_run_outlined,
         'Visitor Entry',
         AppColors.accentOrange,
         (c) => _go(c, const SecurityDashboardScreen()),
-        [
-          'gate',
-          'guard',
-          'entry',
-          'guest',
-          'visitor',
-          'log in',
-          'check in',
-          'security',
-          'allow',
-          'approve entry',
+        ModuleCodes.visitors,
+        requiredAction: PermAction.create,
+        tags: const [
+          'gate', 'guard', 'entry', 'guest', 'visitor', 'log in',
+          'check in', 'security', 'allow', 'approve entry',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.group_outlined,
         'Inside Now',
         AppColors.accentGreen,
         (c) => _go(c, const CurrentVisitorsScreen()),
-        [
-          'current',
-          'present',
-          'inside',
-          'visitor',
-          'who',
-          'guest',
-          'active',
-          'inside now',
-          'ongoing',
+        ModuleCodes.visitors,
+        tags: const [
+          'current', 'present', 'inside', 'visitor', 'who', 'guest',
+          'active', 'inside now', 'ongoing',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.history_outlined,
         'Visitor Logs',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorReportScreen()),
-        [
-          'history',
-          'past',
-          'log',
-          'visitor',
-          'report',
-          'guest',
-          'exit',
-          'record',
-          'visit history',
+        ModuleCodes.visitors,
+        tags: const [
+          'history', 'past', 'log', 'visitor', 'report', 'guest',
+          'exit', 'record', 'visit history',
         ],
       ),
     ]),
@@ -833,73 +745,51 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   List<_HubSection> _securitySections() => [
     _HubSection('Visitor Management', [
-      _Tile(
+      _Tile.gated(
         Icons.directions_run_outlined,
         'Entry',
         AppColors.accentOrange,
         (c) => _go(c, const SecurityDashboardScreen()),
-        [
-          'gate',
-          'log',
-          'check in',
-          'guest',
-          'visitor',
-          'security',
-          'mark',
-          'entry',
-          'allow',
-          'approve',
+        ModuleCodes.visitors,
+        requiredAction: PermAction.create,
+        tags: const [
+          'gate', 'log', 'check in', 'guest', 'visitor', 'security',
+          'mark', 'entry', 'allow', 'approve',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.group_outlined,
         'Inside Now',
         AppColors.accentGreen,
         (c) => _go(c, const CurrentVisitorsScreen()),
-        [
-          'current',
-          'present',
-          'visitor',
-          'who',
-          'guest',
-          'active',
-          'inside',
-          'ongoing',
+        ModuleCodes.visitors,
+        tags: const [
+          'current', 'present', 'visitor', 'who', 'guest', 'active',
+          'inside', 'ongoing',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.history_outlined,
         'Logs',
         AppColors.accentBlue,
         (c) => _go(c, const VisitorReportScreen()),
-        [
-          'history',
-          'past',
-          'log',
-          'visitor',
-          'report',
-          'guest',
-          'exit',
-          'record',
+        ModuleCodes.visitors,
+        tags: const [
+          'history', 'past', 'log', 'visitor', 'report', 'guest',
+          'exit', 'record',
         ],
       ),
     ]),
     _HubSection('Community', [
-      _Tile(
+      _Tile.gated(
         Icons.cleaning_services_outlined,
         'Daily Help',
         AppColors.accentPink,
         (c) => _go(c, const StaffListScreen()),
-        [
-          'maid',
-          'cook',
-          'servant',
-          'helper',
-          'staff',
-          'housekeeping',
-          'cleaning',
-          'worker',
-          'domestic',
+        ModuleCodes.staff,
+        tags: const [
+          'maid', 'cook', 'servant', 'helper', 'staff', 'housekeeping',
+          'cleaning', 'worker', 'domestic',
         ],
       ),
     ]),
@@ -923,41 +813,43 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   List<_HubSection> _superAdminSections() => [
     _HubSection('Administration', [
-      _Tile(
+      _Tile.gated(
         Icons.business_outlined,
         'Societies',
         AppColors.accentOrange,
         (c) => _go(c, const SocietyCreateScreen()),
-        [
-          'society',
-          'create society',
-          'new society',
-          'apartment',
-          'complex',
-          'housing',
-          'colony',
+        ModuleCodes.buildings,
+        requiredAction: PermAction.create,
+        tags: const [
+          'society', 'create society', 'new society', 'apartment',
+          'complex', 'housing', 'colony',
         ],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.apartment_outlined,
         'Buildings',
         AppColors.accentBlue,
         (c) => _go(c, const BuildingCreateScreen()),
-        ['building', 'tower', 'block', 'wing', 'floor', 'structure'],
+        ModuleCodes.buildings,
+        requiredAction: PermAction.create,
+        tags: const ['building', 'tower', 'block', 'wing', 'floor', 'structure'],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.door_front_door_outlined,
         'Add Flat',
         AppColors.accentPurple,
         (c) => _go(c, const FlatCreateScreen()),
-        ['flat', 'unit', 'apartment', 'room', 'house', 'add flat', 'new flat'],
+        ModuleCodes.buildings,
+        requiredAction: PermAction.create,
+        tags: const ['flat', 'unit', 'apartment', 'room', 'house', 'add flat', 'new flat'],
       ),
-      _Tile(
+      _Tile.gated(
         Icons.list_alt_outlined,
         'Flats',
         AppColors.accentTeal,
         (c) => _go(c, const FlatsListScreen()),
-        ['flat list', 'unit list', 'all flats', 'rooms', 'units', 'view flats'],
+        ModuleCodes.buildings,
+        tags: const ['flat list', 'unit list', 'all flats', 'rooms', 'units', 'view flats'],
       ),
     ]),
     _HubSection('Settings', [
@@ -1109,11 +1001,25 @@ class _Tile {
   final Color color;
   final void Function(BuildContext context) onTap;
   final List<String> tags;
+  /// Module this tile belongs to. null = always shown (e.g. Logout, Notifications).
+  final String? module;
+  /// Action required on [module] for this tile to be shown. Defaults to view.
+  final String requiredAction;
   const _Tile(
     this.icon,
     this.label,
     this.color,
     this.onTap, [
     this.tags = const [],
-  ]);
+  ]) : module = null, requiredAction = PermAction.view;
+
+  const _Tile.gated(
+    this.icon,
+    this.label,
+    this.color,
+    this.onTap,
+    this.module, {
+    this.requiredAction = PermAction.view,
+    this.tags = const [],
+  });
 }

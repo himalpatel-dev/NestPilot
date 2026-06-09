@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/role_permission_model.dart';
 import '../../services/role_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
@@ -357,15 +359,18 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     final systemRoles = _roles.where((r) => r.isSystem).length;
     final customRoles = totalRoles - systemRoles;
 
+    final canCreateRoles = PermissionService().canCreate(ModuleCodes.roles);
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreateSheet,
-        backgroundColor: AppColors.accentIndigo,
-        foregroundColor: AppColors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Role', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      floatingActionButton: canCreateRoles
+          ? FloatingActionButton.extended(
+              onPressed: _showCreateSheet,
+              backgroundColor: AppColors.accentIndigo,
+              foregroundColor: AppColors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New Role', style: TextStyle(fontWeight: FontWeight.w700)),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: _fetchRoles,
         color: AppColors.white,
@@ -526,20 +531,24 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
             tooltip: 'Permissions',
           ),
           if (!role.isSystem) ...[
-            const SizedBox(width: 6),
-            _actionBtn(
-              Icons.edit_outlined,
-              AppColors.accentOrange,
-              () => _showEditSheet(role),
-              tooltip: 'Edit',
-            ),
-            const SizedBox(width: 6),
-            _actionBtn(
-              Icons.delete_outline_rounded,
-              AppColors.accentRed,
-              () => _confirmDelete(role),
-              tooltip: 'Delete',
-            ),
+            if (PermissionService().canUpdate(ModuleCodes.roles)) ...[
+              const SizedBox(width: 6),
+              _actionBtn(
+                Icons.edit_outlined,
+                AppColors.accentOrange,
+                () => _showEditSheet(role),
+                tooltip: 'Edit',
+              ),
+            ],
+            if (PermissionService().canDelete(ModuleCodes.roles)) ...[
+              const SizedBox(width: 6),
+              _actionBtn(
+                Icons.delete_outline_rounded,
+                AppColors.accentRed,
+                () => _confirmDelete(role),
+                tooltip: 'Delete',
+              ),
+            ],
           ],
         ],
       ),

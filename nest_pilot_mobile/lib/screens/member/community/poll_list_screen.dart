@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../theme/nest_loader.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
-import 'package:nest_pilot_mobile/services/auth_service.dart';
-import 'package:nest_pilot_mobile/config/roles.dart';
-import '../../../models/user_model.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 import '../../secretary/poll_create_screen.dart';
 
 class PollListScreen extends StatefulWidget {
@@ -16,23 +15,13 @@ class PollListScreen extends StatefulWidget {
 
 class _PollListScreenState extends State<PollListScreen> {
   final CommunityService _service = CommunityService();
-  final AuthService _authService = AuthService();
 
   List<Poll> _polls = [];
   bool _isLoading = true;
-  UserModel? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserAndPolls();
-  }
-
-  Future<void> _fetchUserAndPolls() async {
-    final user = await _authService.getMe();
-    if (mounted) {
-      setState(() => _currentUser = user);
-    }
     _fetchPolls();
   }
 
@@ -283,7 +272,10 @@ class _PollListScreenState extends State<PollListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _currentUser?.role == UserRoles.societyAdmin;
+    // Per-module perms: can_create on POLLS distinguishes poll creators (admins)
+    // from voters. Voters fall through to the default vote UI.
+    final canCreate = PermissionService().canCreate(ModuleCodes.polls);
+    final canManage = canCreate;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Polls')),
@@ -316,7 +308,7 @@ class _PollListScreenState extends State<PollListScreen> {
                           Text(poll.description!),
                         ],
                         const SizedBox(height: 16),
-                        if (isAdmin) ...[
+                        if (canManage) ...[
                           const Text(
                             'Admin View - Monitor Voting',
                             style: TextStyle(
@@ -370,7 +362,7 @@ class _PollListScreenState extends State<PollListScreen> {
                 );
               },
             ),
-      floatingActionButton: isAdmin
+      floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () async {
                 final res = await Navigator.push(

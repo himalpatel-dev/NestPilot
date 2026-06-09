@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import 'package:intl/intl.dart';
 import '../../models/notice_complaint.dart';
-import '../../models/user_model.dart';
-import '../../config/roles.dart';
+import '../../config/modules.dart';
 import '../../services/notice_complaint_service.dart';
-import '../../services/auth_service.dart';
+import '../../services/permission_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../services/socket_service.dart';
 
@@ -20,10 +19,8 @@ class ComplaintDetailScreen extends StatefulWidget {
 class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
   final ComplaintService _complaintService = ComplaintService();
-  final AuthService _authService = AuthService();
 
   bool _isSubmitting = false;
-  UserModel? _currentUser;
   late String _currentStatus;
   List<ComplaintComment> _comments = [];
 
@@ -32,7 +29,6 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     super.initState();
     _currentStatus = widget.complaint.status;
     _comments = List.from(widget.complaint.comments);
-    _fetchCurrentUser();
     _setupSocket();
   }
 
@@ -80,11 +76,6 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
         );
       }
     });
-  }
-
-  Future<void> _fetchCurrentUser() async {
-    final user = await _authService.getMe();
-    if (mounted) setState(() => _currentUser = user);
   }
 
   Future<void> _addComment() async {
@@ -171,7 +162,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _currentUser?.role == UserRoles.societyAdmin;
+    final isAdmin = PermissionService().canUpdate(ModuleCodes.complaints);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Complaint Detail')),

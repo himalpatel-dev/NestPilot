@@ -5,6 +5,8 @@ import '../../theme/nest_loader.dart';
 import '../../theme/app_colors.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
+import 'package:nest_pilot_mobile/services/permission_service.dart';
+import 'package:nest_pilot_mobile/config/modules.dart';
 
 class AmenityManagementScreen extends StatefulWidget {
   const AmenityManagementScreen({super.key});
@@ -118,16 +120,18 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _showAddAmenityDialog,
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.add, size: 28),
-        ),
+        floatingActionButton: PermissionService().canCreate(ModuleCodes.amenities)
+            ? FloatingActionButton(
+                onPressed: _showAddAmenityDialog,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.add, size: 28),
+              )
+            : null,
       ),
     );
   }
@@ -568,7 +572,7 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
                         ),
                       ],
                     ),
-                    if (isPending) ...[
+                    if (isPending && PermissionService().canApprove(ModuleCodes.amenities)) ...[
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
