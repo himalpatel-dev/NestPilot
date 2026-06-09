@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/society_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class SocietyCreateScreen extends StatefulWidget {
   const SocietyCreateScreen({super.key});
@@ -147,11 +150,14 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Create Society',
-                isLoading: _isLoading,
-                onPressed: _createSociety,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.buildings))
+                AppButton(
+                  text: 'Create Society',
+                  isLoading: _isLoading,
+                  onPressed: _createSociety,
+                )
+              else
+                const NoPermissionNotice(action: 'create societies'),
             ],
           ),
         ),

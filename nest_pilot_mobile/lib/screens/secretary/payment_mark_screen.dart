@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import '../../services/billing_payment_service.dart';
 import '../../services/admin_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/user_model.dart';
 import '../../models/billing_payment.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_widgets.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class PaymentMarkScreen extends StatefulWidget {
   const PaymentMarkScreen({super.key});
@@ -226,11 +229,14 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                         hint: 'Optional',
                       ),
                       const SizedBox(height: 32),
-                      AppButton(
-                        text: 'Record Payment',
-                        isLoading: _isLoading,
-                        onPressed: _markPayment,
-                      ),
+                      if (PermissionService().canUpdate(ModuleCodes.bills))
+                        AppButton(
+                          text: 'Record Payment',
+                          isLoading: _isLoading,
+                          onPressed: _markPayment,
+                        )
+                      else
+                        const NoPermissionNotice(action: 'record payments'),
                     ],
                   ],
                 ),

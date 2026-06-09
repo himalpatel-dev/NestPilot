@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/role_permission_model.dart';
 import '../../services/role_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
@@ -57,7 +59,10 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     }
   }
 
+  bool get _readOnly => !PermissionService().canUpdate(ModuleCodes.roles);
+
   void _toggleAll(ModulePermission perm, bool value) {
+    if (_readOnly) return;
     setState(() {
       perm.canView = value;
       perm.canCreate = value;
@@ -117,12 +122,14 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isSuperAdmin = widget.role.code == 'SUPER_ADMIN';
+    final canEditPerms = PermissionService().canUpdate(ModuleCodes.roles);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      bottomNavigationBar: _isLoading || _error != null || isSuperAdmin
-          ? null
-          : _buildSaveBar(bottomPad),
+      bottomNavigationBar:
+          _isLoading || _error != null || isSuperAdmin || !canEditPerms
+              ? null
+              : _buildSaveBar(bottomPad),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -279,11 +286,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             ),
           ),
           // Permission toggles
-          _permToggle(perm.canView, color, (v) => setState(() => perm.canView = v)),
-          _permToggle(perm.canCreate, color, (v) => setState(() => perm.canCreate = v)),
-          _permToggle(perm.canUpdate, color, (v) => setState(() => perm.canUpdate = v)),
-          _permToggle(perm.canDelete, AppColors.accentRed, (v) => setState(() => perm.canDelete = v)),
-          _permToggle(perm.canApprove, AppColors.accentOrange, (v) => setState(() => perm.canApprove = v)),
+          _permToggle(perm.canView, color, (v) { if (!_readOnly) setState(() => perm.canView = v); }),
+          _permToggle(perm.canCreate, color, (v) { if (!_readOnly) setState(() => perm.canCreate = v); }),
+          _permToggle(perm.canUpdate, color, (v) { if (!_readOnly) setState(() => perm.canUpdate = v); }),
+          _permToggle(perm.canDelete, AppColors.accentRed, (v) { if (!_readOnly) setState(() => perm.canDelete = v); }),
+          _permToggle(perm.canApprove, AppColors.accentOrange, (v) { if (!_readOnly) setState(() => perm.canApprove = v); }),
           // All-or-nothing toggle
           const SizedBox(width: 4),
           GestureDetector(

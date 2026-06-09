@@ -188,33 +188,34 @@ class _StaffAttendanceSheetState extends State<StaffAttendanceSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _markAttendance('IN'),
-                  icon: const Icon(Icons.login, color: Colors.white),
-                  label: const Text('Mark Entry'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+          if (PermissionService().canUpdate(ModuleCodes.staff))
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _markAttendance('IN'),
+                    icon: const Icon(Icons.login, color: Colors.white),
+                    label: const Text('Mark Entry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _markAttendance('OUT'),
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text('Mark Exit'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _markAttendance('OUT'),
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    label: const Text('Mark Exit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 16),
           const Divider(),
           const Text(

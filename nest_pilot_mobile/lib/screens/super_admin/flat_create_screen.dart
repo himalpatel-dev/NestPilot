@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/society_structure.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class FlatCreateScreen extends StatefulWidget {
   const FlatCreateScreen({super.key});
@@ -369,11 +372,14 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                             },
                           ),
                           const SizedBox(height: 32),
-                          AppButton(
-                            text: 'Add Flat / Unit',
-                            isLoading: _isSaving,
-                            onPressed: _saveFlat,
-                          ),
+                          if (PermissionService().canCreate(ModuleCodes.buildings))
+                            AppButton(
+                              text: 'Add Flat / Unit',
+                              isLoading: _isSaving,
+                              onPressed: _saveFlat,
+                            )
+                          else
+                            const NoPermissionNotice(action: 'create flats / units'),
                         ] else ...[
                           Center(
                             child: Padding(

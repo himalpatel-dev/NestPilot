@@ -2,8 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/notice_complaint_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class ComplaintCreateScreen extends StatefulWidget {
   const ComplaintCreateScreen({super.key});
@@ -124,11 +127,14 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                 ),
               ],
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Submit Complaint',
-                isLoading: _isLoading,
-                onPressed: _submitComplaint,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.complaints))
+                AppButton(
+                  text: 'Submit Complaint',
+                  isLoading: _isLoading,
+                  onPressed: _submitComplaint,
+                )
+              else
+                const NoPermissionNotice(action: 'raise complaints'),
             ],
           ),
         ),

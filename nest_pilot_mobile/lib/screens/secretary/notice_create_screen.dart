@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/notice_complaint_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class NoticeCreateScreen extends StatefulWidget {
   const NoticeCreateScreen({super.key});
@@ -97,11 +100,14 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Publish Notice',
-                isLoading: _isLoading,
-                onPressed: _createNotice,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.notices))
+                AppButton(
+                  text: 'Publish Notice',
+                  isLoading: _isLoading,
+                  onPressed: _createNotice,
+                )
+              else
+                const NoPermissionNotice(action: 'publish notices'),
             ],
           ),
         ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class DocumentUploadScreen extends StatefulWidget {
   const DocumentUploadScreen({super.key});
@@ -152,11 +155,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Upload',
-                isLoading: _isLoading,
-                onPressed: _upload,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.documents))
+                AppButton(
+                  text: 'Upload',
+                  isLoading: _isLoading,
+                  onPressed: _upload,
+                )
+              else
+                const NoPermissionNotice(action: 'upload documents'),
             ],
           ),
         ),

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/document.controller');
 const auth = require('../middlewares/auth.middleware');
-const role = require('../middlewares/role.middleware');
+const { hasPermission } = require('../middlewares/permission.middleware');
 
 // Check if upload util exists, if not I'll use a basic multer setup here for now or create the util.
 // Since I can't check mid-stream, I'll assume standard multer usage.
@@ -26,8 +26,8 @@ const uploadMiddleware = multer({ storage: storage });
 
 router.use(auth);
 
-router.get('/', controller.getDocuments);
-router.post('/', role(['SOCIETY_ADMIN']), uploadMiddleware.single('file'), controller.uploadDocument);
-router.delete('/:id', role(['SOCIETY_ADMIN']), controller.deleteDocument);
+router.get('/', hasPermission('DOCUMENTS', 'view'), controller.getDocuments);
+router.post('/', hasPermission('DOCUMENTS', 'create'), uploadMiddleware.single('file'), controller.uploadDocument);
+router.delete('/:id', hasPermission('DOCUMENTS', 'delete'), controller.deleteDocument);
 
 module.exports = router;

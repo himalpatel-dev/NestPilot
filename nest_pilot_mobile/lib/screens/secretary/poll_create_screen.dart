@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class PollCreateScreen extends StatefulWidget {
   const PollCreateScreen({super.key});
@@ -151,11 +154,14 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
                 },
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Create Poll',
-                isLoading: _isLoading,
-                onPressed: _createPoll,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.polls))
+                AppButton(
+                  text: 'Create Poll',
+                  isLoading: _isLoading,
+                  onPressed: _createPoll,
+                )
+              else
+                const NoPermissionNotice(action: 'create polls'),
             ],
           ),
         ),

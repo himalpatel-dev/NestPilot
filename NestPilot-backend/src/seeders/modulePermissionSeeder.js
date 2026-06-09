@@ -59,7 +59,7 @@ const DEFAULT_PERMISSIONS = {
         EVENTS:     VIEW,
         AMENITIES:  { can_view: true,  can_create: true,  can_update: false, can_delete: false, can_approve: false },
         VISITORS:   { can_view: true,  can_create: true,  can_update: false, can_delete: false, can_approve: true  },
-        STAFF:      VIEW,
+        STAFF:      { can_view: true,  can_create: false, can_update: true,  can_delete: false, can_approve: false }, // update = log attendance
         POLLS:      { can_view: true,  can_create: false, can_update: false, can_delete: false, can_approve: false },
         DOCUMENTS:  VIEW,
         VEHICLES:   { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
@@ -77,7 +77,7 @@ const DEFAULT_PERMISSIONS = {
         EVENTS:     VIEW,
         AMENITIES:  NONE,
         VISITORS:   { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: true  },
-        STAFF:      VIEW,
+        STAFF:      { can_view: true,  can_create: false, can_update: true,  can_delete: false, can_approve: false }, // update = log attendance
         POLLS:      VIEW,
         DOCUMENTS:  NONE,
         VEHICLES:   VIEW,

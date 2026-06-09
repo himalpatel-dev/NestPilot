@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/billing_payment_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class BillCreateScreen extends StatefulWidget {
   const BillCreateScreen({super.key});
@@ -156,11 +159,14 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Create Bill',
-                isLoading: _isLoading,
-                onPressed: _createBill,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.bills))
+                AppButton(
+                  text: 'Create Bill',
+                  isLoading: _isLoading,
+                  onPressed: _createBill,
+                )
+              else
+                const NoPermissionNotice(action: 'create bills'),
             ],
           ),
         ),

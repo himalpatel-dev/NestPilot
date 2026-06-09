@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class SecurityDashboardScreen extends StatefulWidget {
   const SecurityDashboardScreen({super.key});
@@ -329,32 +332,35 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
               prefixIcon: Icons.directions_car,
             ),
             const SizedBox(height: 24),
-            AppButton(
-              text: 'Verify Pass Code',
-              isLoading: _isLoading,
-              onPressed: _verifyEntry,
-            ),
-            const SizedBox(height: 32),
-            const Row(
-              children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('OR', style: TextStyle(color: Colors.grey)),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 32),
-            OutlinedButton.icon(
-              onPressed: _logWalkIn,
-              icon: const Icon(Icons.person_add),
-              label: const Text('New Walk-in / Delivery'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                side: const BorderSide(color: Colors.blueAccent),
+            if (PermissionService().canCreate(ModuleCodes.visitors)) ...[
+              AppButton(
+                text: 'Verify Pass Code',
+                isLoading: _isLoading,
+                onPressed: _verifyEntry,
               ),
-            ),
+              const SizedBox(height: 32),
+              const Row(
+                children: [
+                  Expanded(child: Divider()),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR', style: TextStyle(color: Colors.grey)),
+                  ),
+                  Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 32),
+              OutlinedButton.icon(
+                onPressed: _logWalkIn,
+                icon: const Icon(Icons.person_add),
+                label: const Text('New Walk-in / Delivery'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  side: const BorderSide(color: Colors.blueAccent),
+                ),
+              ),
+            ] else
+              const NoPermissionNotice(action: 'log visitor entries'),
           ],
         ),
       ),

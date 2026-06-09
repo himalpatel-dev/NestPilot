@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class StaffAddScreen extends StatefulWidget {
   const StaffAddScreen({super.key});
@@ -101,11 +104,14 @@ class _StaffAddScreenState extends State<StaffAddScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 32),
-              AppButton(
-                text: 'Add Staff',
-                isLoading: _isLoading,
-                onPressed: _submit,
-              ),
+              if (PermissionService().canCreate(ModuleCodes.staff))
+                AppButton(
+                  text: 'Add Staff',
+                  isLoading: _isLoading,
+                  onPressed: _submit,
+                )
+              else
+                const NoPermissionNotice(action: 'add staff members'),
             ],
           ),
         ),

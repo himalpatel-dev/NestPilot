@@ -2,21 +2,21 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/visitor.controller');
 const auth = require('../middlewares/auth.middleware');
-const role = require('../middlewares/role.middleware');
+const { hasPermission } = require('../middlewares/permission.middleware');
 
 router.use(auth);
 
 // Resident Actions
-router.post('/invite', controller.preApproveVisitor);
-router.get('/my', controller.getMyVisitors);
-router.post('/respond', controller.respondToVisitor);
+router.post('/invite', hasPermission('VISITORS', 'create'), controller.preApproveVisitor);
+router.get('/my', hasPermission('VISITORS', 'view'), controller.getMyVisitors);
+router.post('/respond', hasPermission('VISITORS', 'approve'), controller.respondToVisitor);
 
-// Security / Admin Actions (In a real app, we'd have a specific SECURITY_GUARD role)
-router.get('/dashboard', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.getDashboard);
-router.post('/entry', role(['SOCIETY_ADMIN', 'SECURITY_GUARD', 'MEMBER']), controller.logEntry);
-router.post('/exit', role(['SOCIETY_ADMIN', 'SECURITY_GUARD', 'MEMBER']), controller.logExit);
-router.get('/inside', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.getInsideVisitors);
-router.get('/all', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.getAllSocietyVisitors);
-router.get('/verify/:code', role(['SOCIETY_ADMIN', 'SECURITY_GUARD']), controller.verifyPassCode);
+// Security / Admin Actions
+router.get('/dashboard', hasPermission('VISITORS', 'view'), controller.getDashboard);
+router.post('/entry', hasPermission('VISITORS', 'create'), controller.logEntry);
+router.post('/exit', hasPermission('VISITORS', 'update'), controller.logExit);
+router.get('/inside', hasPermission('VISITORS', 'view'), controller.getInsideVisitors);
+router.get('/all', hasPermission('VISITORS', 'view'), controller.getAllSocietyVisitors);
+router.get('/verify/:code', hasPermission('VISITORS', 'create'), controller.verifyPassCode);
 
 module.exports = router;

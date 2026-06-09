@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/modules.dart';
 import '../../models/society_structure.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/no_permission_notice.dart';
 
 class BuildingCreateScreen extends StatefulWidget {
   const BuildingCreateScreen({super.key});
@@ -289,11 +292,14 @@ class _BuildingCreateScreenState extends State<BuildingCreateScreen> {
                             ),
                           ],
                           const SizedBox(height: 32),
-                          AppButton(
-                            text: isRowHouseOrTenement ? 'Add Sector / Lane' : 'Create Building',
-                            isLoading: _isSaving,
-                            onPressed: _saveBuilding,
-                          ),
+                          if (PermissionService().canCreate(ModuleCodes.buildings))
+                            AppButton(
+                              text: isRowHouseOrTenement ? 'Add Sector / Lane' : 'Create Building',
+                              isLoading: _isSaving,
+                              onPressed: _saveBuilding,
+                            )
+                          else
+                            const NoPermissionNotice(action: 'create buildings'),
                         ] else ...[
                           Center(
                             child: Padding(
