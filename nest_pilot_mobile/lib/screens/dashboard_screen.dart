@@ -21,6 +21,7 @@ import 'super_admin/building_create_screen.dart';
 import 'super_admin/flat_create_screen.dart';
 import 'super_admin/flats_list_screen.dart';
 import 'super_admin/role_management_screen.dart';
+import 'super_admin/secretary_buildings_screen.dart';
 import 'secretary/pending_members_screen.dart';
 import 'secretary/notice_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
@@ -756,6 +757,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         subtitle: 'Create roles and configure module access',
         onTap: () => _go(const RoleManagementScreen()),
         module: ModuleCodes.roles,
+      ),
+      _SystemTile(
+        icon: Icons.apartment_outlined,
+        color: AppColors.accentBlue,
+        title: 'Secretary Buildings',
+        subtitle: 'Assign buildings to each Society Admin',
+        onTap: () => _go(const SecretaryBuildingsScreen()),
+        module: ModuleCodes.buildings,
       ),
     ].where((t) => t.module == null || perms.can(t.module!, t.requiredAction)).toList();
     if (tiles.isEmpty) return const SizedBox.shrink();

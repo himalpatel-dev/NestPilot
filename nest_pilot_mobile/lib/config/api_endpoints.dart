@@ -83,6 +83,11 @@ class ApiEndpoints {
   static String eventDetail(String id) => '/api/events/$id';
   static String registerEvent(String id) => '/api/events/$id/register';
 
+  // Society Admin → Building assignments (Super Admin only)
+  static const String societyAdmins = '/api/society-admins';
+  static String societyAdminBuildings(int userId) =>
+      '/api/society-admins/$userId/buildings';
+
   // Roles & Permissions
   static const String roles = '/api/roles';
   static const String rolesEnum = '/api/roles/enum';
