@@ -9,7 +9,7 @@ const create = async (req, res, next) => {
             society_id: req.user.society_id,
             created_by: req.user.id
         };
-        const result = await api.createNotice(data, req.files);
+        const result = await api.createNotice(data, req.files, req.userScope);
 
         try {
             await auditService.logAction(
@@ -28,7 +28,7 @@ const create = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const result = await api.getNotices(req.user.society_id);
+        const result = await api.getNotices(req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };

@@ -2,7 +2,7 @@ const db = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const receiptGenerator = require('../utils/receiptGenerator');
 
-const syncOfflinePayments = async (paymentsData, receivedByUserId, societyId) => {
+const syncOfflinePayments = async (paymentsData, receivedByUserId, societyId, userScope = null) => {
     const results = [];
     let syncedCount = 0;
     let failedCount = 0;
@@ -21,6 +21,13 @@ const syncOfflinePayments = async (paymentsData, receivedByUserId, societyId) =>
             // 2. Validate Bill
             const memberBill = await db.MemberBill.findOne({ where: { id: p.memberBillId } });
             if (!memberBill) throw new Error(`Bill ${p.memberBillId} not found`);
+
+            if (userScope && !userScope.unscoped) {
+                const house = await db.House.findByPk(memberBill.house_id, { attributes: ['building_id'] });
+                if (house && !userScope.building_ids.includes(house.building_id)) {
+                    throw new Error('Bill belongs to a house outside your assigned buildings');
+                }
+            }
 
             // 3. Create Payment
             const payment = await db.Payment.create({

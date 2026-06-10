@@ -2,6 +2,9 @@ const api = require('../services/complaint.service');
 const ApiResponse = require('../utils/ApiResponse');
 const auditService = require('../services/audit.service');
 
+const db = require('../models');
+const { assertBuildingInScope } = require('../middlewares/scope.middleware');
+
 const create = async (req, res, next) => {
     try {
         const data = {
@@ -11,6 +14,13 @@ const create = async (req, res, next) => {
             house_id: req.body.houseId
         };
 
+        // If a Society Admin creates a complaint for a specific house, that house
+        // must live in one of their assigned buildings.
+        if (data.house_id && req.userScope && !req.userScope.unscoped) {
+            const house = await db.House.findByPk(data.house_id, { attributes: ['building_id'] });
+            if (house) assertBuildingInScope(req, house.building_id);
+        }
+
         const result = await api.createComplaint(data, req.file);
         res.status(201).json(new ApiResponse(201, result));
     } catch (e) { next(e); }
@@ -18,7 +28,7 @@ const create = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const result = await api.getComplaints(req.user, req.user.society_id);
+        const result = await api.getComplaints(req.user, req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };
@@ -26,7 +36,7 @@ const getAll = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
-        const result = await api.updateStatus(req.params.id, status, req.user.society_id, req.user.id);
+        const result = await api.updateStatus(req.params.id, status, req.user.society_id, req.user.id, req.userScope);
 
         try {
             const normalized = String(status || '').toUpperCase();

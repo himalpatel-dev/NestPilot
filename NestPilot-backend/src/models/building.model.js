@@ -5,6 +5,12 @@ module.exports = (sequelize, DataTypes) => {
         static associate(models) {
             Building.belongsTo(models.Society, { foreignKey: 'society_id' });
             Building.hasMany(models.House, { foreignKey: 'building_id' });
+            Building.belongsToMany(models.User, {
+                through: models.UserBuilding,
+                foreignKey: 'building_id',
+                otherKey: 'user_id',
+                as: 'assignedAdmins'
+            });
         }
     }
 

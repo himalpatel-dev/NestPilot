@@ -9,7 +9,7 @@ const create = async (req, res, next) => {
             society_id: req.user.society_id,
             created_by: req.user.id,
         };
-        const event = await service.createEvent(data);
+        const event = await service.createEvent(data, req.userScope);
 
         try {
             await auditService.logAction(
@@ -28,21 +28,21 @@ const create = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const events = await service.getEvents(req.user.society_id);
+        const events = await service.getEvents(req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, events));
     } catch (e) { next(e); }
 };
 
 const getById = async (req, res, next) => {
     try {
-        const event = await service.getEventById(req.params.id, req.user.society_id);
+        const event = await service.getEventById(req.params.id, req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, event));
     } catch (e) { next(e); }
 };
 
 const update = async (req, res, next) => {
     try {
-        const event = await service.updateEvent(req.params.id, req.user.society_id, req.body);
+        const event = await service.updateEvent(req.params.id, req.user.society_id, req.body, req.userScope);
 
         try {
             await auditService.logAction(
@@ -61,7 +61,7 @@ const update = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
     try {
-        const result = await service.deleteEvent(req.params.id, req.user.society_id);
+        const result = await service.deleteEvent(req.params.id, req.user.society_id, req.userScope);
 
         try {
             await auditService.logAction(

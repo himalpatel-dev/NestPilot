@@ -7,6 +7,13 @@ module.exports = (sequelize, DataTypes) => {
             User.belongsTo(models.Role, { foreignKey: 'role_id' });
             User.belongsToMany(models.House, { through: 'UserHouseMapping', foreignKey: 'user_id' });
             User.hasMany(models.UserHouseMapping, { foreignKey: 'user_id' }); // Direct access
+            User.belongsToMany(models.Building, {
+                through: models.UserBuilding,
+                foreignKey: 'user_id',
+                otherKey: 'building_id',
+                as: 'assignedBuildings'
+            });
+            User.hasMany(models.UserBuilding, { foreignKey: 'user_id' });
         }
     }
 

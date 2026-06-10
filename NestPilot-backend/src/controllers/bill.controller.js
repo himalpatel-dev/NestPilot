@@ -9,7 +9,7 @@ const create = async (req, res, next) => {
             society_id: req.user.society_id,
             created_by: req.user.id
         };
-        const result = await api.createBill(data);
+        const result = await api.createBill(data, req.userScope);
 
         try {
             await auditService.logAction(
@@ -28,7 +28,7 @@ const create = async (req, res, next) => {
 
 const publish = async (req, res, next) => {
     try {
-        const result = await api.publishBill(req.params.id, req.user.society_id, req.user.id);
+        const result = await api.publishBill(req.params.id, req.user.society_id, req.user.id, req.userScope);
 
         try {
             await auditService.logAction(
@@ -54,7 +54,7 @@ const getMyBills = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const result = await api.getBillsBySociety(req.user.society_id);
+        const result = await api.getBillsBySociety(req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };
@@ -69,7 +69,7 @@ const getUserBills = async (req, res, next) => {
 const getDashboard = async (req, res, next) => {
     try {
         const month = req.query.month || null;
-        const result = await api.getDashboardData(req.user.society_id, month);
+        const result = await api.getDashboardData(req.user.society_id, month, req.userScope);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };

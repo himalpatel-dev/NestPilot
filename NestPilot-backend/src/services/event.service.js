@@ -1,18 +1,43 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 
-// ── Create event + notify all society members ─────────────────────────────────
-const createEvent = async (data) => {
+// ── Create event + notify members in target buildings ─────────────────────────
+const createEvent = async (data, userScope) => {
     const transaction = await db.sequelize.transaction();
     try {
         const event = await db.Event.create(data, { transaction });
 
-        // Notify all active members of the society (except creator)
-        const users = await db.User.findAll({
+        let targetBuildingIds = [];
+        if (userScope && !userScope.unscoped) {
+            if (!userScope.building_ids.length) {
+                throw new ApiError(403, 'No assigned buildings — cannot create event');
+            }
+            targetBuildingIds = userScope.building_ids;
+            await db.EventBuilding.bulkCreate(
+                targetBuildingIds.map(bid => ({ event_id: event.id, building_id: bid })),
+                { transaction }
+            );
+        }
+
+        let userQuery = {
             attributes: ['id'],
             where: { society_id: data.society_id, status: 'active' },
             transaction,
-        });
+        };
+        if (targetBuildingIds.length) {
+            userQuery.include = [{
+                model: db.UserHouseMapping,
+                required: true,
+                include: [{
+                    model: db.House,
+                    attributes: [],
+                    where: { building_id: { [Op.in]: targetBuildingIds } },
+                    required: true
+                }]
+            }];
+        }
+        const users = await db.User.findAll(userQuery);
 
         const usersToNotify = [...new Set(
             users.map(u => u.id).filter(id => id !== data.created_by)
@@ -53,9 +78,15 @@ const createEvent = async (data) => {
 };
 
 // ── Get all upcoming/active events for a society ──────────────────────────────
-const getEvents = async (societyId) => {
+const getEvents = async (societyId, userScope) => {
+    const visibleIds = await visibleEventIds(societyId, userScope);
+    if (visibleIds && !visibleIds.length) return [];
+
+    const where = { society_id: societyId, is_active: true };
+    if (visibleIds) where.id = { [Op.in]: visibleIds };
+
     return db.Event.findAll({
-        where: { society_id: societyId, is_active: true },
+        where,
         include: [
             {
                 model: db.User,
@@ -79,8 +110,52 @@ const getEvents = async (societyId) => {
     });
 };
 
+/**
+ * Returns the event ids visible to the caller, or null when unscoped (no filter).
+ * Visible = no EventBuilding rows (Super-Admin society-wide) OR at least one
+ * row matching the caller's assigned/owned buildings.
+ */
+const visibleEventIds = async (societyId, userScope) => {
+    if (!userScope || userScope.unscoped) return null;
+    if (!userScope.building_ids.length) {
+        // Only show society-wide (untargeted) events
+        const events = await db.Event.findAll({
+            attributes: ['id'],
+            where: { society_id: societyId },
+            include: [{ model: db.EventBuilding, required: false }]
+        });
+        return events.filter(e => !e.EventBuildings || !e.EventBuildings.length).map(e => e.id);
+    }
+    const events = await db.Event.findAll({
+        attributes: ['id'],
+        where: { society_id: societyId },
+        include: [{
+            model: db.EventBuilding,
+            required: false,
+            where: { building_id: { [Op.in]: userScope.building_ids } }
+        }]
+    });
+    // Now also include events with no EventBuilding rows at all (society-wide)
+    const taggedIds = new Set(events.map(e => e.id));
+    const allEvents = await db.Event.findAll({
+        attributes: ['id'],
+        where: { society_id: societyId },
+        include: [{ model: db.EventBuilding, required: false, attributes: ['id'] }]
+    });
+    allEvents.forEach(e => {
+        if (!e.EventBuildings || !e.EventBuildings.length) taggedIds.add(e.id);
+    });
+    return Array.from(taggedIds);
+};
+
 // ── Get single event by id ─────────────────────────────────────────────────────
-const getEventById = async (eventId, societyId) => {
+const getEventById = async (eventId, societyId, userScope) => {
+    if (userScope && !userScope.unscoped) {
+        const visibleIds = await visibleEventIds(societyId, userScope);
+        if (!visibleIds.includes(Number(eventId))) {
+            throw new ApiError(404, 'Event not found');
+        }
+    }
     const event = await db.Event.findOne({
         where: { id: eventId, society_id: societyId, is_active: true },
         include: [
@@ -108,7 +183,16 @@ const getEventById = async (eventId, societyId) => {
 };
 
 // ── Update event ───────────────────────────────────────────────────────────────
-const updateEvent = async (eventId, societyId, data) => {
+const assertEventInScope = async (eventId, societyId, userScope) => {
+    if (!userScope || userScope.unscoped) return;
+    const visibleIds = await visibleEventIds(societyId, userScope);
+    if (!visibleIds.includes(Number(eventId))) {
+        throw new ApiError(403, 'Event outside your assigned buildings');
+    }
+};
+
+const updateEvent = async (eventId, societyId, data, userScope) => {
+    await assertEventInScope(eventId, societyId, userScope);
     const event = await db.Event.findOne({ where: { id: eventId, society_id: societyId } });
     if (!event) throw new ApiError(404, 'Event not found');
     await event.update(data);
@@ -116,7 +200,8 @@ const updateEvent = async (eventId, societyId, data) => {
 };
 
 // ── Soft-delete (deactivate) event ─────────────────────────────────────────────
-const deleteEvent = async (eventId, societyId) => {
+const deleteEvent = async (eventId, societyId, userScope) => {
+    await assertEventInScope(eventId, societyId, userScope);
     const event = await db.Event.findOne({ where: { id: eventId, society_id: societyId } });
     if (!event) throw new ApiError(404, 'Event not found');
     await event.update({ is_active: false });

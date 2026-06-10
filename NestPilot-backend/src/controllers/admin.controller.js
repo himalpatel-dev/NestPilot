@@ -1,7 +1,31 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const auditService = require('../services/audit.service');
+const { isUnscoped, scopeBuildingIn } = require('../middlewares/scope.middleware');
+
+/**
+ * Returns the set of user_ids in the caller's society that live in at least
+ * one in-scope building. Returns null when the caller is unscoped (no filter).
+ */
+const userIdsInScope = async (req) => {
+    if (isUnscoped(req)) return null;
+    const buildingIds = req.userScope.building_ids;
+    if (!buildingIds.length) return [];
+
+    const rows = await db.UserHouseMapping.findAll({
+        attributes: ['user_id'],
+        include: [{
+            model: db.House,
+            attributes: [],
+            where: { building_id: { [Op.in]: buildingIds } },
+            required: true
+        }],
+        raw: true
+    });
+    return Array.from(new Set(rows.map(r => r.user_id)));
+};
 
 const resolveUserHouseNo = async (userId) => {
     try {
@@ -17,11 +41,19 @@ const resolveUserHouseNo = async (userId) => {
 
 const getPendingUsers = async (req, res, next) => {
     try {
+        const where = {
+            society_id: req.user.society_id,
+            status: 'pending'
+        };
+
+        const scopedIds = await userIdsInScope(req);
+        if (scopedIds !== null) {
+            if (!scopedIds.length) return res.status(200).json(new ApiResponse(200, []));
+            where.id = { [Op.in]: scopedIds };
+        }
+
         const users = await db.User.findAll({
-            where: {
-                society_id: req.user.society_id,
-                status: 'pending'
-            },
+            where,
             include: [
                 { model: db.Role },
                 {
@@ -42,6 +74,11 @@ const approveUser = async (req, res, next) => {
         });
 
         if (!user) throw new ApiError(404, 'User not found');
+
+        const scopedIds = await userIdsInScope(req);
+        if (scopedIds !== null && !scopedIds.includes(user.id)) {
+            throw new ApiError(403, 'User is outside your assigned buildings');
+        }
 
         user.status = 'active';
         await user.save();
@@ -71,6 +108,11 @@ const rejectUser = async (req, res, next) => {
 
         if (!user) throw new ApiError(404, 'User not found');
 
+        const scopedIds = await userIdsInScope(req);
+        if (scopedIds !== null && !scopedIds.includes(user.id)) {
+            throw new ApiError(403, 'User is outside your assigned buildings');
+        }
+
         user.status = 'rejected';
         await user.save();
 
@@ -92,11 +134,19 @@ const rejectUser = async (req, res, next) => {
 
 const getSocietyMembers = async (req, res, next) => {
     try {
+        const where = {
+            society_id: req.user.society_id,
+            status: 'active'
+        };
+
+        const scopedIds = await userIdsInScope(req);
+        if (scopedIds !== null) {
+            if (!scopedIds.length) return res.status(200).json(new ApiResponse(200, []));
+            where.id = { [Op.in]: scopedIds };
+        }
+
         const users = await db.User.findAll({
-            where: {
-                society_id: req.user.society_id,
-                status: 'active'
-            },
+            where,
             include: [
                 { model: db.Role },
                 {
@@ -112,25 +162,52 @@ const getSocietyMembers = async (req, res, next) => {
 const getDashboardStats = async (req, res, next) => {
     try {
         const societyId = req.user.society_id;
+        const buildingIn = scopeBuildingIn(req); // undefined if unscoped
+        const scopedIds = await userIdsInScope(req);
+        const userIdFilter = scopedIds === null ? undefined : { [Op.in]: scopedIds };
+
+        const userWhere = (status, extra = {}) => {
+            const w = { society_id: societyId, status, ...extra };
+            if (userIdFilter) w.id = userIdFilter;
+            return w;
+        };
+
+        const buildingScopedComplaintCount = async () => {
+            if (!buildingIn) {
+                return db.Complaint.count({ where: { society_id: societyId } });
+            }
+            return db.Complaint.count({
+                where: { society_id: societyId },
+                include: [{
+                    model: db.House,
+                    attributes: [],
+                    where: { building_id: buildingIn },
+                    required: true
+                }]
+            });
+        };
+
+        const noticeCount = () => {
+            const w = { society_id: societyId };
+            if (buildingIn) {
+                // Society-wide (building_id null) OR targeted to one of my buildings
+                w[Op.and] = [{ [Op.or]: [{ building_id: null }, { building_id: buildingIn }] }];
+            }
+            return db.Notice.count({ where: w });
+        };
 
         const [pendingMembers, totalResidents, totalNotices, totalComplaints] = await Promise.all([
+            db.User.count({ where: userWhere('pending') }),
             db.User.count({
-                where: { society_id: societyId, status: 'pending' }
-            }),
-            db.User.count({
-                where: { society_id: societyId, status: 'active' },
+                where: userWhere('active'),
                 include: [{
                     model: db.Role,
                     where: { code: 'MEMBER' },
                     required: true
                 }]
             }),
-            db.Notice.count({
-                where: { society_id: societyId }
-            }),
-            db.Complaint.count({
-                where: { society_id: societyId }
-            }),
+            noticeCount(),
+            buildingScopedComplaintCount(),
         ]);
 
         res.status(200).json(new ApiResponse(200, {

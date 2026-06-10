@@ -1,4 +1,5 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 
@@ -78,12 +79,33 @@ const deleteVehicle = async (req, res, next) => {
 
 const getAllVehicles = async (req, res, next) => {
     try {
+        const where = { society_id: req.user.society_id, is_active: true };
+
+        if (req.userScope && !req.userScope.unscoped) {
+            if (!req.userScope.building_ids.length) {
+                return res.status(200).json(new ApiResponse(200, []));
+            }
+            const rows = await db.UserHouseMapping.findAll({
+                attributes: ['user_id'],
+                include: [{
+                    model: db.House,
+                    attributes: [],
+                    where: { building_id: { [Op.in]: req.userScope.building_ids } },
+                    required: true
+                }],
+                raw: true
+            });
+            const userIds = Array.from(new Set(rows.map(r => r.user_id)));
+            if (!userIds.length) return res.status(200).json(new ApiResponse(200, []));
+            where.user_id = { [Op.in]: userIds };
+        }
+
         const vehicles = await db.Vehicle.findAll({
-            where: { society_id: req.user.society_id, is_active: true },
+            where,
             include: [{
                 model: db.User,
                 as: 'owner',
-                attributes: ['full_name', 'mobile'] // Removed flat_number as strictly it's not on User model directly usually, but checked User model earlier it might be. Checked user.model.js earlier: flat_number is NOT on User model directly, it's relationType/flatId etc. Wait, let me check user.model.js again to be safe.
+                attributes: ['full_name', 'mobile']
             }]
         });
         res.status(200).json(new ApiResponse(200, vehicles));

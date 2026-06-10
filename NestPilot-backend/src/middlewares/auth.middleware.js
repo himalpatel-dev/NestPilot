@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/ApiError');
 const { verifyToken } = require('../utils/token');
 const db = require('../models');
+const { attachScope } = require('./scope.middleware');
 
 const auth = async (req, res, next) => {
     try {
@@ -37,7 +38,7 @@ const auth = async (req, res, next) => {
             }
 
             req.user = user;
-            next();
+            return attachScope(req, res, next);
         } catch (err) {
             throw new ApiError(401, 'Invalid or expired token');
         }
@@ -58,6 +59,7 @@ const optionalAuth = async (req, res, next) => {
                 });
                 if (user && user.status === 'active') {
                     req.user = user;
+                    return attachScope(req, res, next);
                 }
             }
         }

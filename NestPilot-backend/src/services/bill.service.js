@@ -1,17 +1,38 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 
-const createBill = async (data) => {
+const createBill = async (data, userScope) => {
     const transaction = await db.sequelize.transaction();
     try {
+        const isScoped = userScope && !userScope.unscoped;
+        if (isScoped && !userScope.building_ids.length) {
+            throw new ApiError(403, 'No assigned buildings — cannot create bill');
+        }
+
         const bill = await db.Bill.create(data, { transaction });
 
-        // Create Bill Targets
         let houses = [];
         if (data.apply_to === 'ALL') {
-            houses = await db.House.findAll({ where: { society_id: data.society_id }, attributes: ['id'] });
+            const houseWhere = { society_id: data.society_id };
+            if (isScoped) houseWhere.building_id = { [Op.in]: userScope.building_ids };
+            houses = await db.House.findAll({ where: houseWhere, attributes: ['id'] });
         } else if (data.selectedHouseIds && data.selectedHouseIds.length) {
-            houses = data.selectedHouseIds.map(id => ({ id }));
+            if (isScoped) {
+                const inScope = await db.House.findAll({
+                    where: {
+                        id: { [Op.in]: data.selectedHouseIds },
+                        building_id: { [Op.in]: userScope.building_ids }
+                    },
+                    attributes: ['id']
+                });
+                if (inScope.length !== data.selectedHouseIds.length) {
+                    throw new ApiError(403, 'One or more selected houses are outside your assigned buildings');
+                }
+                houses = inScope;
+            } else {
+                houses = data.selectedHouseIds.map(id => ({ id }));
+            }
         }
 
         if (houses.length > 0) {
@@ -30,7 +51,7 @@ const createBill = async (data) => {
     }
 };
 
-const publishBill = async (billId, societyId, currentUserId) => {
+const publishBill = async (billId, societyId, currentUserId, userScope) => {
     const transaction = await db.sequelize.transaction();
     try {
         const bill = await db.Bill.findOne({
@@ -40,6 +61,19 @@ const publishBill = async (billId, societyId, currentUserId) => {
 
         if (!bill) throw new ApiError(404, 'Bill not found');
         if (bill.status === 'PUBLISHED') throw new ApiError(400, 'Already published');
+
+        if (userScope && !userScope.unscoped) {
+            const targetHouseIds = bill.BillTargets ? bill.BillTargets.map(t => t.house_id) : [];
+            if (targetHouseIds.length) {
+                const outOfScope = await db.House.count({
+                    where: {
+                        id: { [Op.in]: targetHouseIds },
+                        building_id: { [Op.notIn]: userScope.building_ids }
+                    }
+                });
+                if (outOfScope > 0) throw new ApiError(403, 'Bill targets houses outside your assigned buildings');
+            }
+        }
 
         bill.status = 'PUBLISHED';
         await bill.save({ transaction });
@@ -116,9 +150,27 @@ const publishBill = async (billId, societyId, currentUserId) => {
     }
 };
 
-const getBillsBySociety = async (societyId) => {
+const getBillsBySociety = async (societyId, userScope) => {
+    const include = [];
+    if (userScope && !userScope.unscoped) {
+        if (!userScope.building_ids.length) return [];
+        include.push({
+            model: db.BillTarget,
+            attributes: [],
+            required: true,
+            include: [{
+                model: db.House,
+                attributes: [],
+                where: { building_id: { [Op.in]: userScope.building_ids } },
+                required: true
+            }]
+        });
+    }
     return db.Bill.findAll({
         where: { society_id: societyId },
+        include,
+        group: include.length ? ['Bill.id'] : undefined,
+        subQuery: false,
         order: [['created_at', 'DESC']]
     });
 };
@@ -149,11 +201,26 @@ const getMemberBills = async (userId, societyId) => {
 };
 
 
-const getDashboardData = async (societyId, month = null) => {
+const getDashboardData = async (societyId, month = null, userScope = null) => {
     const queryType = { type: db.sequelize.QueryTypes.SELECT };
 
     let monthClause = '';
+    let buildingClausePayment = '';
+    let buildingClauseMemberBill = '';
     const params = { societyId };
+    const isScoped = userScope && !userScope.unscoped;
+
+    if (isScoped) {
+        if (!userScope.building_ids.length) {
+            return {
+                stats: { total_collected: 0, total_pending: 0, pending_bills_count: 0 },
+                recent_payments: []
+            };
+        }
+        params.buildingIds = userScope.building_ids;
+        buildingClausePayment = `AND EXISTS (SELECT 1 FROM tbl_houses h2 WHERE h2.id = tbl_payments.house_id AND h2.building_id IN (:buildingIds))`;
+        buildingClauseMemberBill = `AND EXISTS (SELECT 1 FROM tbl_houses h3 WHERE h3.id = mb.house_id AND h3.building_id IN (:buildingIds))`;
+    }
 
     if (month) {
         const parts = month.split('-');
@@ -165,7 +232,7 @@ const getDashboardData = async (societyId, month = null) => {
     const collectedRows = await db.sequelize.query(
         `SELECT COALESCE(SUM(amount), 0) AS total_collected
          FROM tbl_payments
-         WHERE society_id = :societyId ${monthClause}`,
+         WHERE society_id = :societyId ${monthClause} ${buildingClausePayment}`,
         { replacements: params, ...queryType }
     );
 
@@ -175,8 +242,8 @@ const getDashboardData = async (societyId, month = null) => {
             COUNT(mb.id) AS pending_count
          FROM tbl_member_bills mb
          INNER JOIN tbl_bills b ON b.id = mb.bill_id AND b.society_id = :societyId
-         WHERE mb.status IN ('PENDING', 'OVERDUE', 'PARTIAL')`,
-        { replacements: { societyId }, ...queryType }
+         WHERE mb.status IN ('PENDING', 'OVERDUE', 'PARTIAL') ${buildingClauseMemberBill}`,
+        { replacements: params, ...queryType }
     );
 
     const recentRows = await db.sequelize.query(
@@ -193,6 +260,7 @@ const getDashboardData = async (societyId, month = null) => {
          LEFT JOIN tbl_houses h ON h.id = p.house_id
          LEFT JOIN tbl_users u ON u.id = p.user_id
          WHERE p.society_id = :societyId ${monthClause}
+           ${isScoped ? 'AND h.building_id IN (:buildingIds)' : ''}
          ORDER BY p.payment_date DESC
          LIMIT 10`,
         { replacements: params, ...queryType }

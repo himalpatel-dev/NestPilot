@@ -1,12 +1,41 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const auditService = require('../services/audit.service');
+
+/**
+ * Visible poll ids for the caller: ones with no PollBuilding target
+ * (society-wide) OR ones targeted at a building they own/live in.
+ * Returns null when unscoped (no filter).
+ */
+const visiblePollIds = async (societyId, userScope) => {
+    if (!userScope || userScope.unscoped) return null;
+    const all = await db.Poll.findAll({
+        attributes: ['id'],
+        where: { society_id: societyId },
+        include: [{ model: db.PollBuilding, required: false, attributes: ['building_id'] }]
+    });
+    const ids = [];
+    for (const p of all) {
+        const targets = p.PollBuildings || [];
+        if (!targets.length) { ids.push(p.id); continue; }
+        if (userScope.building_ids.length &&
+            targets.some(t => userScope.building_ids.includes(t.building_id))) {
+            ids.push(p.id);
+        }
+    }
+    return ids;
+};
 
 const createPoll = async (req, res, next) => {
     const transaction = await db.sequelize.transaction();
     try {
         const { question, description, end_date, options } = req.body; // options: ["Yes", "No"]
+
+        if (req.userScope && !req.userScope.unscoped && !req.userScope.building_ids.length) {
+            throw new ApiError(403, 'No assigned buildings — cannot create poll');
+        }
 
         const poll = await db.Poll.create({
             society_id: req.user.society_id,
@@ -24,13 +53,33 @@ const createPoll = async (req, res, next) => {
             await db.PollOption.bulkCreate(pollOptions, { transaction });
         }
 
-        // --- Notification Logic Start ---
-        // Fetch users in society (active users)
-        const users = await db.User.findAll({
+        let targetBuildingIds = [];
+        if (req.userScope && !req.userScope.unscoped) {
+            targetBuildingIds = req.userScope.building_ids;
+            await db.PollBuilding.bulkCreate(
+                targetBuildingIds.map(bid => ({ poll_id: poll.id, building_id: bid })),
+                { transaction }
+            );
+        }
+
+        const userQuery = {
             attributes: ['id'],
             where: { society_id: req.user.society_id, status: 'active' },
             transaction
-        });
+        };
+        if (targetBuildingIds.length) {
+            userQuery.include = [{
+                model: db.UserHouseMapping,
+                required: true,
+                include: [{
+                    model: db.House,
+                    attributes: [],
+                    where: { building_id: { [Op.in]: targetBuildingIds } },
+                    required: true
+                }]
+            }];
+        }
+        const users = await db.User.findAll(userQuery);
 
         const currentUserId = req.user.id;
         let usersToNotify = users.map(u => u.id).filter(id => id !== currentUserId);
@@ -86,19 +135,27 @@ const createPoll = async (req, res, next) => {
 
 const getActivePolls = async (req, res, next) => {
     try {
+        const where = {
+            society_id: req.user.society_id,
+            is_active: true,
+            end_date: { [Op.gt]: new Date() }
+        };
+
+        const visibleIds = await visiblePollIds(req.user.society_id, req.userScope);
+        if (visibleIds !== null) {
+            if (!visibleIds.length) return res.status(200).json(new ApiResponse(200, []));
+            where.id = { [Op.in]: visibleIds };
+        }
+
         const polls = await db.Poll.findAll({
-            where: {
-                society_id: req.user.society_id,
-                is_active: true,
-                end_date: { [db.Sequelize.Op.gt]: new Date() }
-            },
+            where,
             include: [
                 { model: db.PollOption, as: 'options' },
                 {
                     model: db.PollVote,
                     as: 'votes',
                     where: { user_id: req.user.id },
-                    required: false // Left join to see if I voted
+                    required: false
                 }
             ],
             order: [['created_at', 'DESC']]
@@ -114,6 +171,11 @@ const votePoll = async (req, res, next) => {
         const poll = await db.Poll.findByPk(poll_id);
         if (!poll) throw new ApiError(404, 'Poll not found');
         if (new Date() > poll.end_date) throw new ApiError(400, 'Poll has ended');
+
+        const visibleIds = await visiblePollIds(poll.society_id, req.userScope);
+        if (visibleIds !== null && !visibleIds.includes(poll.id)) {
+            throw new ApiError(403, 'Poll outside your assigned buildings');
+        }
 
         const existingVote = await db.PollVote.findOne({
             where: { poll_id, user_id: req.user.id }
@@ -138,6 +200,11 @@ const getPollResults = async (req, res, next) => {
         });
 
         if (!poll) throw new ApiError(404, 'Poll not found');
+
+        const visibleIds = await visiblePollIds(poll.society_id, req.userScope);
+        if (visibleIds !== null && !visibleIds.includes(poll.id)) {
+            throw new ApiError(404, 'Poll not found');
+        }
 
         // Aggregate votes
         const results = await Promise.all(poll.options.map(async (opt) => {

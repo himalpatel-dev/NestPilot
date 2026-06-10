@@ -8,7 +8,7 @@ const syncOffline = async (req, res, next) => {
         const { payments } = req.body;
         if (!Array.isArray(payments)) throw new Error('Payments must be an array');
 
-        const result = await api.syncOfflinePayments(payments, req.user.id, req.user.society_id);
+        const result = await api.syncOfflinePayments(payments, req.user.id, req.user.society_id, req.userScope);
         res.status(200).json(new ApiResponse(200, result));
     } catch (e) { next(e); }
 };
@@ -17,6 +17,16 @@ const downloadReceipt = async (req, res, next) => {
     try {
         const receipt = await api.getReceipt(req.params.paymentId);
         if (!receipt || !receipt.receipt_pdf_path) return res.status(404).send('Receipt not found');
+
+        if (req.userScope && !req.userScope.unscoped) {
+            const payment = await db.Payment.findByPk(req.params.paymentId, { attributes: ['house_id'] });
+            if (payment && payment.house_id) {
+                const house = await db.House.findByPk(payment.house_id, { attributes: ['building_id'] });
+                if (house && !req.userScope.building_ids.includes(house.building_id)) {
+                    return res.status(403).send('Receipt outside your assigned buildings');
+                }
+            }
+        }
 
         const filePath = path.join(__dirname, '../../', receipt.receipt_pdf_path);
         res.download(filePath);

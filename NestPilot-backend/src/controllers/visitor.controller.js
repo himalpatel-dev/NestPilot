@@ -291,12 +291,26 @@ const respondToVisitor = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const buildHouseInclude = (req, base = {}) => {
+    const include = { model: db.House, ...base };
+    const isSecurity = req.user && req.user.Role && req.user.Role.code === 'SECURITY_GUARD';
+    if (req.userScope && !req.userScope.unscoped && !isSecurity) {
+        if (!req.userScope.building_ids.length) return null;
+        include.where = { ...(include.where || {}), building_id: { [Op.in]: req.userScope.building_ids } };
+        include.required = true;
+    }
+    return include;
+};
+
 // Security: Get all visitors currently inside
 const getInsideVisitors = async (req, res, next) => {
     try {
+        const houseInclude = buildHouseInclude(req);
+        if (houseInclude === null) return res.status(200).json(new ApiResponse(200, []));
+
         const logs = await db.VisitorLog.findAll({
             where: { society_id: req.user.society_id, status: 'INSIDE' },
-            include: [db.Visitor, db.House],
+            include: [db.Visitor, houseInclude],
             order: [['entry_time', 'DESC']]
         });
         res.status(200).json(new ApiResponse(200, logs));
@@ -306,11 +320,14 @@ const getInsideVisitors = async (req, res, next) => {
 // Security/Admin: Get all visitor history for the society
 const getAllSocietyVisitors = async (req, res, next) => {
     try {
+        const houseInclude = buildHouseInclude(req);
+        if (houseInclude === null) return res.status(200).json(new ApiResponse(200, []));
+
         const logs = await db.VisitorLog.findAll({
             where: { society_id: req.user.society_id },
             include: [
                 db.Visitor,
-                db.House,
+                houseInclude,
                 { model: db.User, as: 'approver', attributes: ['full_name'] }
             ],
             order: [['created_at', 'DESC']]
@@ -336,14 +353,33 @@ const getDashboard = async (req, res, next) => {
     try {
         const societyId = req.user.society_id;
         const qt = { type: db.sequelize.QueryTypes.SELECT };
+        const isSecurity = req.user.Role && req.user.Role.code === 'SECURITY_GUARD';
+        const isScoped = req.userScope && !req.userScope.unscoped && !isSecurity;
+
+        if (isScoped && !req.userScope.building_ids.length) {
+            return res.status(200).json(new ApiResponse(200, {
+                stats: { inside_count: 0, pending_count: 0, today_count: 0 },
+                today_visitors: [],
+                history: { yesterday_count: 0, week_count: 0, month_count: 0 }
+            }));
+        }
+
+        const params = { societyId };
+        let bldClauseStats = '';
+        let bldClauseVisitors = '';
+        if (isScoped) {
+            params.buildingIds = req.userScope.building_ids;
+            bldClauseStats = `AND EXISTS (SELECT 1 FROM tbl_houses h WHERE h.id = visitor_logs.house_id AND h.building_id IN (:buildingIds))`;
+            bldClauseVisitors = `AND h.building_id IN (:buildingIds)`;
+        }
 
         const statsRows = await db.sequelize.query(
             `SELECT
                 COUNT(CASE WHEN status = 'INSIDE' THEN 1 END) AS inside_count,
                 COUNT(CASE WHEN status = 'WAITING_APPROVAL' THEN 1 END) AS pending_count,
                 COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) AS today_count
-             FROM visitor_logs WHERE society_id = :societyId`,
-            { replacements: { societyId }, ...qt }
+             FROM visitor_logs WHERE society_id = :societyId ${bldClauseStats}`,
+            { replacements: params, ...qt }
         );
 
         const visitorsRows = await db.sequelize.query(
@@ -355,9 +391,9 @@ const getDashboard = async (req, res, next) => {
              FROM visitor_logs vl
              LEFT JOIN visitors v ON v.id = vl.visitor_id
              LEFT JOIN tbl_houses h ON h.id = vl.house_id
-             WHERE vl.society_id = :societyId AND DATE(vl.created_at) = CURRENT_DATE
+             WHERE vl.society_id = :societyId AND DATE(vl.created_at) = CURRENT_DATE ${bldClauseVisitors}
              ORDER BY vl.created_at DESC LIMIT 20`,
-            { replacements: { societyId }, ...qt }
+            { replacements: params, ...qt }
         );
 
         const historyRows = await db.sequelize.query(
@@ -365,8 +401,8 @@ const getDashboard = async (req, res, next) => {
                 COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE - INTERVAL '1 day' THEN 1 END) AS yesterday_count,
                 COUNT(CASE WHEN created_at >= DATE_TRUNC('week', CURRENT_DATE) THEN 1 END) AS week_count,
                 COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) AS month_count
-             FROM visitor_logs WHERE society_id = :societyId`,
-            { replacements: { societyId }, ...qt }
+             FROM visitor_logs WHERE society_id = :societyId ${bldClauseStats}`,
+            { replacements: params, ...qt }
         );
 
         const s = statsRows[0] || {};

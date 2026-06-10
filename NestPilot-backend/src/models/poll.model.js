@@ -51,6 +51,13 @@ module.exports = (sequelize) => {
         Poll.belongsTo(models.User, { foreignKey: 'created_by', as: 'creator' });
         Poll.hasMany(models.PollOption, { foreignKey: 'poll_id', as: 'options' });
         Poll.hasMany(models.PollVote, { foreignKey: 'poll_id', as: 'votes' });
+        Poll.belongsToMany(models.Building, {
+            through: models.PollBuilding,
+            foreignKey: 'poll_id',
+            otherKey: 'building_id',
+            as: 'targetBuildings'
+        });
+        Poll.hasMany(models.PollBuilding, { foreignKey: 'poll_id' });
     };
 
     return Poll;

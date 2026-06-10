@@ -1,4 +1,5 @@
 const db = require('../models');
+const { Op } = require('sequelize');
 
 const createComplaint = async (data, file) => {
     if (file) {
@@ -58,18 +59,25 @@ const createComplaint = async (data, file) => {
     return complaint;
 };
 
-const getComplaints = async (user, societyId) => {
+const getComplaints = async (user, societyId, userScope) => {
     const where = { society_id: societyId };
+    const houseInclude = { model: db.House, attributes: ['house_no', 'wing', 'building_id'] };
+
     if (user.Role.code === 'MEMBER') {
         const userHouses = await db.UserHouseMapping.findAll({
             where: { user_id: user.id, is_active: true },
             attributes: ['house_id']
         });
         const houseIds = userHouses.map(uh => uh.house_id);
-        where[db.Sequelize.Op.or] = [
+        where[Op.or] = [
             { house_id: houseIds },
             { created_by: user.id }
         ];
+    } else if (userScope && !userScope.unscoped) {
+        // SOCIETY_ADMIN / staff: limit to complaints whose house lives in an assigned building
+        if (!userScope.building_ids.length) return [];
+        houseInclude.where = { building_id: { [Op.in]: userScope.building_ids } };
+        houseInclude.required = true;
     }
 
     return db.Complaint.findAll({
@@ -77,15 +85,26 @@ const getComplaints = async (user, societyId) => {
         include: [
             { model: db.User, as: 'createdBy', attributes: ['full_name'] },
             { model: db.ComplaintComment, include: [{ model: db.User, attributes: ['full_name'] }] },
-            { model: db.House, attributes: ['house_no', 'wing'] } // Include optional house details
+            houseInclude
         ],
         order: [['created_at', 'DESC']]
     });
 };
 
-const updateStatus = async (id, status, societyId, currentUserId) => {
-    const complaint = await db.Complaint.findOne({ where: { id, society_id: societyId } });
+const updateStatus = async (id, status, societyId, currentUserId, userScope) => {
+    const complaint = await db.Complaint.findOne({
+        where: { id, society_id: societyId },
+        include: [{ model: db.House, attributes: ['building_id'] }]
+    });
     if (!complaint) throw new Error('Complaint not found');
+
+    if (userScope && !userScope.unscoped && complaint.House) {
+        if (!userScope.building_ids.includes(complaint.House.building_id)) {
+            const err = new Error('Complaint is outside your assigned buildings');
+            err.statusCode = 403;
+            throw err;
+        }
+    }
 
     complaint.status = status;
     await complaint.save();
