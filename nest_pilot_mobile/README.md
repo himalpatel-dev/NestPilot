@@ -50,3 +50,5 @@ Society Management Mobile App built with Flutter (MVP Phase-1).
 - **Networking**: Standard `http` with Bearer token authentication.
 - **UI**: Material 3 with clean, readable code.
 - **Permissions**: `permission_handler` used for storage access (receipt downloads).
+
+
