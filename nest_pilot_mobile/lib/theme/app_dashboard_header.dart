@@ -112,7 +112,7 @@ class AppDashboardHeader extends StatelessWidget {
                   shaderCallback: (rect) => const LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    stops: [0.0, 0.28, 1.0],
+                    stops: [0.0, 0.18, 1.0],
                     colors: [
                       AppColors.transparent,
                       Color(0x14FFFFFF),
@@ -133,7 +133,9 @@ class AppDashboardHeader extends StatelessWidget {
                 children: [
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      18, 16, 18,
+                      18,
+                      16,
+                      18,
                       (stats.isNotEmpty || bottomSection != null) ? 18 : 20,
                     ),
                     child: Column(
@@ -151,7 +153,10 @@ class AppDashboardHeader extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        if (preTitle != null) ...[preTitle!, const SizedBox(height: 3)],
+                        if (preTitle != null) ...[
+                          preTitle!,
+                          const SizedBox(height: 3),
+                        ],
                         Text(
                           title,
                           style: const TextStyle(
@@ -247,7 +252,10 @@ class _NotifBell extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.accentRed,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primaryDark, width: 1.5),
+                    border: Border.all(
+                      color: AppColors.primaryDark,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -345,4 +353,3 @@ class _StatsRow extends StatelessWidget {
     );
   }
 }
-

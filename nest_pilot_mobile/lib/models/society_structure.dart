@@ -31,6 +31,10 @@ class Society {
   final String address;
   final String? registrationNumber;
   final String societyType;
+  final String? city;
+  final String? state;
+  final String? pincode;
+  final String? status;
 
   Society({
     required this.id,
@@ -38,6 +42,10 @@ class Society {
     required this.address,
     this.registrationNumber,
     required this.societyType,
+    this.city,
+    this.state,
+    this.pincode,
+    this.status,
   });
 
   factory Society.fromJson(Map<String, dynamic> json) {
@@ -47,6 +55,10 @@ class Society {
       address: json['address'] ?? '',
       registrationNumber: json['registrationNumber'] ?? json['registration_number'],
       societyType: json['society_type'] ?? json['societyType'] ?? 'APARTMENT',
+      city: json['city']?.toString(),
+      state: json['state']?.toString(),
+      pincode: json['pincode']?.toString(),
+      status: json['status']?.toString(),
     );
   }
 }

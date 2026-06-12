@@ -235,7 +235,6 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
-                              fontFamily: 'monospace',
                             ),
                           ),
                         ],

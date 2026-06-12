@@ -75,6 +75,42 @@ class SocietyService {
     return response['success'] ?? false;
   }
 
+  Future<bool> updateSociety({
+    required String id,
+    required String name,
+    required String address,
+    required String city,
+    required String state,
+    required String pincode,
+    String societyType = 'APARTMENT',
+  }) async {
+    final response = await _apiService.put(ApiEndpoints.societyById(id), {
+      'name': name,
+      'address': address,
+      'city': city,
+      'state': state,
+      'pincode': pincode,
+      'society_type': societyType,
+    });
+    return response['success'] ?? false;
+  }
+
+  Future<bool> updateBuilding({
+    required String id,
+    required String name,
+    String? blocks,
+    String? wings,
+    int floorsCount = 0,
+  }) async {
+    final response = await _apiService.put(ApiEndpoints.buildingById(id), {
+      'name': name,
+      'blocks': blocks,
+      'wings': wings,
+      'floors_count': floorsCount,
+    });
+    return response['success'] ?? false;
+  }
+
   Future<HouseStats?> getHouseStats() async {
     final response = await _apiService.get(ApiEndpoints.houseStats);
     if (response['success'] == true && response['data'] != null) {

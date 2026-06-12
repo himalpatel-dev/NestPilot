@@ -15,7 +15,9 @@ class ApiEndpoints {
   // Society Setup
   static const String societies = '/api/society';
   static const String houseStats = '/api/society/house-stats';
+  static String societyById(String id) => '/api/society/$id';
   static String societyBuildings(String id) => '/api/societies/$id/buildings';
+  static String buildingById(String id) => '/api/buildings/$id';
   static String buildingFlats(String id) => '/api/buildings/$id/flats';
   static String societyFlats(String id) => '/api/societies/$id/flats';
 

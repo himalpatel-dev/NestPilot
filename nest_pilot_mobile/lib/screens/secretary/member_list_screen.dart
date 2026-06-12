@@ -11,8 +11,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/tab_route.dart';
-import '../dashboard_screen.dart';
 import '../notification_list_screen.dart';
+import '../super_admin/super_admin_dashboard_screen.dart';
 import '../services_hub_screen.dart';
 import '../common/visitor_report_screen.dart';
 import '../login_screen.dart';
@@ -266,7 +266,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
     if (user == null || !mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => DashboardScreen(user: user)),
+      MaterialPageRoute(builder: (_) => homeScreenFor(user)),
       (r) => false,
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_fonts.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,8 @@ class MyApp extends StatelessWidget {
           secondary: const Color(0xFF0EA5E9), // Sky Blue
         ),
         useMaterial3: true,
+        fontFamily: AppFonts.fontFamily,
+        textTheme: AppFonts.textTheme(),
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           backgroundColor: Colors.transparent,

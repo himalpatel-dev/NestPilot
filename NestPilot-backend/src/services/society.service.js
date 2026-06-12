@@ -32,6 +32,18 @@ const getAllSocieties = async () => {
     return db.Society.findAll();
 };
 
+const updateSociety = async (id, data) => {
+    const society = await db.Society.findByPk(id);
+    if (!society) return null;
+    return society.update(data);
+};
+
+const updateBuilding = async (id, data) => {
+    const building = await db.Building.findByPk(id);
+    if (!building) return null;
+    return building.update(data);
+};
+
 const getBuildingById = async (id) => {
     return db.Building.findByPk(id);
 };
@@ -103,6 +115,8 @@ module.exports = {
     createHouse,
     getHouses,
     getAllSocieties,
+    updateSociety,
+    updateBuilding,
     getBuildingById,
     getBuildingsBySocietyId,
     getFlatsByBuildingId,

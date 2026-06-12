@@ -5,8 +5,8 @@ import '../services/permission_service.dart';
 import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
-import 'dashboard_screen.dart';
 import 'pending_approval_screen.dart';
+import 'super_admin/super_admin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => DashboardScreen(user: user)),
+          MaterialPageRoute(builder: (_) => homeScreenFor(user)),
         );
       }
     }

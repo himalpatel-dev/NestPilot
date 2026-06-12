@@ -40,6 +40,41 @@ const createSociety = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const updateSociety = async (req, res, next) => {
+    try {
+        const { name, address, city, state, pincode, society_type, status } = req.body;
+        const data = await societyService.updateSociety(req.params.id, {
+            ...(name !== undefined && { name }),
+            ...(address !== undefined && { address }),
+            ...(city !== undefined && { city }),
+            ...(state !== undefined && { state }),
+            ...(pincode !== undefined && { pincode }),
+            ...(society_type !== undefined && { society_type }),
+            ...(status !== undefined && { status }),
+        });
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Society not found'));
+        }
+        res.status(200).json(new ApiResponse(200, data));
+    } catch (e) { next(e); }
+};
+
+const updateBuilding = async (req, res, next) => {
+    try {
+        const { name, blocks, wings, floors_count } = req.body;
+        const data = await societyService.updateBuilding(req.params.id, {
+            ...(name !== undefined && { name }),
+            ...(blocks !== undefined && { blocks }),
+            ...(wings !== undefined && { wings }),
+            ...(floors_count !== undefined && { floors_count }),
+        });
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Building not found'));
+        }
+        res.status(200).json(new ApiResponse(200, data));
+    } catch (e) { next(e); }
+};
+
 const getBuildingsBySociety = async (req, res, next) => {
     try {
         const data = await societyService.getBuildingsBySocietyId(req.params.id);
@@ -97,7 +132,9 @@ const getHouseOccupancyStats = async (req, res, next) => {
 module.exports = {
     getSociety,
     createSociety,
+    updateSociety,
     createBuilding,
+    updateBuilding,
     createHouse,
     getAllHouses,
     getBuildingsBySociety,

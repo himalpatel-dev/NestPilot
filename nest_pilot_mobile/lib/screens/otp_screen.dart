@@ -6,8 +6,8 @@ import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/nest_loader.dart';
-import 'dashboard_screen.dart';
 import 'pending_approval_screen.dart';
+import 'super_admin/super_admin_dashboard_screen.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 
@@ -58,7 +58,7 @@ class _OtpScreenState extends State<OtpScreen>
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (context) => DashboardScreen(user: user),
+              builder: (context) => homeScreenFor(user),
             ),
             (route) => false,
           );
