@@ -30,6 +30,9 @@ jobs:
           port: ${{ secrets.SERVER_PORT || 22 }}
           script_stop: true
           script: |
+            # Load nvm (npm/pm2 aren't on PATH in non-interactive SSH sessions)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             cd "${{ secrets.DEPLOY_PATH }}"
             git fetch origin main
             git reset --hard origin/main
