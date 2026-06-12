@@ -63,6 +63,24 @@ class SecretaryBuildingService {
         .toList();
   }
 
+  /// Creates a Society Admin, or promotes an already-registered user with the
+  /// same mobile. Returns the server message (created vs promoted).
+  /// Throws on validation/conflict errors (e.g. mobile already an admin).
+  Future<String> createSocietyAdmin({
+    required String fullName,
+    required String mobile,
+    String? email,
+    required int societyId,
+  }) async {
+    final res = await _api.post(ApiEndpoints.societyAdmins, {
+      'full_name': fullName,
+      'mobile': mobile,
+      if (email != null && email.isNotEmpty) 'email': email,
+      'society_id': societyId,
+    });
+    return (res['message'] as String?) ?? 'Society Admin created';
+  }
+
   Future<List<AssignedBuilding>> getAssignments(int userId) async {
     final res = await _api.get(ApiEndpoints.societyAdminBuildings(userId));
     if (res['success'] != true) return [];

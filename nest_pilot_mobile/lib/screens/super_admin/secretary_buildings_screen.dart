@@ -39,6 +39,226 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
     }
   }
 
+  // ─── Add secretary sheet ────────────────────────────────────────────────────
+
+  Future<void> _showAddSheet() async {
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController();
+    final mobileCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    List<Society> societies = [];
+    Society? selectedSociety;
+    bool loadStarted = false;
+    bool loadingSocieties = true;
+    String? loadError;
+    bool saving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          if (!loadStarted) {
+            loadStarted = true;
+            _societyService.getSocieties().then((list) {
+              if (!ctx.mounted) return;
+              setSheet(() {
+                societies = list;
+                loadingSocieties = false;
+              });
+            }).catchError((e) {
+              if (!ctx.mounted) return;
+              setSheet(() {
+                loadError = e.toString();
+                loadingSocieties = false;
+              });
+            });
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              24, 16, 24,
+              MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentIndigo.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.person_add_alt_1_outlined,
+                            color: AppColors.accentIndigo, size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Add Society Admin',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                'If the mobile is already registered, that user is promoted',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    if (loadingSocieties)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: NestLoader()),
+                      )
+                    else if (loadError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          loadError!,
+                          style: const TextStyle(color: AppColors.accentRed),
+                        ),
+                      )
+                    else ...[
+                      TextFormField(
+                        controller: nameCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Name is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: mobileCtrl,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Mobile Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          final value = (v ?? '').trim();
+                          if (value.isEmpty) return 'Mobile is required';
+                          if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                            return 'Enter a valid 10-digit mobile';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<Society>(
+                        initialValue: selectedSociety,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Society',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: societies
+                            .map((s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text(s.name),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setSheet(() => selectedSociety = v),
+                        validator: (v) =>
+                            v == null ? 'Please choose a society' : null,
+                      ),
+                      const SizedBox(height: 24),
+                      AppButton(
+                        text: 'Add Secretary',
+                        isLoading: saving,
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final societyId =
+                              int.tryParse(selectedSociety!.id);
+                          if (societyId == null) return;
+                          setSheet(() => saving = true);
+                          try {
+                            final msg = await _service.createSocietyAdmin(
+                              fullName: nameCtrl.text.trim(),
+                              mobile: mobileCtrl.text.trim(),
+                              email: emailCtrl.text.trim(),
+                              societyId: societyId,
+                            );
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            _fetch();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(msg)),
+                              );
+                            }
+                          } catch (e) {
+                            setSheet(() => saving = false);
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    nameCtrl.dispose();
+    mobileCtrl.dispose();
+    emailCtrl.dispose();
+  }
+
   // ─── Assign sheet ───────────────────────────────────────────────────────────
 
   Future<void> _showAssignSheet(SecretaryAdmin admin) async {
@@ -263,6 +483,23 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddSheet,
+        backgroundColor: AppColors.primary,
+        icon: const Icon(
+          Icons.person_add_alt_1_rounded,
+          color: AppColors.white,
+          size: 20,
+        ),
+        label: const Text(
+          'Add Secretary',
+          style: TextStyle(
+            color: AppColors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: _fetch,
         color: AppColors.white,
@@ -274,7 +511,7 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
               child: AppDashboardHeader(
                 leftAction: appHeaderBackButton(context),
                 title: 'Secretary Buildings',
-                subtitle: 'Assign buildings to each Society Admin',
+                subtitle: 'Add secretaries and assign their buildings',
                 stats: [
                   AppHeaderStat(
                     value: '$total',
@@ -522,6 +759,9 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
           SizedBox(height: 12),
           Text('No society admins yet',
               style: TextStyle(color: AppColors.textSecondary)),
+          SizedBox(height: 4),
+          Text("Tap 'Add Secretary' to create one",
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ),
     );

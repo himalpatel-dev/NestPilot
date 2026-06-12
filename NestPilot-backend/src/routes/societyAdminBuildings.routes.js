@@ -8,6 +8,7 @@ router.use(auth);
 router.use(authorize(['SUPER_ADMIN']));
 
 router.get('/', ctrl.listSocietyAdmins);
+router.post('/', ctrl.createSocietyAdmin);
 router.get('/:userId/buildings', ctrl.getAssignments);
 router.put('/:userId/buildings', ctrl.setAssignments);
 router.post('/:userId/buildings/:buildingId', ctrl.addAssignment);

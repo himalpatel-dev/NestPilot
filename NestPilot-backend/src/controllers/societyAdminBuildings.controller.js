@@ -29,6 +29,69 @@ const listSocietyAdmins = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+/**
+ * Create a Society Admin (Secretary). If the mobile already belongs to a
+ * registered user (e.g. someone who self-registered as a member), that user
+ * is promoted to SOCIETY_ADMIN instead of creating a duplicate. Login is
+ * OTP-based, so the new admin can sign in with this mobile right away.
+ */
+const createSocietyAdmin = async (req, res, next) => {
+    try {
+        const fullName = String(req.body.full_name || '').trim();
+        const mobile = String(req.body.mobile || '').trim();
+        const email = String(req.body.email || '').trim();
+        const societyId = Number(req.body.society_id);
+
+        if (!fullName) throw new ApiError(400, 'full_name is required');
+        if (!mobile) throw new ApiError(400, 'mobile is required');
+        if (!Number.isInteger(societyId) || societyId <= 0) {
+            throw new ApiError(400, 'society_id is required');
+        }
+
+        const society = await db.Society.findByPk(societyId);
+        if (!society) throw new ApiError(404, 'Society not found');
+
+        const role = await db.Role.findOne({ where: { code: 'SOCIETY_ADMIN' } });
+        if (!role) throw new ApiError(500, 'SOCIETY_ADMIN role is missing');
+
+        const existing = await db.User.findOne({
+            where: { mobile },
+            include: [{ model: db.Role, attributes: ['code'] }]
+        });
+
+        if (existing) {
+            const code = existing.Role ? existing.Role.code : null;
+            if (code === 'SUPER_ADMIN') {
+                throw new ApiError(409, 'This mobile belongs to a Super Admin');
+            }
+            if (code === 'SOCIETY_ADMIN') {
+                throw new ApiError(409, 'This mobile is already a Society Admin');
+            }
+            await existing.update({
+                full_name: fullName,
+                email: email || existing.email,
+                society_id: society.id,
+                role_id: role.id,
+                status: 'active'
+            });
+            return res.status(200).json(new ApiResponse(
+                200, existing, 'Existing user promoted to Society Admin'
+            ));
+        }
+
+        const user = await db.User.create({
+            full_name: fullName,
+            mobile,
+            email: email || null,
+            society_id: society.id,
+            role_id: role.id,
+            status: 'active'
+        });
+
+        res.status(201).json(new ApiResponse(201, user, 'Society Admin created'));
+    } catch (e) { next(e); }
+};
+
 const getAssignments = async (req, res, next) => {
     try {
         const user = await db.User.findByPk(req.params.userId, {
@@ -143,6 +206,7 @@ const removeAssignment = async (req, res, next) => {
 
 module.exports = {
     listSocietyAdmins,
+    createSocietyAdmin,
     getAssignments,
     setAssignments,
     addAssignment,
