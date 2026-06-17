@@ -80,17 +80,7 @@ class AppPageHeader extends StatelessWidget {
                               child: Container(
                                 width: 40,
                                 height: 40,
-                                decoration: BoxDecoration(
-                                  color: AppColors.white.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: AppColors.white.withValues(
-                                      alpha: 0.18,
-                                    ),
-                                  ),
-                                ),
+
                                 alignment: Alignment.center,
                                 child: const Icon(
                                   Icons.arrow_back_ios_new_rounded,
@@ -234,13 +224,20 @@ class _HeaderScenePainter extends CustomPainter {
       final double right = rightF * w;
       final double top = topF * h;
       final Rect r = Rect.fromLTRB(left, top, right, ground);
+      final RRect rrect = RRect.fromRectAndCorners(
+        r,
+        topLeft: Radius.circular(w * 0.012),
+        topRight: Radius.circular(w * 0.012),
+      );
+      canvas.drawRRect(rrect, p..color = face);
+      // Border outline
       canvas.drawRRect(
-        RRect.fromRectAndCorners(
-          r,
-          topLeft: Radius.circular(w * 0.012),
-          topRight: Radius.circular(w * 0.012),
-        ),
-        p..color = face,
+        rrect,
+        Paint()
+          ..color = AppColors.primaryLight.withValues(alpha: 0.15)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..isAntiAlias = true,
       );
       if (!windows) return;
       // Even grid of small rounded windows.
@@ -268,13 +265,13 @@ class _HeaderScenePainter extends CustomPainter {
 
     // ── Building cluster (back-to-front, varied heights) ───────────────
     // Short tan block tucked behind on the left of the cluster.
-    block(0.65, 0.75, 0.62, _wallTan.withOpacity(0.5), cols: 2);
+    block(0.65, 0.75, 0.62, AppColors.primary.withOpacity(0.7), cols: 2);
 
     // Tall pale tower — the hero of the cluster.
-    block(0.75, 0.86, 0.30, _wallPale.withOpacity(0.5), cols: 2);
+    block(0.75, 0.86, 0.30, AppColors.primary.withOpacity(0.6), cols: 2);
 
     // Mid cream block.
-    block(0.86, 1, 0.47, _wallCream.withOpacity(0.5), cols: 2);
+    block(0.86, 1, 0.47, AppColors.primary.withOpacity(0.8), cols: 2);
 
     // ── Rounded trees along the base (two greens, varied sizes) ────────
     void tree(double cxF, double scale, Color leaf) {
@@ -309,8 +306,8 @@ class _HeaderScenePainter extends CustomPainter {
       );
     }
 
-    tree(0.63, 1.05, _leafB);
-    tree(0.86, 0.85, _leafA);
+    tree(0.83, 0.65, _leafB);
+    tree(0.93, 0.85, _leafA);
   }
 
   @override
