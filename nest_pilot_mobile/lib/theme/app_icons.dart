@@ -32,7 +32,8 @@ class AppIconTile extends StatelessWidget {
     // of whether the label wraps to 1 or 2 lines.
     const double circleSize = 52;
     const double gap = 8;
-    const double labelAreaHeight = 30; // fits 2 lines at font 11, line-height 1.3
+    const double labelAreaHeight =
+        30; // fits 2 lines at font 11, line-height 1.3
 
     return SizedBox(
       height: circleSize + gap + labelAreaHeight,
@@ -51,7 +52,7 @@ class AppIconTile extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.38),
+                  color: color.withValues(alpha: 0.20),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),

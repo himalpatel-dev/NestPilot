@@ -6,6 +6,7 @@ import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/nest_loader.dart';
+import '../widgets/glare_button.dart';
 import 'pending_approval_screen.dart';
 import 'super_admin/super_admin_dashboard_screen.dart';
 import 'register_screen.dart';
@@ -19,8 +20,7 @@ class OtpScreen extends StatefulWidget {
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen>
-    with SingleTickerProviderStateMixin {
+class _OtpScreenState extends State<OtpScreen> {
   final TextEditingController _otpController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
@@ -57,9 +57,7 @@ class _OtpScreenState extends State<OtpScreen>
           if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-              builder: (context) => homeScreenFor(user),
-            ),
+            MaterialPageRoute(builder: (context) => homeScreenFor(user)),
             (route) => false,
           );
         }
@@ -98,22 +96,8 @@ class _OtpScreenState extends State<OtpScreen>
     }
   }
 
-  late final AnimationController _glareCtrl;
-  late final Animation<double> _glareAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _glareCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat(min: 0, max: 1);
-    _glareAnim = CurvedAnimation(parent: _glareCtrl, curve: Curves.slowMiddle);
-  }
-
   @override
   void dispose() {
-    _glareCtrl.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -257,21 +241,27 @@ class _OtpScreenState extends State<OtpScreen>
                                           ),
                                           reverseTransitionDuration:
                                               const Duration(milliseconds: 300),
-                                          pageBuilder: (context, animation,
-                                                  secondaryAnimation) =>
-                                              const LoginScreen(),
-                                          transitionsBuilder: (context,
-                                              animation,
-                                              secondaryAnimation,
-                                              child) {
-                                            return FadeTransition(
-                                              opacity: CurvedAnimation(
-                                                parent: animation,
-                                                curve: Curves.easeInOut,
-                                              ),
-                                              child: child,
-                                            );
-                                          },
+                                          pageBuilder:
+                                              (
+                                                context,
+                                                animation,
+                                                secondaryAnimation,
+                                              ) => const LoginScreen(),
+                                          transitionsBuilder:
+                                              (
+                                                context,
+                                                animation,
+                                                secondaryAnimation,
+                                                child,
+                                              ) {
+                                                return FadeTransition(
+                                                  opacity: CurvedAnimation(
+                                                    parent: animation,
+                                                    curve: Curves.easeInOut,
+                                                  ),
+                                                  child: child,
+                                                );
+                                              },
                                         ),
                                       );
                                     },
@@ -290,11 +280,12 @@ class _OtpScreenState extends State<OtpScreen>
                               const Spacer(flex: 2),
                               _OtpField(controller: _otpController, scale: s),
                               const Spacer(flex: 3),
-                              _VerifyOtpButton(
+                              GlarePrimaryButton(
+                                text: 'Verify & Login',
+                                trailingIcon: Icons.check,
                                 isLoading: _isLoading,
                                 onPressed: _verifyOtp,
                                 scale: s,
-                                glareAnim: _glareAnim,
                               ),
                               const Spacer(flex: 1),
                               Row(
@@ -373,7 +364,8 @@ class _OtpScreenState extends State<OtpScreen>
                   ),
                 ),
               ),
-              if (_isLoading) const Positioned.fill(child: NestLoadingOverlay()),
+              if (_isLoading)
+                const Positioned.fill(child: NestLoadingOverlay()),
             ],
           ),
         ),
@@ -536,100 +528,6 @@ class _OtpFieldState extends State<_OtpField> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _VerifyOtpButton extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onPressed;
-  final double scale;
-  final Animation<double> glareAnim;
-  const _VerifyOtpButton({
-    required this.isLoading,
-    required this.onPressed,
-    this.scale = 1.0,
-    required this.glareAnim,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final s = scale;
-    return SizedBox(
-      width: double.infinity,
-      height: 45 * s,
-      child: Material(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(14),
-        elevation: 3,
-        shadowColor: AppColors.primary.withValues(alpha: 0.5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            children: [
-              AnimatedBuilder(
-                animation: glareAnim,
-                builder: (context, _) {
-                  final buttonWidth =
-                      MediaQuery.of(context).size.width - 40 * s;
-                  final left = -80 + (glareAnim.value * (buttonWidth + 160));
-                  return Positioned(
-                    left: left,
-                    top: 0,
-                    bottom: 0,
-                    child: Transform.rotate(
-                      angle: -0.05,
-                      child: Container(
-                        width: 65 * s,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.white.withValues(alpha: 0.0),
-                              AppColors.white.withValues(alpha: 0.28),
-                              AppColors.white.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              InkWell(
-                onTap: isLoading ? null : onPressed,
-                borderRadius: BorderRadius.circular(14),
-                splashColor: AppColors.white.withValues(alpha: 0.15),
-                highlightColor: AppColors.white.withValues(alpha: 0.08),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18 * s),
-                  child: Row(
-                          children: [
-                            Icon(
-                              Icons.check,
-                              color: AppColors.white,
-                              size: 20 * s,
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  'Verify & Login',
-                                  style: AppTextStyles.buttonLabel(s),
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward,
-                              color: AppColors.white,
-                              size: 20 * s,
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

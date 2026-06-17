@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Vector "gated society" mark — twin apartment towers flanking an entrance
-/// gate, echoing the society renders in assets/. Drawn with a CustomPainter
-/// so it scales crisply at any size without an SVG dependency.
+/// Society mark — two apartment towers (a taller one beside a shorter one)
+/// sharing a single ground line, each with a tidy column of evenly-spaced
+/// windows. Deliberately spare: a strong two-tower silhouette that stays
+/// crisp and legible at small sizes (~28px) instead of dissolving into
+/// visual noise. Drawn with a CustomPainter so it scales without an SVG.
 class SocietyIcon extends StatelessWidget {
   final double size;
   final Color color;
@@ -27,80 +29,55 @@ class _SocietyIconPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double w = size.width;
     final double h = size.height;
-    final Paint paint = Paint()
+    final double stroke = w * 0.07;
+    final double r = w * 0.06;
+
+    final Paint line = Paint()
       ..color = color
-      ..isAntiAlias = true;
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
 
-    // Windows are punched out of the towers, so compose on a layer.
-    canvas.saveLayer(Offset.zero & size, Paint());
+    final double ground = h * 0.88;
 
-    final Radius towerRadius = Radius.circular(w * 0.06);
-
-    // Twin towers
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, h * 0.14, w * 0.30, h * 0.86),
-        towerRadius,
-      ),
-      paint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.70, h * 0.14, w * 0.30, h * 0.86),
-        towerRadius,
-      ),
-      paint,
+    RRect tower(double l, double t, double right) => RRect.fromRectAndRadius(
+      Rect.fromLTRB(l, t, right, ground),
+      Radius.circular(r),
     );
 
-    // Gate canopy beam between the towers
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.26, h * 0.50, w * 0.48, h * 0.12),
-        Radius.circular(h * 0.05),
-      ),
-      paint,
-    );
+    // ---- Two towers: a tall left block and a shorter right block ----
+    final RRect tall = tower(w * 0.16, h * 0.16, w * 0.52);
+    final RRect short = tower(w * 0.52, h * 0.40, w * 0.84);
 
-    // Gate bars below the beam
-    for (int i = 0; i < 3; i++) {
-      final double x = w * (0.36 + i * 0.12);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, h * 0.60, w * 0.05, h * 0.40),
-          Radius.circular(w * 0.025),
-        ),
-        paint,
-      );
-    }
+    canvas.drawRRect(tall, line);
+    canvas.drawRRect(short, line);
 
-    // Punch out windows: 2 columns x 3 rows per tower
-    final Paint clear = Paint()
-      ..blendMode = BlendMode.clear
-      ..isAntiAlias = true;
-    final Radius windowRadius = Radius.circular(w * 0.02);
-    for (int col = 0; col < 2; col++) {
-      for (int row = 0; row < 3; row++) {
-        final double y = h * (0.22 + row * 0.18);
-        final double leftX = w * (0.055 + col * 0.115);
-        final double rightX = w * (0.755 + col * 0.115);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(leftX, y, w * 0.075, h * 0.09),
-            windowRadius,
-          ),
-          clear,
-        );
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(rightX, y, w * 0.075, h * 0.09),
-            windowRadius,
-          ),
-          clear,
+    // ---- Windows: a single centered column of small dashes per tower ----
+    void windows(RRect block, int count) {
+      final double cx = block.left + (block.right - block.left) / 2;
+      final double top = block.top + stroke * 1.6;
+      final double bottom = ground - stroke * 1.6;
+      final double span = bottom - top;
+      final double winW = (block.right - block.left) * 0.34;
+      // Distribute `count` windows evenly across the available vertical span.
+      for (int i = 0; i < count; i++) {
+        final double t = count == 1 ? 0.5 : i / (count - 1);
+        final double cy = top + span * t;
+        canvas.drawLine(
+          Offset(cx - winW / 2, cy),
+          Offset(cx + winW / 2, cy),
+          line,
         );
       }
     }
 
-    canvas.restore();
+    windows(tall, 4);
+    windows(short, 3);
+
+    // ---- Ground line: anchors both towers to a shared base ----
+    canvas.drawLine(Offset(w * 0.08, ground), Offset(w * 0.92, ground), line);
   }
 
   @override

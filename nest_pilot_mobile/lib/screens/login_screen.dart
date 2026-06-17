@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/nest_loader.dart';
+import '../widgets/glare_button.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _mobileController = TextEditingController(
-    text: '9727376727',
+    text: '9999999999',
   );
   final AuthService _authService = AuthService();
   bool _isLoading = false;
@@ -196,7 +196,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 scale: s,
                               ),
                               const Spacer(flex: 3),
-                              _SendOtpButton(
+                              GlarePrimaryButton(
+                                text: 'Send OTP',
+                                trailingIcon: Icons.send_rounded,
                                 isLoading: _isLoading,
                                 onPressed: _requestOtp,
                                 scale: s,
@@ -325,8 +327,7 @@ class _MobileNumberField extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: '00000 00000',
                 hintStyle: AppTextStyles.hintText(s),
-                filled: true,
-                fillColor: AppColors.transparent,
+                filled: false,
                 border: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -336,136 +337,6 @@ class _MobileNumberField extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SendOtpButton extends StatefulWidget {
-  final bool isLoading;
-  final VoidCallback onPressed;
-  final double scale;
-  const _SendOtpButton({
-    required this.isLoading,
-    required this.onPressed,
-    this.scale = 1.0,
-  });
-
-  @override
-  State<_SendOtpButton> createState() => _SendOtpButtonState();
-}
-
-class _SendOtpButtonState extends State<_SendOtpButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _glareCtrl;
-  late final Animation<double> _glareAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _glareCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat(min: 0, max: 1);
-    _glareAnim = CurvedAnimation(parent: _glareCtrl, curve: Curves.slowMiddle);
-  }
-
-  @override
-  void dispose() {
-    _glareCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = widget.scale;
-    return SizedBox(
-      width: double.infinity,
-      height: 45 * s,
-      child: Material(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(14),
-        elevation: 3,
-        shadowColor: AppColors.primary.withValues(alpha: 0.5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            children: [
-              // ── Glare sweep ──────────────────────────────────────────
-              AnimatedBuilder(
-                animation: _glareAnim,
-                builder: (context, _) {
-                  final buttonWidth =
-                      MediaQuery.of(context).size.width - 40 * s;
-                  final left = -80 + (_glareAnim.value * (buttonWidth + 160));
-                  return Positioned(
-                    left: left,
-                    top: 0,
-                    bottom: 0,
-                    child: Transform.rotate(
-                      angle: -0.05,
-                      child: Container(
-                        width: 65 * s,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.white.withValues(alpha: 0.0),
-                              AppColors.white.withValues(alpha: 0.28),
-                              AppColors.white.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              // ── Button content ────────────────────────────────────────
-              InkWell(
-                onTap: widget.isLoading ? null : widget.onPressed,
-                borderRadius: BorderRadius.circular(14),
-                splashColor: AppColors.white.withValues(alpha: 0.15),
-                highlightColor: AppColors.white.withValues(alpha: 0.08),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18 * s),
-                  child: widget.isLoading
-                      ? Center(
-                          child: SizedBox(
-                            height: 22 * s,
-                            width: 22 * s,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        )
-                      : Row(
-                          children: [
-                            Icon(
-                              Icons.send,
-                              color: AppColors.white,
-                              size: 20 * s,
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  'Send OTP',
-                                  style: AppTextStyles.buttonLabel(s),
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward,
-                              color: AppColors.white,
-                              size: 20 * s,
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
