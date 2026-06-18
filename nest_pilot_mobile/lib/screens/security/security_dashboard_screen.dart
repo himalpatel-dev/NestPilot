@@ -4,6 +4,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import '../../widgets/no_permission_notice.dart';
 
 class SecurityDashboardScreen extends StatefulWidget {
@@ -182,31 +183,22 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: selectedHouse,
-                        decoration: InputDecoration(
-                          labelText: 'Visiting Flat',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                      AppFieldCard(
+                        icon: Icons.home_rounded,
+                        label: 'Visiting Flat',
+                        field: AppCardDropdown<String>(
+                          value: selectedHouse,
+                          hintText: 'Select a flat',
+                          items: _houseNumbers,
+                          itemLabel: (value) => value,
+                          onChanged: (newValue) {
+                            setDialogState(() {
+                              selectedHouse = newValue;
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'Please select a flat' : null,
                         ),
-                        items: _houseNumbers.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setDialogState(() {
-                            selectedHouse = newValue;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select a flat';
-                          }
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 12),
                       AppTextField(

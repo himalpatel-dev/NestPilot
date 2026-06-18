@@ -5,6 +5,7 @@ import '../services/society_service.dart';
 import '../models/society_structure.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_text_field.dart';
+import '../widgets/app_field_card.dart';
 import 'pending_approval_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -159,76 +160,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedSocietyId,
-                      decoration: const InputDecoration(
-                        labelText: 'Society',
-                        border: OutlineInputBorder(),
+                    AppFieldCard(
+                      icon: Icons.apartment_rounded,
+                      label: 'Society',
+                      field: AppCardDropdown<String>(
+                        value: _selectedSocietyId,
+                        hintText: 'Select society',
+                        items: _societies.map((s) => s.id).toList(),
+                        itemLabel: (id) => _societies
+                            .firstWhere((s) => s.id == id)
+                            .name,
+                        validator: (v) => v == null ? 'Required' : null,
+                        onChanged: (val) {
+                          setState(() => _selectedSocietyId = val);
+                          if (val != null) _fetchBuildings(val);
+                        },
                       ),
-                      items: _societies
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s.id,
-                              child: Text(s.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() => _selectedSocietyId = val);
-                        if (val != null) _fetchBuildings(val);
-                      },
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedBuildingId,
-                      decoration: const InputDecoration(
-                        labelText: 'Building',
-                        border: OutlineInputBorder(),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.business_rounded,
+                      label: 'Building',
+                      field: AppCardDropdown<String>(
+                        value: _selectedBuildingId,
+                        hintText: 'Select building',
+                        enabled: _buildings.isNotEmpty,
+                        items: _buildings.map((b) => b.id).toList(),
+                        itemLabel: (id) => _buildings
+                            .firstWhere((b) => b.id == id)
+                            .name,
+                        validator: (v) => v == null ? 'Required' : null,
+                        onChanged: (val) {
+                          setState(() => _selectedBuildingId = val);
+                          if (val != null) _fetchFlats(val);
+                        },
                       ),
-                      items: _buildings
-                          .map(
-                            (b) => DropdownMenuItem(
-                              value: b.id,
-                              child: Text(b.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() => _selectedBuildingId = val);
-                        if (val != null) _fetchFlats(val);
-                      },
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedFlatId,
-                      decoration: const InputDecoration(
-                        labelText: 'Flat',
-                        border: OutlineInputBorder(),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.meeting_room_rounded,
+                      label: 'Flat',
+                      field: AppCardDropdown<String>(
+                        value: _selectedFlatId,
+                        hintText: 'Select flat',
+                        enabled: _flats.isNotEmpty,
+                        items: _flats.map((f) => f.id).toList(),
+                        itemLabel: (id) => _flats
+                            .firstWhere((f) => f.id == id)
+                            .number,
+                        validator: (v) => v == null ? 'Required' : null,
+                        onChanged: (val) =>
+                            setState(() => _selectedFlatId = val),
                       ),
-                      items: _flats
-                          .map(
-                            (f) => DropdownMenuItem(
-                              value: f.id,
-                              child: Text(f.number),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) => setState(() => _selectedFlatId = val),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedRelationType,
-                      decoration: const InputDecoration(
-                        labelText: 'Relation Type',
-                        border: OutlineInputBorder(),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.people_alt_rounded,
+                      label: 'Relation Type',
+                      field: AppCardDropdown<String>(
+                        value: _selectedRelationType,
+                        hintText: 'Select relation type',
+                        items: const ['OWNER', 'TENANT', 'FAMILY_MEMBER'],
+                        itemLabel: (r) => r.replaceAll('_', ' '),
+                        validator: (v) => v == null ? 'Required' : null,
+                        onChanged: (val) =>
+                            setState(() => _selectedRelationType = val),
                       ),
-                      items: ['OWNER', 'TENANT', 'FAMILY_MEMBER']
-                          .map(
-                            (r) => DropdownMenuItem(value: r, child: Text(r)),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedRelationType = val),
                     ),
                     const SizedBox(height: 32),
                     AppButton(

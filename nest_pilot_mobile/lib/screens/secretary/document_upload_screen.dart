@@ -5,6 +5,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import '../../widgets/no_permission_notice.dart';
 
 class DocumentUploadScreen extends StatefulWidget {
@@ -102,19 +103,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
+              AppFieldCard(
+                icon: Icons.folder_rounded,
+                label: 'Category',
+                field: AppCardDropdown<String>(
+                  value: _selectedCategory,
+                  hintText: 'Select category',
+                  items: _categories,
+                  itemLabel: (c) => c.replaceAll('_', ' '),
+                  onChanged: (v) => setState(() => _selectedCategory = v!),
                 ),
-                items: _categories.map((c) {
-                  return DropdownMenuItem(
-                    value: c,
-                    child: Text(c.replaceAll('_', ' ')),
-                  );
-                }).toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v!),
               ),
               const SizedBox(height: 16),
               SwitchListTile(

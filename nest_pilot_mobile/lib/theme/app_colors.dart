@@ -22,9 +22,16 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFB57047);
   static const Color success = Color(0xFF16A34A);
 
+  // Neutral greys
+  static const Color grey = Color(0xFF9E9E9E); // Colors.grey
+  static const Color inputFill = Color(0xFFFAFAFA); // grey.shade50
+
   // Borders & dividers
   static const Color border = Color(0xFFE0E0E0); // grey.shade300
   static const Color dividerOnDark = Color(0x3DFFFFFF); // white ~24%
+  static const Color whiteTranslucent = Color(0xB3FFFFFF); // white ~70%
+  static const Color whiteSheenLow = Color(0x14FFFFFF); // white ~8% — glass sheen
+  static const Color whiteSheenMid = Color(0x38FFFFFF); // white ~22% — glass sheen
 
   // Shadows
   static const Color textShadow = Color(0xFF1A1A1A);
@@ -59,6 +66,7 @@ abstract final class AppColors {
   static const Color accentPink = Color(0xFFEC4899);
   static const Color accentTeal = Color(0xFF14B8A6);
   static const Color accentIndigo = Color(0xFF6366F1);
+  static const Color accentIndigoDeep = Color(0xFF4F46E5);
   static const Color accentAmber = Color(0xFFF59E0B);
   static const Color accentBrown = Color(0xFF8B5A3C);
 }

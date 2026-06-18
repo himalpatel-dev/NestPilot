@@ -128,7 +128,7 @@ class AppPageHeader extends StatelessWidget {
                                 Text(
                                   subtitle!,
                                   style: const TextStyle(
-                                    color: Color(0xB3FFFFFF),
+                                    color: AppColors.whiteTranslucent,
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w400,
                                   ),

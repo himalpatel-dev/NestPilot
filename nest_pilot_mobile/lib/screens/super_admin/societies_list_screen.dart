@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
+import '../../theme/app_colors.dart';
 import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_page_header.dart';
 import 'buildings_list_screen.dart';
 
 class SocietiesListScreen extends StatefulWidget {
@@ -91,14 +94,14 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
     switch (type.toUpperCase()) {
       case 'ROW_HOUSE':
       case 'TENEMENT':
-        return Colors.green.shade600;
+        return AppColors.accentGreen;
       case 'COMMERCIAL':
-        return Colors.purple.shade600;
+        return AppColors.accentPurple;
       case 'MIXED':
-        return Colors.orange.shade700;
+        return AppColors.accentOrange;
       case 'APARTMENT':
       default:
-        return Colors.blue.shade600;
+        return AppColors.accentBlue;
     }
   }
 
@@ -117,131 +120,106 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Societies'),
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const Center(child: NestLoader())
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: 'Search by name, city, or type',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () => _searchController.clear(),
-                            )
-                          : null,
-                      border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Found ${_filteredSocieties.length} societies',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: _filteredSocieties.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.business_outlined, size: 48, color: Colors.grey),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _searchQuery.isNotEmpty ? 'No search matches' : 'No societies created yet',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadSocieties,
-                            child: ListView.builder(
-                              itemCount: _filteredSocieties.length,
-                              physics: const AlwaysScrollableScrollPhysics(
-                                parent: BouncingScrollPhysics(),
-                              ),
-                              itemBuilder: (context, index) {
-                                final society = _filteredSocieties[index];
-                                final Color typeColor = _getTypeColor(society.societyType);
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          const AppPageHeader(
+            icon: Icon(
+              Icons.domain_rounded,
+              color: AppColors.white,
+              size: 28,
+            ),
+            title: 'All Societies',
+            subtitle: 'Browse and manage onboarded societies',
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: NestLoader())
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        AppSearchField(
+                          controller: _searchController,
+                          hint: 'Search by name, city, or type',
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Found ${_filteredSocieties.length} societies',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _filteredSocieties.isEmpty
+                              ? AppListEmpty(
+                                  icon: Icons.business_outlined,
+                                  message: _searchQuery.isNotEmpty
+                                      ? 'No search matches'
+                                      : 'No societies created yet',
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: _loadSocieties,
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    itemCount: _filteredSocieties.length,
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(
+                                      parent: BouncingScrollPhysics(),
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final society =
+                                          _filteredSocieties[index];
+                                      final Color typeColor = _getTypeColor(
+                                        society.societyType,
+                                      );
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(color: Colors.grey.shade200),
-                                  ),
-                                  child: ListTile(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => BuildingsListScreen(society: society),
-                                      ),
-                                    ),
-                                    leading: CircleAvatar(
-                                      backgroundColor: typeColor.withValues(alpha: 0.1),
-                                      child: Icon(_getTypeIcon(society.societyType), color: typeColor),
-                                    ),
-                                    title: Text(
-                                      society.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
+                                      return AppListCard(
+                                        accentColor: typeColor,
+                                        icon: _getTypeIcon(
+                                          society.societyType,
+                                        ),
+                                        title: society.name,
+                                        badgeText: society.societyType,
+                                        subtitleChips: [
                                           [
                                             society.address,
-                                            if ((society.city ?? '').isNotEmpty) society.city!,
+                                            if ((society.city ?? '').isNotEmpty)
+                                              society.city!,
                                           ].join(', '),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: typeColor.withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            society.societyType,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: typeColor,
+                                        ],
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => BuildingsListScreen(
+                                              society: society,
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
-                                      tooltip: 'Edit society',
-                                      onPressed: () => _openEditSheet(society),
-                                    ),
+                                        trailing: IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          tooltip: 'Edit society',
+                                          onPressed: () =>
+                                              _openEditSheet(society),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
-                          ),
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -412,18 +390,17 @@ class _SocietyEditSheetState extends State<_SocietyEditSheet> {
                     (v == null || v.trim().isEmpty) ? 'Pincode is required' : null,
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSocietyType,
-                decoration: const InputDecoration(
-                  labelText: 'Society Type',
-                  border: OutlineInputBorder(),
+              AppFieldCard(
+                icon: Icons.category_rounded,
+                label: 'Society Type',
+                field: AppCardDropdown<String>(
+                  value: _selectedSocietyType,
+                  items: _societyTypes,
+                  itemLabel: (type) => type,
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedSocietyType = val);
+                  },
                 ),
-                items: _societyTypes
-                    .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedSocietyType = val);
-                },
               ),
               const SizedBox(height: 20),
               SizedBox(

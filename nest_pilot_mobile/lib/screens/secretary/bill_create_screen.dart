@@ -5,6 +5,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import '../../widgets/no_permission_notice.dart';
 
 class BillCreateScreen extends StatefulWidget {
@@ -113,18 +114,17 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedMonth,
-                      decoration: const InputDecoration(
-                        labelText: 'Month',
-                        border: OutlineInputBorder(),
+                    child: AppFieldCard(
+                      icon: Icons.calendar_month_rounded,
+                      label: 'Month',
+                      field: AppCardDropdown<String>(
+                        value: _selectedMonth,
+                        hintText: 'Select month',
+                        items: _months,
+                        itemLabel: (m) => m,
+                        onChanged: (v) =>
+                            setState(() => _selectedMonth = v!),
                       ),
-                      items: _months
-                          .map(
-                            (m) => DropdownMenuItem(value: m, child: Text(m)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedMonth = v!),
                     ),
                   ),
                   const SizedBox(width: 16),

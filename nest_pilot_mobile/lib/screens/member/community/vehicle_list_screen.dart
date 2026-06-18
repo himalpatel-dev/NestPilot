@@ -5,6 +5,7 @@ import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/auth_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import 'package:nest_pilot_mobile/config/modules.dart';
+import '../../../widgets/app_field_card.dart';
 
 class VehicleListScreen extends StatefulWidget {
   const VehicleListScreen({super.key});
@@ -87,13 +88,15 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   labelText: 'Model (e.g. Honda City)',
                 ),
               ),
-              DropdownButtonFormField<String>(
-                value: type,
-                items: ['CAR', 'BIKE', 'OTHER']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (v) => type = v!,
-                decoration: const InputDecoration(labelText: 'Type'),
+              AppFieldCard(
+                icon: Icons.directions_car_rounded,
+                label: 'Type',
+                field: AppCardDropdown<String>(
+                  value: type,
+                  items: const ['CAR', 'BIKE', 'OTHER'],
+                  itemLabel: (t) => t,
+                  onChanged: (v) => type = v!,
+                ),
               ),
             ],
           ),

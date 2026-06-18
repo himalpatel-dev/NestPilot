@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/app_field_card.dart';
 
 class SecretaryBuildingsScreen extends StatefulWidget {
   const SecretaryBuildingsScreen({super.key});
@@ -193,22 +194,18 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<Society>(
-                        initialValue: selectedSociety,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Society',
-                          border: OutlineInputBorder(),
+                      AppFieldCard(
+                        icon: Icons.apartment_rounded,
+                        label: 'Society',
+                        field: AppCardDropdown<Society>(
+                          value: selectedSociety,
+                          hintText: 'Select society',
+                          items: societies,
+                          itemLabel: (s) => s.name,
+                          validator: (v) =>
+                              v == null ? 'Please choose a society' : null,
+                          onChanged: (v) => setSheet(() => selectedSociety = v),
                         ),
-                        items: societies
-                            .map((s) => DropdownMenuItem(
-                                  value: s,
-                                  child: Text(s.name),
-                                ))
-                            .toList(),
-                        onChanged: (v) => setSheet(() => selectedSociety = v),
-                        validator: (v) =>
-                            v == null ? 'Please choose a society' : null,
                       ),
                       const SizedBox(height: 24),
                       AppButton(

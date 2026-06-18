@@ -4,6 +4,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import '../../widgets/no_permission_notice.dart';
 
 class StaffAddScreen extends StatefulWidget {
@@ -86,16 +87,16 @@ class _StaffAddScreenState extends State<StaffAddScreen> {
                 validator: (v) => v!.length < 10 ? 'Invalid mobile' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  border: OutlineInputBorder(),
+              AppFieldCard(
+                icon: Icons.badge_rounded,
+                label: 'Role',
+                field: AppCardDropdown<String>(
+                  value: _selectedRole,
+                  hintText: 'Select role',
+                  items: _roles,
+                  itemLabel: (r) => r,
+                  onChanged: (v) => setState(() => _selectedRole = v!),
                 ),
-                items: _roles.map((r) {
-                  return DropdownMenuItem(value: r, child: Text(r));
-                }).toList(),
-                onChanged: (v) => setState(() => _selectedRole = v!),
               ),
               const SizedBox(height: 16),
               AppTextField(

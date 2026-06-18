@@ -5,6 +5,7 @@ import '../../services/event_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/app_field_card.dart';
 
 
 class EventManageScreen extends StatefulWidget {
@@ -478,13 +479,29 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
               ),
               const SizedBox(height: 12),
               // Event type dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _eventType,
-                decoration: _dec('Event Type', Icons.category_outlined),
-                items: _types
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (v) => setState(() => _eventType = v!),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.category_outlined,
+                        color: AppColors.primary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppCardDropdown<String>(
+                        value: _eventType,
+                        hintText: 'Event Type',
+                        items: _types,
+                        itemLabel: (t) => t,
+                        onChanged: (v) => setState(() => _eventType = v!),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               // Date + time row

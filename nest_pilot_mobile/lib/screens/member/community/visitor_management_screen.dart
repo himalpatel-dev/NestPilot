@@ -6,6 +6,7 @@ import 'package:nest_pilot_mobile/services/socket_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import 'package:nest_pilot_mobile/config/modules.dart';
 import 'package:intl/intl.dart';
+import '../../../widgets/app_field_card.dart';
 
 class VisitorManagementScreen extends StatefulWidget {
   const VisitorManagementScreen({super.key});
@@ -321,19 +322,15 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
               validator: (v) => v!.length < 10 ? 'Invalid mobile' : null,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Visitor Type',
-                border: OutlineInputBorder(),
+            AppFieldCard(
+              icon: Icons.badge_rounded,
+              label: 'Visitor Type',
+              field: AppCardDropdown<String>(
+                value: _selectedType,
+                items: const ['GUEST', 'DELIVERY', 'CAB', 'SERVICE'],
+                itemLabel: (t) => t,
+                onChanged: (v) => setState(() => _selectedType = v!),
               ),
-              items: [
-                'GUEST',
-                'DELIVERY',
-                'CAB',
-                'SERVICE',
-              ].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-              onChanged: (v) => setState(() => _selectedType = v!),
             ),
             const SizedBox(height: 16),
             TextFormField(

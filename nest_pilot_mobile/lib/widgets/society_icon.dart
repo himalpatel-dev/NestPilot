@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 /// Society mark — two apartment towers (a taller one beside a shorter one)
 /// sharing a single ground line, each with a tidy column of evenly-spaced
@@ -9,7 +10,7 @@ class SocietyIcon extends StatelessWidget {
   final double size;
   final Color color;
 
-  const SocietyIcon({super.key, this.size = 24, this.color = Colors.white});
+  const SocietyIcon({super.key, this.size = 24, this.color = AppColors.white});
 
   @override
   Widget build(BuildContext context) {

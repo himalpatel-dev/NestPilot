@@ -115,8 +115,8 @@ class AppDashboardHeader extends StatelessWidget {
                     stops: [0.0, 0.18, 1.0],
                     colors: [
                       AppColors.transparent,
-                      Color(0x14FFFFFF),
-                      Color(0x38FFFFFF),
+                      AppColors.whiteSheenLow,
+                      AppColors.whiteSheenMid,
                     ],
                   ).createShader(rect),
                   blendMode: BlendMode.dstIn,

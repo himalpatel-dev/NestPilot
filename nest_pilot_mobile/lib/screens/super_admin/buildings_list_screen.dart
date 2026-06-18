@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
+import '../../theme/app_colors.dart';
 import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_page_header.dart';
 
 class BuildingsListScreen extends StatefulWidget {
   /// When opened from the societies list, the society is already chosen.
@@ -131,166 +134,144 @@ class _BuildingsListScreenState extends State<BuildingsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.society != null
-              ? '${widget.society!.name} Buildings'
-              : 'All Buildings',
-        ),
-        elevation: 0,
-      ),
-      body: _isLoadingSocieties
-          ? const Center(child: NestLoader())
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 12),
-                  if (widget.society == null) ...[
-                    Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: DropdownButtonFormField<Society>(
-                          initialValue: _selectedSociety,
-                          hint: const Text('Choose Society'),
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            border: OutlineInputBorder(),
-                          ),
-                          items: _societies.map((soc) {
-                            return DropdownMenuItem<Society>(
-                              value: soc,
-                              child: Text(soc.name),
-                            );
-                          }).toList(),
-                          onChanged: (Society? value) {
-                            setState(() => _selectedSociety = value);
-                            if (value != null) _loadBuildings(value.id);
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_selectedSociety != null) ...[
-                    TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        labelText: _isRowHouse
-                            ? 'Search Sector / Lane'
-                            : 'Search Building / Block',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () => _searchController.clear(),
-                              )
-                            : null,
-                        border: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Found ${_filteredBuildings.length} ${_isRowHouse ? 'sectors' : 'buildings'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Expanded(
-                    child: _selectedSociety == null
-                        ? Center(
-                            child: Text(
-                              'Please select a society above.',
-                              style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic),
-                              textAlign: TextAlign.center,
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          AppPageHeader(
+            icon: const Icon(
+              Icons.business_rounded,
+              color: AppColors.white,
+              size: 28,
+            ),
+            title: widget.society != null
+                ? '${widget.society!.name} Buildings'
+                : 'All Buildings',
+            subtitle: 'Browse buildings, blocks, sectors and lanes',
+          ),
+          Expanded(
+            child: _isLoadingSocieties
+                ? const Center(child: NestLoader())
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        if (widget.society == null) ...[
+                          const AppSectionHeader('Select Society'),
+                          const SizedBox(height: 12),
+                          AppFieldCard(
+                            icon: Icons.apartment_rounded,
+                            label: 'Society',
+                            field: AppCardDropdown<Society>(
+                              value: _selectedSociety,
+                              hint: const Text(
+                                'Choose Society',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                              items: _societies,
+                              itemLabel: (soc) => soc.name,
+                              onChanged: (Society? value) {
+                                setState(() => _selectedSociety = value);
+                                if (value != null) _loadBuildings(value.id);
+                              },
                             ),
-                          )
-                        : _isLoadingBuildings
-                            ? const Center(child: NestLoader())
-                            : _filteredBuildings.isEmpty
-                                ? Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.apartment_outlined, size: 48, color: Colors.grey),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          _searchQuery.isNotEmpty
+                          ),
+                        ],
+                        if (_selectedSociety != null) ...[
+                          const SizedBox(height: 24),
+                          AppSearchField(
+                            controller: _searchController,
+                            hint: _isRowHouse
+                                ? 'Search Sector / Lane'
+                                : 'Search Building / Block',
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Found ${_filteredBuildings.length} ${_isRowHouse ? 'sectors' : 'buildings'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        Expanded(
+                          child: _selectedSociety == null
+                              ? const AppListPlaceholder(
+                                  'Please select a society above.',
+                                )
+                              : _isLoadingBuildings
+                                  ? const Center(child: NestLoader())
+                                  : _filteredBuildings.isEmpty
+                                      ? AppListEmpty(
+                                          icon: Icons.apartment_outlined,
+                                          message: _searchQuery.isNotEmpty
                                               ? 'No search matches'
                                               : (_isRowHouse
                                                   ? 'No sectors/lanes created yet'
                                                   : 'No buildings/blocks created yet'),
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : RefreshIndicator(
-                                    onRefresh: () => _loadBuildings(_selectedSociety!.id),
-                                    child: ListView.builder(
-                                      itemCount: _filteredBuildings.length,
-                                      physics: const AlwaysScrollableScrollPhysics(
-                                        parent: BouncingScrollPhysics(),
-                                      ),
-                                      itemBuilder: (context, index) {
-                                        final building = _filteredBuildings[index];
-                                        final typeColor = Colors.blue.shade600;
-
-                                        return Card(
-                                          margin: const EdgeInsets.only(bottom: 10),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            side: BorderSide(color: Colors.grey.shade200),
+                                        )
+                                      : RefreshIndicator(
+                                          onRefresh: () => _loadBuildings(
+                                            _selectedSociety!.id,
                                           ),
-                                          child: ListTile(
-                                            leading: CircleAvatar(
-                                              backgroundColor: typeColor.withValues(alpha: 0.1),
-                                              child: Icon(
-                                                _isRowHouse
+                                          child: ListView.builder(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 24,
+                                            ),
+                                            itemCount:
+                                                _filteredBuildings.length,
+                                            physics:
+                                                const AlwaysScrollableScrollPhysics(
+                                              parent: BouncingScrollPhysics(),
+                                            ),
+                                            itemBuilder: (context, index) {
+                                              final building =
+                                                  _filteredBuildings[index];
+
+                                              return AppListCard(
+                                                accentColor:
+                                                    AppColors.accentBlue,
+                                                icon: _isRowHouse
                                                     ? Icons.home_outlined
                                                     : Icons.apartment_outlined,
-                                                color: typeColor,
-                                              ),
-                                            ),
-                                            title: Text(
-                                              building.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                            ),
-                                            subtitle: Wrap(
-                                              spacing: 12,
-                                              children: [
-                                                if ((building.blocks ?? '').isNotEmpty)
-                                                  Text('Blocks: ${building.blocks}'),
-                                                if ((building.wings ?? '').isNotEmpty)
-                                                  Text('Wings: ${building.wings}'),
-                                                if (building.floorsCount > 0)
-                                                  Text('Floors: ${building.floorsCount}'),
-                                              ],
-                                            ),
-                                            trailing: IconButton(
-                                              icon: const Icon(Icons.edit_outlined),
-                                              tooltip: 'Edit building',
-                                              onPressed: () => _openEditSheet(building),
-                                            ),
+                                                title: building.name,
+                                                subtitleChips: [
+                                                  if ((building.blocks ?? '')
+                                                      .isNotEmpty)
+                                                    'Blocks: ${building.blocks}',
+                                                  if ((building.wings ?? '')
+                                                      .isNotEmpty)
+                                                    'Wings: ${building.wings}',
+                                                  if (building.floorsCount > 0)
+                                                    'Floors: ${building.floorsCount}',
+                                                ],
+                                                trailing: IconButton(
+                                                  icon: const Icon(
+                                                    Icons.edit_outlined,
+                                                    color:
+                                                        AppColors.textSecondary,
+                                                  ),
+                                                  tooltip: 'Edit building',
+                                                  onPressed: () =>
+                                                      _openEditSheet(building),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
+                                        ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
+          ),
+        ],
+      ),
     );
   }
 }

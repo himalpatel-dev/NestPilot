@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../models/billing_payment.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import '../../widgets/status_widgets.dart';
 import '../../widgets/no_permission_notice.dart';
 
@@ -121,41 +122,27 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Select Member',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<UserModel>(
-                      initialValue: _selectedUser,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
+                    AppFieldCard(
+                      icon: Icons.person_rounded,
+                      label: 'Select Member',
+                      field: AppCardDropdown<UserModel>(
+                        value: _selectedUser,
                         hintText: 'Select a member',
+                        items: _members,
+                        itemLabel: (u) => '${u.fullName} (${u.mobile})',
+                        validator: (v) => v == null ? 'Required' : null,
+                        onChanged: (u) {
+                          setState(() {
+                            _selectedUser = u;
+                            _selectedBill = null;
+                            _userBills = [];
+                          });
+                          if (u != null) _fetchUserBills(u.id);
+                        },
                       ),
-                      items: _members.map((u) {
-                        return DropdownMenuItem(
-                          value: u,
-                          child: Text('${u.fullName} (${u.mobile})'),
-                        );
-                      }).toList(),
-                      onChanged: (u) {
-                        setState(() {
-                          _selectedUser = u;
-                          _selectedBill = null;
-                          _userBills = [];
-                        });
-                        if (u != null) _fetchUserBills(u.id);
-                      },
-                      validator: (v) => v == null ? 'Required' : null,
                     ),
                     const SizedBox(height: 24),
                     if (_selectedUser != null) ...[
-                      const Text(
-                        'Select Pending Bill',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
                       if (_isFetchingBills)
                         const Center(child: NestLoader())
                       else if (_userBills.isEmpty)
@@ -164,48 +151,43 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                           style: TextStyle(color: Colors.red),
                         )
                       else
-                        DropdownButtonFormField<MemberBill>(
-                          initialValue: _selectedBill,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
+                        AppFieldCard(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Select Pending Bill',
+                          field: AppCardDropdown<MemberBill>(
+                            value: _selectedBill,
                             hintText: 'Select a bill',
-                          ),
-                          items: _userBills.map((b) {
-                            return DropdownMenuItem(
-                              value: b,
-                              child: Text(
+                            items: _userBills,
+                            itemLabel: (b) =>
                                 '${b.billTitle ?? 'Bill'} - ₹${b.amount}',
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (b) {
-                            setState(() {
-                              _selectedBill = b;
-                              if (b != null) {
-                                _amountController.text = b.amount.toString();
-                              }
-                            });
-                          },
-                          validator: (v) => v == null ? 'Required' : null,
+                            validator: (v) => v == null ? 'Required' : null,
+                            onChanged: (b) {
+                              setState(() {
+                                _selectedBill = b;
+                                if (b != null) {
+                                  _amountController.text =
+                                      b.amount.toString();
+                                }
+                              });
+                            },
+                          ),
                         ),
                     ],
                     const SizedBox(height: 24),
                     if (_selectedBill != null) ...[
                       const Divider(),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedMode,
-                        decoration: const InputDecoration(
-                          labelText: 'Payment Mode',
-                          border: OutlineInputBorder(),
+                      AppFieldCard(
+                        icon: Icons.payments_rounded,
+                        label: 'Payment Mode',
+                        field: AppCardDropdown<String>(
+                          value: _selectedMode,
+                          hintText: 'Select payment mode',
+                          items: const ['CASH', 'CHEQUE', 'ONLINE'],
+                          itemLabel: (m) => m,
+                          onChanged: (v) =>
+                              setState(() => _selectedMode = v!),
                         ),
-                        items: ['CASH', 'CHEQUE', 'ONLINE']
-                            .map(
-                              (m) => DropdownMenuItem(value: m, child: Text(m)),
-                            )
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedMode = v!),
                       ),
                       const SizedBox(height: 16),
                       AppTextField(

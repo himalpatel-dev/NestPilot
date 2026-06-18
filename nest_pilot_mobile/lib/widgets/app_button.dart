@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../theme/nest_loader.dart';
 
 class AppButton extends StatelessWidget {
@@ -30,8 +31,8 @@ class AppButton extends StatelessWidget {
     final theme = Theme.of(context);
     final hasGradient = gradientColors != null || color == null;
     final defaultGradient = [
-      const Color(0xFF6366F1), // Indigo
-      const Color(0xFF4F46E5), // Deep Indigo
+      AppColors.accentIndigo, // Indigo
+      AppColors.accentIndigoDeep, // Deep Indigo
     ];
 
     return Container(
@@ -49,14 +50,14 @@ class AppButton extends StatelessWidget {
             : null,
         boxShadow: [
           BoxShadow(
-            color: (color ?? const Color(0xFF4F46E5)).withOpacity(0.25),
+            color: (color ?? AppColors.accentIndigoDeep).withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onPressed,
           borderRadius: BorderRadius.circular(borderRadius),
@@ -69,7 +70,7 @@ class AppButton extends StatelessWidget {
                         const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppColors.white,
                           letterSpacing: 0.5,
                         ),
                   ),
