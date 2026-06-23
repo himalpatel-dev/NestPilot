@@ -5,6 +5,7 @@ import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
 import '../../widgets/app_field_card.dart';
 import '../../widgets/app_page_header.dart';
+import 'flat_create_screen.dart';
 
 class FlatsListScreen extends StatefulWidget {
   const FlatsListScreen({super.key});
@@ -160,6 +161,22 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
       case 'FLAT':
       default:
         return AppColors.accentBlue;
+    }
+  }
+
+  Future<void> _openEditPage(Flat flat) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FlatCreateScreen(
+          flat: flat,
+          building: _selectedBuilding,
+          society: _selectedSociety,
+        ),
+      ),
+    );
+    if (saved == true && _selectedBuilding != null) {
+      _loadFlats(_selectedBuilding!.id);
     }
   }
 
@@ -335,6 +352,16 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
                                                     flat.areaSqft != '0')
                                                   '${flat.areaSqft} sqft',
                                               ],
+                                              trailing: IconButton(
+                                                icon: const Icon(
+                                                  Icons.edit_outlined,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                                tooltip: 'Edit unit',
+                                                onPressed: () =>
+                                                    _openEditPage(flat),
+                                              ),
                                             );
                                           },
                                         ),

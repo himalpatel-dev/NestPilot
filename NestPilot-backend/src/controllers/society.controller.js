@@ -114,6 +114,23 @@ const createFlatForBuilding = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const updateFlatForBuilding = async (req, res, next) => {
+    try {
+        const { house_no, floor_no, wing, unit_type, area_sqft } = req.body;
+        const data = await societyService.updateHouse(req.params.flatId, {
+            ...(house_no !== undefined && { house_no }),
+            ...(floor_no !== undefined && { floor_no }),
+            ...(wing !== undefined && { wing }),
+            ...(unit_type !== undefined && { unit_type }),
+            ...(area_sqft !== undefined && { area_sqft }),
+        });
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Flat not found'));
+        }
+        res.status(200).json(new ApiResponse(200, data));
+    } catch (e) { next(e); }
+};
+
 const getFlatsBySociety = async (req, res, next) => {
     try {
         const data = await societyService.getFlatsBySocietyId(req.params.id);
@@ -141,6 +158,7 @@ module.exports = {
     createBuildingForSociety,
     getFlatsByBuilding,
     createFlatForBuilding,
+    updateFlatForBuilding,
     getFlatsBySociety,
     getHouseOccupancyStats
 };

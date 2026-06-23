@@ -21,6 +21,12 @@ const createHouse = async (data) => {
     return db.House.create(data);
 };
 
+const updateHouse = async (id, data) => {
+    const house = await db.House.findByPk(id);
+    if (!house) return null;
+    return house.update(data);
+};
+
 const getHouses = async (societyId) => {
     return db.House.findAll({
         where: { society_id: societyId },
@@ -113,6 +119,7 @@ module.exports = {
     createSociety,
     createBuilding,
     createHouse,
+    updateHouse,
     getHouses,
     getAllSocieties,
     updateSociety,

@@ -219,10 +219,36 @@ const getDashboardStats = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getSuperAdminStats = async (req, res, next) => {
+    try {
+        const [totalSocieties, totalBuildings, totalFlats, totalMembers] = await Promise.all([
+            db.Society.count(),
+            db.Building.count(),
+            db.House.count(),
+            db.User.count({
+                where: { status: 'active' },
+                include: [{
+                    model: db.Role,
+                    where: { code: 'MEMBER' },
+                    required: true
+                }]
+            }),
+        ]);
+
+        res.status(200).json(new ApiResponse(200, {
+            total_societies: totalSocieties,
+            total_buildings: totalBuildings,
+            total_flats: totalFlats,
+            total_members: totalMembers,
+        }));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getPendingUsers,
     approveUser,
     rejectUser,
     getSocietyMembers,
-    getDashboardStats
+    getDashboardStats,
+    getSuperAdminStats
 };

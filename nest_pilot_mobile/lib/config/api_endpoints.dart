@@ -7,6 +7,7 @@ class ApiEndpoints {
 
   // Approvals
   static const String dashboardStats = '/api/admin/dashboard-stats';
+  static const String superAdminStats = '/api/admin/super-admin-stats';
   static const String pendingUsers = '/api/admin/pending-users';
   static const String societyMembers = '/api/admin/members';
   static String approveUser(String id) => '/api/admin/users/$id/approve';
@@ -20,6 +21,7 @@ class ApiEndpoints {
   static String buildingById(String id) => '/api/buildings/$id';
   static String buildingFlats(String id) => '/api/buildings/$id/flats';
   static String societyFlats(String id) => '/api/societies/$id/flats';
+  static String flatById(String buildingId, String flatId) => '/api/buildings/$buildingId/flats/$flatId';
 
   // Notices
   static const String notices = '/api/notices';

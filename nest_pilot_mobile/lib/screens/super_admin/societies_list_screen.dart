@@ -5,7 +5,7 @@ import '../../services/society_service.dart';
 import '../../models/society_structure.dart';
 import '../../widgets/app_field_card.dart';
 import '../../widgets/app_page_header.dart';
-import 'buildings_list_screen.dart';
+import 'society_create_screen.dart';
 
 class SocietiesListScreen extends StatefulWidget {
   const SocietiesListScreen({super.key});
@@ -105,14 +105,12 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
     }
   }
 
-  Future<void> _openEditSheet(Society society) async {
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  Future<void> _openEditPage(Society society) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SocietyCreateScreen(society: society),
       ),
-      builder: (ctx) => _SocietyEditSheet(society: society),
     );
     if (saved == true) _loadSocieties();
   }
@@ -192,14 +190,6 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
                                               society.city!,
                                           ].join(', '),
                                         ],
-                                        onTap: () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => BuildingsListScreen(
-                                              society: society,
-                                            ),
-                                          ),
-                                        ),
                                         trailing: IconButton(
                                           icon: const Icon(
                                             Icons.edit_outlined,
@@ -207,7 +197,7 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
                                           ),
                                           tooltip: 'Edit society',
                                           onPressed: () =>
-                                              _openEditSheet(society),
+                                              _openEditPage(society),
                                         ),
                                       );
                                     },
@@ -219,206 +209,6 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Edit bottom sheet ─────────────────────────────────────────────────────────
-
-class _SocietyEditSheet extends StatefulWidget {
-  final Society society;
-  const _SocietyEditSheet({required this.society});
-
-  @override
-  State<_SocietyEditSheet> createState() => _SocietyEditSheetState();
-}
-
-class _SocietyEditSheetState extends State<_SocietyEditSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final SocietyService _societyService = SocietyService();
-
-  late final TextEditingController _nameController;
-  late final TextEditingController _addressController;
-  late final TextEditingController _cityController;
-  late final TextEditingController _stateController;
-  late final TextEditingController _pincodeController;
-  late String _selectedSocietyType;
-  bool _isSaving = false;
-
-  final List<String> _societyTypes = [
-    'APARTMENT',
-    'TENEMENT',
-    'ROW_HOUSE',
-    'COMMERCIAL',
-    'MIXED',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    final s = widget.society;
-    _nameController = TextEditingController(text: s.name);
-    _addressController = TextEditingController(text: s.address);
-    _cityController = TextEditingController(text: s.city ?? '');
-    _stateController = TextEditingController(text: s.state ?? '');
-    _pincodeController = TextEditingController(text: s.pincode ?? '');
-    _selectedSocietyType =
-        _societyTypes.contains(s.societyType) ? s.societyType : 'APARTMENT';
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _addressController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _pincodeController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final success = await _societyService.updateSociety(
-        id: widget.society.id,
-        name: _nameController.text.trim(),
-        address: _addressController.text.trim(),
-        city: _cityController.text.trim(),
-        state: _stateController.text.trim(),
-        pincode: _pincodeController.text.trim(),
-        societyType: _selectedSocietyType,
-      );
-      if (!mounted) return;
-      if (success) {
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update society')),
-        );
-        setState(() => _isSaving = false);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update society: $e')),
-      );
-      setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Edit Society',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Society Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Address is required' : null,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(
-                        labelText: 'City',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stateController,
-                      decoration: const InputDecoration(
-                        labelText: 'State',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _pincodeController,
-                decoration: const InputDecoration(
-                  labelText: 'Pincode',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Pincode is required' : null,
-              ),
-              const SizedBox(height: 12),
-              AppFieldCard(
-                icon: Icons.category_rounded,
-                label: 'Society Type',
-                field: AppCardDropdown<String>(
-                  value: _selectedSocietyType,
-                  items: _societyTypes,
-                  itemLabel: (type) => type,
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedSocietyType = val);
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save Changes'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

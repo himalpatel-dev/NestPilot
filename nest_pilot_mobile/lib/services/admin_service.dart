@@ -34,6 +34,14 @@ class AdminService {
     return null;
   }
 
+  Future<SuperAdminStats?> getSuperAdminStats() async {
+    final response = await _apiService.get(ApiEndpoints.superAdminStats);
+    if (response['success'] == true && response['data'] != null) {
+      return SuperAdminStats.fromJson(response['data'] as Map<String, dynamic>);
+    }
+    return null;
+  }
+
   Future<bool> approveUser(String id) async {
     final response = await _apiService.post(ApiEndpoints.approveUser(id), {});
     return response['success'] ?? false;

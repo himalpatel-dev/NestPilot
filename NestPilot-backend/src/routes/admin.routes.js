@@ -8,6 +8,7 @@ router.use(auth);
 
 // Dashboard view = needs to see the dashboard module
 router.get('/dashboard-stats', hasPermission('DASHBOARD', 'view'), adminController.getDashboardStats);
+router.get('/super-admin-stats', adminController.getSuperAdminStats);
 
 // Pending users + members are USERS-module views
 router.get('/pending-users', hasPermission('USERS', 'view'), adminController.getPendingUsers);

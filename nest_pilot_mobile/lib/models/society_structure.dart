@@ -126,6 +126,30 @@ class Flat {
   }
 }
 
+class SuperAdminStats {
+  final int totalSocieties;
+  final int totalBuildings;
+  final int totalFlats;
+  final int totalMembers;
+
+  const SuperAdminStats({
+    required this.totalSocieties,
+    required this.totalBuildings,
+    required this.totalFlats,
+    required this.totalMembers,
+  });
+
+  factory SuperAdminStats.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '0') ?? 0);
+    return SuperAdminStats(
+      totalSocieties: toInt(json['total_societies']),
+      totalBuildings: toInt(json['total_buildings']),
+      totalFlats: toInt(json['total_flats']),
+      totalMembers: toInt(json['total_members']),
+    );
+  }
+}
+
 class DashboardStats {
   final int pendingMembers;
   final int totalResidents;

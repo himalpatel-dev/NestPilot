@@ -139,4 +139,26 @@ class SocietyService {
     );
     return response['success'] ?? false;
   }
+
+  Future<bool> updateFlat({
+    required String id,
+    required String buildingId,
+    required String number,
+    int? floor,
+    String? wing,
+    String unitType = 'FLAT',
+    double? areaSqft,
+  }) async {
+    final response = await _apiService.put(
+      ApiEndpoints.flatById(buildingId, id),
+      {
+        'house_no': number,
+        'floor_no': floor ?? 0,
+        'wing': wing,
+        'unit_type': unitType,
+        'area_sqft': areaSqft,
+      },
+    );
+    return response['success'] ?? false;
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/society_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
+import '../../models/society_structure.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/glare_button.dart';
 import '../../widgets/no_permission_notice.dart';
@@ -10,7 +11,12 @@ import '../../widgets/app_page_header.dart';
 import '../../widgets/app_field_card.dart';
 
 class SocietyCreateScreen extends StatefulWidget {
-  const SocietyCreateScreen({super.key});
+  /// Pass [society] to open in edit mode.
+  final Society? society;
+
+  const SocietyCreateScreen({super.key, this.society});
+
+  bool get isEditing => society != null;
 
   @override
   State<SocietyCreateScreen> createState() => _SocietyCreateScreenState();
@@ -20,13 +26,14 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
   static const Color _pageBg = AppColors.cardBackground;
 
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
-  final TextEditingController _stateController = TextEditingController();
-  final TextEditingController _pincodeController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _stateController;
+  late final TextEditingController _pincodeController;
 
-  String _selectedSocietyType = 'APARTMENT';
+  late String _selectedSocietyType;
+
   final List<String> _societyTypes = [
     'APARTMENT',
     'TENEMENT',
@@ -39,6 +46,21 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    final s = widget.society;
+    _nameController = TextEditingController(text: s?.name ?? '');
+    _addressController = TextEditingController(text: s?.address ?? '');
+    _cityController = TextEditingController(text: s?.city ?? '');
+    _stateController = TextEditingController(text: s?.state ?? '');
+    _pincodeController = TextEditingController(text: s?.pincode ?? '');
+    _selectedSocietyType =
+        (s != null && _societyTypes.contains(s.societyType))
+            ? s.societyType
+            : 'APARTMENT';
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
@@ -48,31 +70,60 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
     super.dispose();
   }
 
-  Future<void> _createSociety() async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
     try {
-      final success = await _societyService.createSociety(
-        name: _nameController.text,
-        address: _addressController.text,
-        city: _cityController.text,
-        state: _stateController.text,
-        pincode: _pincodeController.text,
-        societyType: _selectedSocietyType,
-      );
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Society created successfully')),
+      bool success;
+      if (widget.isEditing) {
+        success = await _societyService.updateSociety(
+          id: widget.society!.id,
+          name: _nameController.text.trim(),
+          address: _addressController.text.trim(),
+          city: _cityController.text.trim(),
+          state: _stateController.text.trim(),
+          pincode: _pincodeController.text.trim(),
+          societyType: _selectedSocietyType,
         );
-        Navigator.pop(context);
+      } else {
+        success = await _societyService.createSociety(
+          name: _nameController.text.trim(),
+          address: _addressController.text.trim(),
+          city: _cityController.text.trim(),
+          state: _stateController.text.trim(),
+          pincode: _pincodeController.text.trim(),
+          societyType: _selectedSocietyType,
+        );
+      }
+
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEditing
+                  ? 'Society updated successfully'
+                  : 'Society created successfully',
+            ),
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEditing
+                  ? 'Failed to update society'
+                  : 'Failed to create society',
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -85,10 +136,12 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
       backgroundColor: _pageBg,
       body: Column(
         children: [
-          const AppPageHeader(
-            icon: SocietyIcon(size: 28, color: AppColors.white),
-            title: 'Add New Society',
-            subtitle: 'Tell us about your new community',
+          AppPageHeader(
+            icon: const SocietyIcon(size: 28, color: AppColors.white),
+            title: widget.isEditing ? 'Edit Society' : 'Add New Society',
+            subtitle: widget.isEditing
+                ? 'Update the details below'
+                : 'Tell us about your new community',
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -179,16 +232,24 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    if (PermissionService().canCreate(ModuleCodes.buildings))
+                    if (widget.isEditing
+                        ? PermissionService().canUpdate(ModuleCodes.buildings)
+                        : PermissionService().canCreate(ModuleCodes.buildings))
                       GlarePrimaryButton(
-                        text: 'Create Society',
+                        text: widget.isEditing
+                            ? 'Save Society'
+                            : 'Create Society',
                         trailingIcon: Icons.arrow_forward_rounded,
                         isLoading: _isLoading,
-                        onPressed: _createSociety,
+                        onPressed: _save,
                         showGlare: false,
                       )
                     else
-                      const NoPermissionNotice(action: 'create societies'),
+                      NoPermissionNotice(
+                        action: widget.isEditing
+                            ? 'update societies'
+                            : 'create societies',
+                      ),
                   ],
                 ),
               ),

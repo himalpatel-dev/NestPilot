@@ -108,25 +108,29 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
                   onNotificationTap: _showNotifications,
                   stats: const [
                     AppHeaderStat(
-                        value: '0',
-                        label: 'Societies',
-                        color: AppColors.accentOrange,
-                        icon: Icons.business_outlined),
+                      value: '0',
+                      label: 'Societies',
+                      color: AppColors.accentOrange,
+                      icon: Icons.business_outlined,
+                    ),
                     AppHeaderStat(
-                        value: '0',
-                        label: 'Buildings',
-                        color: AppColors.accentBlue,
-                        icon: Icons.apartment_outlined),
+                      value: '0',
+                      label: 'Buildings',
+                      color: AppColors.accentBlue,
+                      icon: Icons.apartment_outlined,
+                    ),
                     AppHeaderStat(
-                        value: '0',
-                        label: 'Flats',
-                        color: AppColors.accentPurple,
-                        icon: Icons.door_front_door_outlined),
+                      value: '0',
+                      label: 'Flats',
+                      color: AppColors.accentPurple,
+                      icon: Icons.door_front_door_outlined,
+                    ),
                     AppHeaderStat(
-                        value: '0',
-                        label: 'Members',
-                        color: AppColors.accentGreen,
-                        icon: Icons.people_outlined),
+                      value: '0',
+                      label: 'Members',
+                      color: AppColors.accentGreen,
+                      icon: Icons.people_outlined,
+                    ),
                   ],
                 ),
               ),
@@ -284,13 +288,17 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     ];
 
     return groups
-        .map((g) => _TileGroup(
-              g.title,
-              g.tiles
-                  .where((t) =>
-                      t.module == null || perms.can(t.module!, PermAction.view))
-                  .toList(),
-            ))
+        .map(
+          (g) => _TileGroup(
+            g.title,
+            g.tiles
+                .where(
+                  (t) =>
+                      t.module == null || perms.can(t.module!, PermAction.view),
+                )
+                .toList(),
+          ),
+        )
         .where((g) => g.tiles.isNotEmpty)
         .toList();
   }
@@ -449,6 +457,7 @@ class _AdminTile {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+
   /// Module this tile belongs to. null = always shown (e.g. Logout).
   /// Gated tiles are shown when the user can view the module.
   final String? module;
