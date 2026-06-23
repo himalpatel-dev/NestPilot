@@ -9,6 +9,8 @@ import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/dashboard_cards.dart';
+import '../../models/society_structure.dart';
+import '../../services/admin_service.dart';
 import '../dashboard_screen.dart';
 import '../login_screen.dart';
 import '../notification_list_screen.dart';
@@ -41,11 +43,16 @@ class SuperAdminDashboardScreen extends StatefulWidget {
 
 class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   int _unreadCount = 0;
+  SuperAdminStats? _stats;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotifications();
+    _fetchAll();
+  }
+
+  Future<void> _fetchAll() async {
+    await Future.wait([_fetchNotifications(), _fetchStats()]);
   }
 
   Future<void> _fetchNotifications() async {
@@ -54,6 +61,15 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
       if (mounted) setState(() => _unreadCount = res.unreadCount);
     } catch (e) {
       debugPrint('Notifications error: $e');
+    }
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final stats = await AdminService().getSuperAdminStats();
+      if (mounted) setState(() => _stats = stats);
+    } catch (e) {
+      debugPrint('Stats error: $e');
     }
   }
 
@@ -86,7 +102,7 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
       child: Scaffold(
         backgroundColor: AppColors.cardBackground,
         body: RefreshIndicator(
-          onRefresh: _fetchNotifications,
+          onRefresh: _fetchAll,
           color: AppColors.white,
           backgroundColor: AppColors.primary,
           child: CustomScrollView(
@@ -106,27 +122,27 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
                   subtitle: 'Super Administrator',
                   unreadCount: _unreadCount,
                   onNotificationTap: _showNotifications,
-                  stats: const [
+                  stats: [
                     AppHeaderStat(
-                      value: '0',
+                      value: '${_stats?.totalSocieties ?? 0}',
                       label: 'Societies',
                       color: AppColors.accentOrange,
                       icon: Icons.business_outlined,
                     ),
                     AppHeaderStat(
-                      value: '0',
+                      value: '${_stats?.totalBuildings ?? 0}',
                       label: 'Buildings',
                       color: AppColors.accentBlue,
                       icon: Icons.apartment_outlined,
                     ),
                     AppHeaderStat(
-                      value: '0',
+                      value: '${_stats?.totalFlats ?? 0}',
                       label: 'Flats',
                       color: AppColors.accentPurple,
                       icon: Icons.door_front_door_outlined,
                     ),
                     AppHeaderStat(
-                      value: '0',
+                      value: '${_stats?.totalMembers ?? 0}',
                       label: 'Members',
                       color: AppColors.accentGreen,
                       icon: Icons.people_outlined,
@@ -421,7 +437,7 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => screen),
-    ).then((_) => _fetchNotifications());
+    ).then((_) => _fetchAll());
   }
 
   Future<void> _logout() async {
