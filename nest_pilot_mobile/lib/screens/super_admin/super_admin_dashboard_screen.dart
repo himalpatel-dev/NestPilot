@@ -13,6 +13,7 @@ import '../../models/society_structure.dart';
 import '../../services/admin_service.dart';
 import '../dashboard_screen.dart';
 import '../login_screen.dart';
+import '../security/security_guard_dashboard_screen.dart';
 import '../notification_list_screen.dart';
 import 'society_create_screen.dart';
 import 'societies_list_screen.dart';
@@ -23,11 +24,20 @@ import 'flats_list_screen.dart';
 import 'role_management_screen.dart';
 import 'secretary_buildings_screen.dart';
 
-/// Picks the home screen for [user] after login: super admins get their own
-/// focused dashboard, everyone else gets the regular tabbed dashboard.
-Widget homeScreenFor(UserModel user) => user.role == UserRoles.superAdmin
-    ? SuperAdminDashboardScreen(user: user)
-    : DashboardScreen(user: user);
+/// Picks the home screen for [user] after login based on role:
+/// - Super Admin  → SuperAdminDashboardScreen  (no tabs)
+/// - Security Guard → SecurityGuardDashboardScreen (no tabs)
+/// - Everyone else → DashboardScreen (tabbed)
+Widget homeScreenFor(UserModel user) {
+  switch (user.role) {
+    case UserRoles.superAdmin:
+      return SuperAdminDashboardScreen(user: user);
+    case UserRoles.securityGuard:
+      return SecurityGuardDashboardScreen(user: user);
+    default:
+      return DashboardScreen(user: user);
+  }
+}
 
 /// Dedicated dashboard for SUPER_ADMIN. Single page: a hero header with
 /// stats, a quick-action row for the create flows, then descriptive list

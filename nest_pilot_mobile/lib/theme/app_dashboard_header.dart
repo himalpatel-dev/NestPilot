@@ -324,7 +324,7 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-// ─── 3-stat single row ────────────────────────────────────────────────────────
+// ─── Stats grid (2 per row) ───────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.stats});
@@ -333,21 +333,33 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final divider = Container(
+    final vDivider = Container(
       width: 1,
       height: 30,
       color: AppColors.white.withValues(alpha: 0.18),
       margin: const EdgeInsets.symmetric(horizontal: 10),
     );
+    final hDivider = Container(
+      height: 1,
+      color: AppColors.white.withValues(alpha: 0.13),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+    );
+
+    Row rowOf(int start, int end) => Row(
+          children: [
+            for (int i = start; i < end && i < stats.length; i++) ...[
+              if (i > start) vDivider,
+              _StatItem(stat: stats[i]),
+            ],
+          ],
+        );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Column(
         children: [
-          for (int i = 0; i < stats.length; i++) ...[
-            if (i > 0) divider,
-            _StatItem(stat: stats[i]),
-          ],
+          rowOf(0, 2),
+          if (stats.length > 2) ...[hDivider, rowOf(2, 4)],
         ],
       ),
     );

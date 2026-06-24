@@ -5,6 +5,7 @@ class SecretaryAdmin {
   final int id;
   final String fullName;
   final String? mobile;
+  final String? email;
   final int? societyId;
   final String? societyName;
   final List<AssignedBuilding> buildings;
@@ -13,6 +14,7 @@ class SecretaryAdmin {
     required this.id,
     required this.fullName,
     this.mobile,
+    this.email,
     this.societyId,
     this.societyName,
     required this.buildings,
@@ -28,6 +30,7 @@ class SecretaryAdmin {
       id: json['id'] as int,
       fullName: (json['full_name'] ?? '') as String,
       mobile: json['mobile'] as String?,
+      email: json['email'] as String?,
       societyId: json['society_id'] as int?,
       societyName: society?['name'] as String?,
       buildings: buildings,
@@ -79,6 +82,20 @@ class SecretaryBuildingService {
       'society_id': societyId,
     });
     return (res['message'] as String?) ?? 'Society Admin created';
+  }
+
+  Future<bool> updateSocietyAdmin({
+    required int id,
+    required String fullName,
+    String? email,
+    int? societyId,
+  }) async {
+    final res = await _api.put(ApiEndpoints.societyAdminById(id), {
+      'full_name': fullName,
+      if (email?.isNotEmpty ?? false) 'email': email,
+      if (societyId != null) 'society_id': societyId,
+    });
+    return res['success'] == true;
   }
 
   Future<List<AssignedBuilding>> getAssignments(int userId) async {

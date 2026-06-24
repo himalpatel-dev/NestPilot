@@ -93,6 +93,7 @@ class AppBorderlessField extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
   final int maxLines;
+  final int? maxLength;
 
   const AppBorderlessField({
     super.key,
@@ -101,6 +102,7 @@ class AppBorderlessField extends StatelessWidget {
     this.validator,
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
+    this.maxLength,
   });
 
   @override
@@ -110,6 +112,7 @@ class AppBorderlessField extends StatelessWidget {
       validator: validator,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      maxLength: maxLength,
       style: const TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w600,
@@ -130,6 +133,7 @@ class AppBorderlessField extends StatelessWidget {
         focusedBorder: InputBorder.none,
         errorBorder: InputBorder.none,
         focusedErrorBorder: InputBorder.none,
+        counterText: '',
       ),
     );
   }

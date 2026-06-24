@@ -89,6 +89,7 @@ class ApiEndpoints {
 
   // Society Admin → Building assignments (Super Admin only)
   static const String societyAdmins = '/api/society-admins';
+  static String societyAdminById(int id) => '/api/society-admins/$id';
   static String societyAdminBuildings(int userId) =>
       '/api/society-admins/$userId/buildings';
 

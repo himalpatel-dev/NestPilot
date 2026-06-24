@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/society_structure.dart';
 import '../../services/secretary_building_service.dart';
-import '../../services/society_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_field_card.dart';
+import 'secretary_assign_screen.dart';
+import 'secretary_create_screen.dart';
 
 class SecretaryBuildingsScreen extends StatefulWidget {
   const SecretaryBuildingsScreen({super.key});
@@ -18,7 +16,6 @@ class SecretaryBuildingsScreen extends StatefulWidget {
 
 class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
   final SecretaryBuildingService _service = SecretaryBuildingService();
-  final SocietyService _societyService = SocietyService();
 
   List<SecretaryAdmin> _admins = [];
   bool _isLoading = true;
@@ -31,7 +28,10 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final admins = await _service.listSocietyAdmins();
       if (mounted) setState(() { _admins = admins; _isLoading = false; });
@@ -40,434 +40,24 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
     }
   }
 
-  // ─── Add secretary sheet ────────────────────────────────────────────────────
+  void _goCreate() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SecretaryCreateScreen()),
+      ).then((changed) { if (changed == true) _fetch(); });
 
-  Future<void> _showAddSheet() async {
-    final formKey = GlobalKey<FormState>();
-    final nameCtrl = TextEditingController();
-    final mobileCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    List<Society> societies = [];
-    Society? selectedSociety;
-    bool loadStarted = false;
-    bool loadingSocieties = true;
-    String? loadError;
-    bool saving = false;
+  void _goEdit(SecretaryAdmin admin) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SecretaryCreateScreen(admin: admin),
+        ),
+      ).then((changed) { if (changed == true) _fetch(); });
 
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          if (!loadStarted) {
-            loadStarted = true;
-            _societyService.getSocieties().then((list) {
-              if (!ctx.mounted) return;
-              setSheet(() {
-                societies = list;
-                loadingSocieties = false;
-              });
-            }).catchError((e) {
-              if (!ctx.mounted) return;
-              setSheet(() {
-                loadError = e.toString();
-                loadingSocieties = false;
-              });
-            });
-          }
-
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              24, 16, 24,
-              MediaQuery.of(ctx).viewInsets.bottom + 24,
-            ),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40, height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          width: 40, height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentIndigo.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.person_add_alt_1_outlined,
-                            color: AppColors.accentIndigo, size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Add Society Admin',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                'If the mobile is already registered, that user is promoted',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    if (loadingSocieties)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: NestLoader()),
-                      )
-                    else if (loadError != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          loadError!,
-                          style: const TextStyle(color: AppColors.accentRed),
-                        ),
-                      )
-                    else ...[
-                      TextFormField(
-                        controller: nameCtrl,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Name is required'
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: mobileCtrl,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Mobile Number',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) {
-                          final value = (v ?? '').trim();
-                          if (value.isEmpty) return 'Mobile is required';
-                          if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                            return 'Enter a valid 10-digit mobile';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email (optional)',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      AppFieldCard(
-                        icon: Icons.apartment_rounded,
-                        label: 'Society',
-                        field: AppCardDropdown<Society>(
-                          value: selectedSociety,
-                          hintText: 'Select society',
-                          items: societies,
-                          itemLabel: (s) => s.name,
-                          validator: (v) =>
-                              v == null ? 'Please choose a society' : null,
-                          onChanged: (v) => setSheet(() => selectedSociety = v),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      AppButton(
-                        text: 'Add Secretary',
-                        isLoading: saving,
-                        onPressed: () async {
-                          if (!formKey.currentState!.validate()) return;
-                          final societyId =
-                              int.tryParse(selectedSociety!.id);
-                          if (societyId == null) return;
-                          setSheet(() => saving = true);
-                          try {
-                            final msg = await _service.createSocietyAdmin(
-                              fullName: nameCtrl.text.trim(),
-                              mobile: mobileCtrl.text.trim(),
-                              email: emailCtrl.text.trim(),
-                              societyId: societyId,
-                            );
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            _fetch();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(msg)),
-                              );
-                            }
-                          } catch (e) {
-                            setSheet(() => saving = false);
-                            if (ctx.mounted) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                SnackBar(content: Text(e.toString())),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    nameCtrl.dispose();
-    mobileCtrl.dispose();
-    emailCtrl.dispose();
-  }
-
-  // ─── Assign sheet ───────────────────────────────────────────────────────────
-
-  Future<void> _showAssignSheet(SecretaryAdmin admin) async {
-    if (admin.societyId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This secretary is not linked to a society')),
-      );
-      return;
-    }
-
-    List<Building> societyBuildings = [];
-    bool loadingBuildings = true;
-    String? loadError;
-    final selectedIds = <int>{...admin.buildings.map((b) => b.id)};
-    bool saving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          if (loadingBuildings) {
-            // kick off the load once
-            _societyService
-                .getBuildings(admin.societyId.toString())
-                .then((bs) {
-              if (!ctx.mounted) return;
-              setSheet(() {
-                societyBuildings = bs;
-                loadingBuildings = false;
-              });
-            }).catchError((e) {
-              if (!ctx.mounted) return;
-              setSheet(() {
-                loadError = e.toString();
-                loadingBuildings = false;
-              });
-            });
-          }
-
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              24, 16, 24,
-              MediaQuery.of(ctx).viewInsets.bottom + 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentIndigo.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.apartment_outlined,
-                        color: AppColors.accentIndigo, size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Assign Buildings',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            admin.fullName,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                if (loadingBuildings)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: NestLoader()),
-                  )
-                else if (loadError != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text(
-                      loadError!,
-                      style: const TextStyle(color: AppColors.accentRed),
-                    ),
-                  )
-                else if (societyBuildings.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text(
-                      'This society has no buildings yet.',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
-                else ...[
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(ctx).size.height * 0.4,
-                    ),
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: societyBuildings.map((b) {
-                          final bid = int.tryParse(b.id);
-                          if (bid == null) return const SizedBox.shrink();
-                          final selected = selectedIds.contains(bid);
-                          return FilterChip(
-                            label: Text(b.name),
-                            selected: selected,
-                            onSelected: (v) => setSheet(() {
-                              v ? selectedIds.add(bid) : selectedIds.remove(bid);
-                            }),
-                            selectedColor:
-                                AppColors.accentIndigo.withValues(alpha: 0.18),
-                            checkmarkColor: AppColors.accentIndigo,
-                            labelStyle: TextStyle(
-                              color: selected
-                                  ? AppColors.accentIndigo
-                                  : AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(
-                                color: selected
-                                    ? AppColors.accentIndigo
-                                    : AppColors.border,
-                              ),
-                            ),
-                            backgroundColor: AppColors.white,
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${selectedIds.length} of ${societyBuildings.length} selected',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                AppButton(
-                  text: 'Save Assignments',
-                  isLoading: saving,
-                  onPressed: () async {
-                    setSheet(() => saving = true);
-                    try {
-                      final ok = await _service.setAssignments(
-                        admin.id, selectedIds.toList(),
-                      );
-                      if (!ok) throw Exception('Save failed');
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      _fetch();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Assignments updated')),
-                        );
-                      }
-                    } catch (e) {
-                      setSheet(() => saving = false);
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(e.toString())),
-                        );
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  void _goAssign(SecretaryAdmin admin) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SecretaryAssignScreen(admin: admin),
+        ),
+      ).then((changed) { if (changed == true) _fetch(); });
 
   // ─── Build ──────────────────────────────────────────────────────────────────
 
@@ -481,13 +71,10 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddSheet,
+        onPressed: _goCreate,
         backgroundColor: AppColors.primary,
-        icon: const Icon(
-          Icons.person_add_alt_1_rounded,
-          color: AppColors.white,
-          size: 20,
-        ),
+        icon: const Icon(Icons.person_add_alt_1_rounded,
+            color: AppColors.white, size: 20),
         label: const Text(
           'Add Secretary',
           style: TextStyle(
@@ -552,6 +139,8 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
     );
   }
 
+  // ─── Admin card ─────────────────────────────────────────────────────────────
+
   Widget _buildAdminCard(SecretaryAdmin admin) {
     final initial =
         admin.fullName.isNotEmpty ? admin.fullName[0].toUpperCase() : 'S';
@@ -562,7 +151,7 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
@@ -578,7 +167,8 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
           Row(
             children: [
               Container(
-                width: 46, height: 46,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: AppColors.accentIndigo.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13),
@@ -648,9 +238,16 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
               ),
               const SizedBox(width: 8),
               _actionBtn(
+                Icons.edit_outlined,
+                AppColors.accentBlue,
+                () => _goEdit(admin),
+                tooltip: 'Edit',
+              ),
+              const SizedBox(width: 8),
+              _actionBtn(
                 Icons.tune_rounded,
                 AppColors.accentIndigo,
-                () => _showAssignSheet(admin),
+                () => _goAssign(admin),
                 tooltip: 'Assign',
               ),
             ],
@@ -660,9 +257,8 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: admin.buildings
-                  .map((b) => _buildingChip(b.name))
-                  .toList(),
+              children:
+                  admin.buildings.map((b) => _buildingChip(b.name)).toList(),
             ),
           ],
         ],
@@ -707,14 +303,19 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
     );
   }
 
-  Widget _actionBtn(IconData icon, Color color, VoidCallback onTap,
-      {String? tooltip}) {
+  Widget _actionBtn(
+    IconData icon,
+    Color color,
+    VoidCallback onTap, {
+    String? tooltip,
+  }) {
     return Tooltip(
       message: tooltip ?? '',
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 34, height: 34,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(10),
@@ -754,11 +355,15 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
           Icon(Icons.supervisor_account_outlined,
               color: AppColors.border, size: 56),
           SizedBox(height: 12),
-          Text('No society admins yet',
-              style: TextStyle(color: AppColors.textSecondary)),
+          Text(
+            'No society admins yet',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
           SizedBox(height: 4),
-          Text("Tap 'Add Secretary' to create one",
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text(
+            "Tap 'Add Secretary' to create one",
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
         ],
       ),
     );
