@@ -46,7 +46,8 @@ const preApproveVisitor = async (req, res, next) => {
 const logEntry = async (req, res, next) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { mobile, name, type, house_id, house_no, vehicle_number, pass_code, gate } = req.body;
+        const { mobile, name, type, visitor_type, house_id, house_no, vehicle_number, pass_code, gate, purpose } = req.body;
+        const resolvedVisitorType = visitor_type || type;
 
         let visitorLog;
         let resolvedHouseId = house_id;
@@ -76,11 +77,17 @@ const logEntry = async (req, res, next) => {
                 if (house) resolvedHouseId = house.id;
             }
 
-            let [visitor] = await db.Visitor.findOrCreate({
+            let [visitor, created] = await db.Visitor.findOrCreate({
                 where: { mobile, society_id: req.user.society_id },
-                defaults: { name, type },
+                defaults: { name, type: resolvedVisitorType },
                 transaction
             });
+
+            // Update visitor type on existing visitor records
+            if (!created && resolvedVisitorType) {
+                visitor.type = resolvedVisitorType;
+                await visitor.save({ transaction });
+            }
 
             visitorLog = await db.VisitorLog.create({
                 visitor_id: visitor.id,
@@ -90,7 +97,8 @@ const logEntry = async (req, res, next) => {
                 entry_gate: gate,
                 status: req.body.status || 'WAITING_APPROVAL',
                 vehicle_number,
-                type: type || 'WALK_IN',
+                purpose,
+                type: 'WALK_IN',
                 approval_by_user_id: (req.body.status === 'DENIED' || req.body.status === 'INSIDE') ? req.user.id : null
             }, { transaction });
         }
