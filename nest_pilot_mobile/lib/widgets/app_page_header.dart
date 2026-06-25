@@ -80,12 +80,11 @@ class AppPageHeader extends StatelessWidget {
                               child: Container(
                                 width: 40,
                                 height: 40,
-
                                 alignment: Alignment.center,
                                 child: const Icon(
-                                  Icons.arrow_back_ios_new_rounded,
+                                  Icons.reply_rounded,
                                   color: AppColors.white,
-                                  size: 16,
+                                  size: 26,
                                 ),
                               ),
                             ),

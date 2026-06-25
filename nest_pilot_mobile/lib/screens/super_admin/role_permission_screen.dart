@@ -4,8 +4,8 @@ import '../../services/role_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
+import '../../widgets/app_page_header.dart';
 
 class RolePermissionScreen extends StatefulWidget {
   final RoleModel role;
@@ -30,12 +30,23 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
   }
 
   Future<void> _fetchPermissions() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final perms = await _roleService.getRolePermissions(widget.role.id);
-      if (mounted) setState(() { _permissions = perms; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _permissions = perms;
+          _isLoading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
     }
   }
 
@@ -50,9 +61,9 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -76,43 +87,75 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
 
   IconData _moduleIcon(String code) {
     switch (code) {
-      case 'DASHBOARD':   return Icons.dashboard_outlined;
-      case 'NOTICES':     return Icons.campaign_outlined;
-      case 'COMPLAINTS':  return Icons.report_problem_outlined;
-      case 'BILLS':       return Icons.receipt_long_outlined;
-      case 'EVENTS':      return Icons.event_outlined;
-      case 'AMENITIES':   return Icons.fitness_center_outlined;
-      case 'VISITORS':    return Icons.person_pin_circle_outlined;
-      case 'STAFF':       return Icons.badge_outlined;
-      case 'POLLS':       return Icons.poll_outlined;
-      case 'DOCUMENTS':   return Icons.folder_outlined;
-      case 'VEHICLES':    return Icons.directions_car_outlined;
-      case 'USERS':       return Icons.group_outlined;
-      case 'BUILDINGS':   return Icons.apartment_outlined;
-      case 'REPORTS':     return Icons.bar_chart_outlined;
-      case 'ROLES':       return Icons.shield_outlined;
-      default:            return Icons.widgets_outlined;
+      case 'DASHBOARD':
+        return Icons.dashboard_outlined;
+      case 'NOTICES':
+        return Icons.campaign_outlined;
+      case 'COMPLAINTS':
+        return Icons.report_problem_outlined;
+      case 'BILLS':
+        return Icons.receipt_long_outlined;
+      case 'EVENTS':
+        return Icons.event_outlined;
+      case 'AMENITIES':
+        return Icons.fitness_center_outlined;
+      case 'VISITORS':
+        return Icons.person_pin_circle_outlined;
+      case 'STAFF':
+        return Icons.badge_outlined;
+      case 'POLLS':
+        return Icons.poll_outlined;
+      case 'DOCUMENTS':
+        return Icons.folder_outlined;
+      case 'VEHICLES':
+        return Icons.directions_car_outlined;
+      case 'USERS':
+        return Icons.group_outlined;
+      case 'BUILDINGS':
+        return Icons.apartment_outlined;
+      case 'REPORTS':
+        return Icons.bar_chart_outlined;
+      case 'ROLES':
+        return Icons.shield_outlined;
+      default:
+        return Icons.widgets_outlined;
     }
   }
 
   Color _moduleColor(String code) {
     switch (code) {
-      case 'DASHBOARD':   return AppColors.accentBlue;
-      case 'NOTICES':     return AppColors.accentPurple;
-      case 'COMPLAINTS':  return AppColors.accentRed;
-      case 'BILLS':       return AppColors.accentOrange;
-      case 'EVENTS':      return AppColors.accentTeal;
-      case 'AMENITIES':   return AppColors.accentGreen;
-      case 'VISITORS':    return AppColors.accentPink;
-      case 'STAFF':       return AppColors.accentBrown;
-      case 'POLLS':       return AppColors.accentIndigo;
-      case 'DOCUMENTS':   return AppColors.accentAmber;
-      case 'VEHICLES':    return AppColors.accentBlue;
-      case 'USERS':       return AppColors.accentGreen;
-      case 'BUILDINGS':   return AppColors.accentOrange;
-      case 'REPORTS':     return AppColors.accentTeal;
-      case 'ROLES':       return AppColors.accentRed;
-      default:            return AppColors.primary;
+      case 'DASHBOARD':
+        return AppColors.accentBlue;
+      case 'NOTICES':
+        return AppColors.accentPurple;
+      case 'COMPLAINTS':
+        return AppColors.accentRed;
+      case 'BILLS':
+        return AppColors.accentOrange;
+      case 'EVENTS':
+        return AppColors.accentTeal;
+      case 'AMENITIES':
+        return AppColors.accentGreen;
+      case 'VISITORS':
+        return AppColors.accentPink;
+      case 'STAFF':
+        return AppColors.accentBrown;
+      case 'POLLS':
+        return AppColors.accentIndigo;
+      case 'DOCUMENTS':
+        return AppColors.accentAmber;
+      case 'VEHICLES':
+        return AppColors.accentBlue;
+      case 'USERS':
+        return AppColors.accentGreen;
+      case 'BUILDINGS':
+        return AppColors.accentOrange;
+      case 'REPORTS':
+        return AppColors.accentTeal;
+      case 'ROLES':
+        return AppColors.accentRed;
+      default:
+        return AppColors.primary;
     }
   }
 
@@ -128,18 +171,21 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       backgroundColor: AppColors.cardBackground,
       bottomNavigationBar:
           _isLoading || _error != null || isSuperAdmin || !canEditPerms
-              ? null
-              : _buildSaveBar(bottomPad),
+          ? null
+          : _buildSaveBar(bottomPad),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: AppDashboardHeader(
-              leftAction: appHeaderBackButton(context),
+            child: AppPageHeader(
+              icon: const Icon(
+                Icons.shield_outlined,
+                color: AppColors.white,
+                size: 28,
+              ),
               title: widget.role.name,
               subtitle: isSuperAdmin
                   ? 'Super Admin has full access to all modules'
                   : 'Configure module-level permissions',
-              belowSubtitle: _roleBadge(),
             ),
           ),
           if (_isLoading)
@@ -152,47 +198,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 100),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (ctx, i) {
-                    if (i == 0) return _buildLegend();
-                    return _buildModuleRow(_permissions[i - 1]);
-                  },
-                  childCount: _permissions.length + 1,
-                ),
+                delegate: SliverChildBuilderDelegate((ctx, i) {
+                  if (i == 0) return _buildLegend();
+                  return _buildModuleRow(_permissions[i - 1]);
+                }, childCount: _permissions.length + 1),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleBadge() {
-    final isSystem = widget.role.isSystem;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isSystem ? Icons.lock_outline_rounded : Icons.tune_rounded,
-            color: AppColors.white,
-            size: 12,
-          ),
-          const SizedBox(width: 5),
-          Text(
-            isSystem ? 'SYSTEM ROLE' : 'CUSTOM ROLE',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-          ),
         ],
       ),
     );
@@ -286,11 +297,21 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             ),
           ),
           // Permission toggles
-          _permToggle(perm.canView, color, (v) { if (!_readOnly) setState(() => perm.canView = v); }),
-          _permToggle(perm.canCreate, color, (v) { if (!_readOnly) setState(() => perm.canCreate = v); }),
-          _permToggle(perm.canUpdate, color, (v) { if (!_readOnly) setState(() => perm.canUpdate = v); }),
-          _permToggle(perm.canDelete, AppColors.accentRed, (v) { if (!_readOnly) setState(() => perm.canDelete = v); }),
-          _permToggle(perm.canApprove, AppColors.accentOrange, (v) { if (!_readOnly) setState(() => perm.canApprove = v); }),
+          _permToggle(perm.canView, color, (v) {
+            if (!_readOnly) setState(() => perm.canView = v);
+          }),
+          _permToggle(perm.canCreate, color, (v) {
+            if (!_readOnly) setState(() => perm.canCreate = v);
+          }),
+          _permToggle(perm.canUpdate, color, (v) {
+            if (!_readOnly) setState(() => perm.canUpdate = v);
+          }),
+          _permToggle(perm.canDelete, AppColors.accentRed, (v) {
+            if (!_readOnly) setState(() => perm.canDelete = v);
+          }),
+          _permToggle(perm.canApprove, AppColors.accentOrange, (v) {
+            if (!_readOnly) setState(() => perm.canApprove = v);
+          }),
           // All-or-nothing toggle
           const SizedBox(width: 4),
           GestureDetector(
@@ -331,7 +352,9 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: value ? color.withValues(alpha: 0.15) : AppColors.cardBackground,
+              color: value
+                  ? color.withValues(alpha: 0.15)
+                  : AppColors.cardBackground,
               borderRadius: BorderRadius.circular(7),
               border: Border.all(
                 color: value ? color : AppColors.border,
@@ -370,7 +393,9 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             backgroundColor: AppColors.accentIndigo,
             foregroundColor: AppColors.white,
             padding: const EdgeInsets.symmetric(vertical: 15),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             elevation: 0,
           ),
           child: _isSaving
@@ -425,7 +450,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
             const SizedBox(height: 10),
             const Text(
               'The Super Admin role has unrestricted access to all modules and actions. Permissions cannot be modified for this role.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.5,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -439,7 +468,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.accentRed, size: 48),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.accentRed,
+            size: 48,
+          ),
           const SizedBox(height: 12),
           Text(_error!, style: const TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 16),

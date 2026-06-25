@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputFormatter;
 import '../theme/app_colors.dart';
 
 /// Card-styled form field used on create/edit screens — a white rounded card
@@ -94,6 +95,7 @@ class AppBorderlessField extends StatelessWidget {
   final TextInputType keyboardType;
   final int maxLines;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppBorderlessField({
     super.key,
@@ -103,6 +105,7 @@ class AppBorderlessField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
     this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -113,6 +116,7 @@ class AppBorderlessField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       maxLength: maxLength,
+      inputFormatters: inputFormatters,
       style: const TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w600,

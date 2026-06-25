@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
 import '../../services/permission_service.dart';
@@ -463,13 +464,13 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                                   field: AppBorderlessField(
                                     controller: _areaController,
                                     hint: 'e.g. 1200',
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
                                     validator: (v) {
                                       if (v != null && v.trim().isNotEmpty) {
-                                        final val = double.tryParse(v.trim());
+                                        final val = int.tryParse(v.trim());
                                         if (val == null || val <= 0) {
                                           return 'Enter a valid area';
                                         }

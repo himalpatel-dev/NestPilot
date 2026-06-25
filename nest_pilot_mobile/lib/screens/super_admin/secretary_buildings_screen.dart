@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/secretary_building_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
+import '../../widgets/app_page_header.dart';
 import 'secretary_assign_screen.dart';
 import 'secretary_create_screen.dart';
 
@@ -64,9 +64,6 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final total = _admins.length;
-    final assigned = _admins.where((a) => a.buildings.isNotEmpty).length;
-    final unassigned = total - assigned;
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -92,30 +89,14 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
-              child: AppDashboardHeader(
-                leftAction: appHeaderBackButton(context),
+              child: AppPageHeader(
+                icon: const Icon(
+                  Icons.supervisor_account_rounded,
+                  color: AppColors.white,
+                  size: 28,
+                ),
                 title: 'Secretary Buildings',
                 subtitle: 'Add secretaries and assign their buildings',
-                stats: [
-                  AppHeaderStat(
-                    value: '$total',
-                    label: 'Total',
-                    color: AppColors.accentBlue,
-                    icon: Icons.supervisor_account_outlined,
-                  ),
-                  AppHeaderStat(
-                    value: '$assigned',
-                    label: 'Assigned',
-                    color: AppColors.accentGreen,
-                    icon: Icons.check_circle_outline_rounded,
-                  ),
-                  AppHeaderStat(
-                    value: '$unassigned',
-                    label: 'Pending',
-                    color: AppColors.accentOrange,
-                    icon: Icons.error_outline_rounded,
-                  ),
-                ],
               ),
             ),
             SliverPadding(

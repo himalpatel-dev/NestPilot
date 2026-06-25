@@ -176,6 +176,8 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
                       _buildTileCard(group.tiles),
                       const SizedBox(height: 24),
                     ],
+                    _buildLogoutCard(),
+                    const SizedBox(height: 8),
                   ]),
                 ),
               ),
@@ -295,22 +297,6 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
           module: ModuleCodes.buildings,
         ),
       ]),
-      _TileGroup('Settings', [
-        _AdminTile(
-          icon: Icons.notifications_outlined,
-          color: AppColors.accentAmber,
-          title: 'Notifications',
-          subtitle: 'View all your notifications',
-          onTap: _showNotifications,
-        ),
-        _AdminTile(
-          icon: Icons.logout_rounded,
-          color: AppColors.accentRed,
-          title: 'Logout',
-          subtitle: 'Sign out of this device',
-          onTap: _logout,
-        ),
-      ]),
     ];
 
     return groups
@@ -400,6 +386,88 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
             const Icon(
               Icons.chevron_right_rounded,
               color: AppColors.textHint,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Standalone logout card ──────────────────────────────────────────────────
+
+  Widget _buildLogoutCard() {
+    return GestureDetector(
+      onTap: _logout,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFB71C1C),
+              AppColors.accentRed,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accentRed.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.30),
+                  width: 1.2,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppColors.white,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Sign out of this device',
+                    style: TextStyle(
+                      color: AppColors.white.withValues(alpha: 0.70),
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.white.withValues(alpha: 0.60),
               size: 20,
             ),
           ],

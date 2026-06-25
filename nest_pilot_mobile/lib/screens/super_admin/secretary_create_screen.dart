@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../models/society_structure.dart';
 import '../../services/secretary_building_service.dart';
 import '../../services/society_service.dart';
@@ -201,11 +202,15 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
                               field: AppBorderlessField(
                                 controller: _mobileCtrl,
                                 hint: '10-digit mobile',
-                                keyboardType: TextInputType.phone,
+                                keyboardType: TextInputType.number,
+                                maxLength: 10,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
                                 validator: (v) {
                                   final val = (v ?? '').trim();
                                   if (val.isEmpty) return 'Mobile is required';
-                                  if (!RegExp(r'^\d{10}$').hasMatch(val)) {
+                                  if (val.length != 10) {
                                     return 'Enter a valid 10-digit mobile';
                                   }
                                   return null;
@@ -220,6 +225,16 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
                               controller: _emailCtrl,
                               hint: 'email@example.com',
                               keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                final val = (v ?? '').trim();
+                                if (val.isEmpty) return null;
+                                if (!RegExp(
+                                  r'^[\w\.\+\-]+@[\w\-]+\.[a-zA-Z]{2,}$',
+                                ).hasMatch(val)) {
+                                  return 'Enter a valid email address';
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(height: 24),

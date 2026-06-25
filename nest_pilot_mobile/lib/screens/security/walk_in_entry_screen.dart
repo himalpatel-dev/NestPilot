@@ -25,9 +25,20 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
   final _vehicleCtrl = TextEditingController();
   final _purposeCtrl = TextEditingController();
   String? _selectedHouse;
+  String? _selectedVisitorType;
   List<String> _houseNumbers = [];
   bool _loadingHouses = true;
   bool _logging = false;
+
+  static const _visitorTypes = [
+    'Guest',
+    'Delivery',
+    'Contractor / Repair',
+    'Cab / Taxi',
+    'Vendor',
+    'Domestic Help',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -70,6 +81,12 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
       );
       return;
     }
+    if (_selectedVisitorType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a visitor type')),
+      );
+      return;
+    }
 
     final purpose = _purposeCtrl.text.trim();
 
@@ -77,6 +94,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
       name: _nameCtrl.text.trim(),
       mobile: _mobileCtrl.text.trim(),
       visiting: _selectedHouse!,
+      visitorType: _selectedVisitorType!,
       purpose: purpose.isNotEmpty ? purpose : null,
     );
     if (result == null) return;
@@ -88,6 +106,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
         'mobile': _mobileCtrl.text.trim(),
         'house_no': _selectedHouse,
         'vehicle_number': _vehicleCtrl.text.trim(),
+        'visitor_type': _selectedVisitorType,
         if (_purposeCtrl.text.trim().isNotEmpty)
           'purpose': _purposeCtrl.text.trim(),
         'type': 'WALK_IN',
@@ -99,7 +118,10 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
         _mobileCtrl.clear();
         _vehicleCtrl.clear();
         _purposeCtrl.clear();
-        setState(() => _selectedHouse = null);
+        setState(() {
+          _selectedHouse = null;
+          _selectedVisitorType = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -123,6 +145,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
     required String name,
     required String mobile,
     required String visiting,
+    required String visitorType,
     String? purpose,
   }) {
     return showDialog<String>(
@@ -135,6 +158,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
           name: name,
           mobile: mobile,
           visiting: visiting,
+          visitorType: visitorType,
           purpose: purpose,
         ),
       ),
@@ -258,6 +282,21 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
                               ),
                               const SizedBox(height: 14),
                               AppFieldCard(
+                                icon: Icons.category_outlined,
+                                label: 'Visitor Type',
+                                field: AppCardDropdown<String>(
+                                  value: _selectedVisitorType,
+                                  hintText: 'Select type',
+                                  items: _visitorTypes,
+                                  itemLabel: (v) => v,
+                                  validator: (v) =>
+                                      v == null ? 'Please select a visitor type' : null,
+                                  onChanged: (v) =>
+                                      setState(() => _selectedVisitorType = v),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              AppFieldCard(
                                 icon: Icons.directions_car_outlined,
                                 label: 'Vehicle Number (optional)',
                                 field: AppBorderlessField(
@@ -302,12 +341,14 @@ class _WalkInCard extends StatelessWidget {
   final String name;
   final String mobile;
   final String visiting;
+  final String visitorType;
   final String? purpose;
 
   const _WalkInCard({
     required this.name,
     required this.mobile,
     required this.visiting,
+    required this.visitorType,
     this.purpose,
   });
 
@@ -421,6 +462,16 @@ class _WalkInCard extends StatelessWidget {
                   color: AppColors.accentBlue,
                   label: 'Mobile',
                   value: mobile,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(height: 1, color: AppColors.border),
+                ),
+                _DetailRow(
+                  icon: Icons.category_outlined,
+                  color: AppColors.accentAmber,
+                  label: 'Visitor Type',
+                  value: visitorType,
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),

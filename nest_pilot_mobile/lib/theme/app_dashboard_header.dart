@@ -26,16 +26,8 @@ Widget appHeaderBackButton(BuildContext context) {
       width: 34,
       height: 34,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.20)),
-      ),
-      child: const Icon(
-        Icons.arrow_back_ios_new_rounded,
-        color: AppColors.white,
-        size: 15,
-      ),
+
+      child: const Icon(Icons.reply_rounded, color: AppColors.white, size: 26),
     ),
   );
 }
@@ -346,13 +338,13 @@ class _StatsRow extends StatelessWidget {
     );
 
     Row rowOf(int start, int end) => Row(
-          children: [
-            for (int i = start; i < end && i < stats.length; i++) ...[
-              if (i > start) vDivider,
-              _StatItem(stat: stats[i]),
-            ],
-          ],
-        );
+      children: [
+        for (int i = start; i < end && i < stats.length; i++) ...[
+          if (i > start) vDivider,
+          _StatItem(stat: stats[i]),
+        ],
+      ],
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),

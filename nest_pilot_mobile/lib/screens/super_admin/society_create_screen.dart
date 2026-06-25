@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../services/society_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
@@ -215,7 +216,16 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                               controller: _pincodeController,
                               hint: '000000',
                               keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? 'Required' : null,
+                              maxLength: 6,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              validator: (v) {
+                                final val = (v ?? '').trim();
+                                if (val.isEmpty) return 'Required';
+                                if (val.length != 6) return '6 digits required';
+                                return null;
+                              },
                             ),
                           ),
                         ),

@@ -4,8 +4,8 @@ import '../../services/role_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_dashboard_header.dart';
 import '../../theme/nest_loader.dart';
+import '../../widgets/app_page_header.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import 'role_permission_screen.dart';
@@ -38,132 +38,6 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
-  }
-
-  // ─── Create role sheet ──────────────────────────────────────────────────────
-
-  void _showCreateSheet() {
-    final codeCtrl = TextEditingController();
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool saving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24, 16, 24,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentIndigo.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.shield_outlined,
-                        color: AppColors.accentIndigo, size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Create New Role',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                AppTextField(
-                  controller: nameCtrl,
-                  label: 'Role Name',
-                  hint: 'e.g. Accountant',
-                  validator: (v) => (v ?? '').isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 14),
-                AppTextField(
-                  controller: codeCtrl,
-                  label: 'Role Code',
-                  hint: 'e.g. ACCOUNTANT (auto-uppercased)',
-                  validator: (v) {
-                    if ((v ?? '').isEmpty) return 'Required';
-                    if (v!.contains(' ')) return 'Use underscores, no spaces';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                AppTextField(
-                  controller: descCtrl,
-                  label: 'Description (optional)',
-                  hint: 'Brief description of this role',
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 24),
-                AppButton(
-                  text: 'Create Role',
-                  isLoading: saving,
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    setSheet(() => saving = true);
-                    try {
-                      await _roleService.createRole(
-                        code: codeCtrl.text.trim().toUpperCase(),
-                        name: nameCtrl.text.trim(),
-                        description: descCtrl.text.trim(),
-                      );
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      _fetchRoles();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Role created successfully')),
-                        );
-                      }
-                    } catch (e) {
-                      setSheet(() => saving = false);
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(e.toString())),
-                        );
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   // ─── Edit role sheet ────────────────────────────────────────────────────────
@@ -354,22 +228,8 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final totalRoles = _roles.length;
-    final systemRoles = _roles.where((r) => r.isSystem).length;
-    final customRoles = totalRoles - systemRoles;
-
-    final canCreateRoles = PermissionService().canCreate(ModuleCodes.roles);
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      floatingActionButton: canCreateRoles
-          ? FloatingActionButton.extended(
-              onPressed: _showCreateSheet,
-              backgroundColor: AppColors.accentIndigo,
-              foregroundColor: AppColors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('New Role', style: TextStyle(fontWeight: FontWeight.w700)),
-            )
-          : null,
       body: RefreshIndicator(
         onRefresh: _fetchRoles,
         color: AppColors.white,
@@ -378,30 +238,14 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
-              child: AppDashboardHeader(
-                leftAction: appHeaderBackButton(context),
+              child: AppPageHeader(
+                icon: const Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.white,
+                  size: 28,
+                ),
                 title: 'Roles & Permissions',
                 subtitle: 'Manage access control across modules',
-                stats: [
-                  AppHeaderStat(
-                    value: '$totalRoles',
-                    label: 'Total',
-                    color: AppColors.accentBlue,
-                    icon: Icons.shield_outlined,
-                  ),
-                  AppHeaderStat(
-                    value: '$systemRoles',
-                    label: 'System',
-                    color: AppColors.accentOrange,
-                    icon: Icons.lock_outline_rounded,
-                  ),
-                  AppHeaderStat(
-                    value: '$customRoles',
-                    label: 'Custom',
-                    color: AppColors.accentGreen,
-                    icon: Icons.tune_rounded,
-                  ),
-                ],
               ),
             ),
             SliverPadding(
