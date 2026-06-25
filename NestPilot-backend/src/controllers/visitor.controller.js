@@ -98,7 +98,6 @@ const logEntry = async (req, res, next) => {
                 status: req.body.status || 'WAITING_APPROVAL',
                 vehicle_number,
                 purpose,
-                type: 'WALK_IN',
                 approval_by_user_id: (req.body.status === 'DENIED' || req.body.status === 'INSIDE') ? req.user.id : null
             }, { transaction });
         }
