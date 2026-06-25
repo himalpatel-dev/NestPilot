@@ -380,9 +380,16 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 3),
-                  // Mobile + entry time
                   Text(
-                    '$mobile  ·  Entry: $entryTime',
+                    mobile,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Entry: $entryTime',
                     style: const TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 12,
@@ -414,13 +421,11 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
                     ],
                   ),
                   child: const Text(
-                    'Mark\nExit',
-                    textAlign: TextAlign.center,
+                    'Mark Exit',
                     style: TextStyle(
                       color: AppColors.white,
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      height: 1.3,
                     ),
                   ),
                 ),
