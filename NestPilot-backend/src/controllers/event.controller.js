@@ -28,7 +28,7 @@ const create = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const events = await service.getEvents(req.user.society_id, req.userScope);
+        const events = await service.getEvents(req.user.society_id);
         res.status(200).json(new ApiResponse(200, events));
     } catch (e) { next(e); }
 };

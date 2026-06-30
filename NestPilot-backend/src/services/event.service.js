@@ -78,12 +78,8 @@ const createEvent = async (data, userScope) => {
 };
 
 // ── Get all upcoming/active events for a society ──────────────────────────────
-const getEvents = async (societyId, userScope) => {
-    const visibleIds = await visibleEventIds(societyId, userScope);
-    if (visibleIds && !visibleIds.length) return [];
-
+const getEvents = async (societyId) => {
     const where = { society_id: societyId, is_active: true };
-    if (visibleIds) where.id = { [Op.in]: visibleIds };
 
     return db.Event.findAll({
         where,
