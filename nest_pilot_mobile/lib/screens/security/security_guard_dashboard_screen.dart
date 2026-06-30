@@ -12,6 +12,9 @@ import 'verify_passcode_screen.dart';
 import 'walk_in_entry_screen.dart';
 import 'current_visitors_screen.dart';
 import '../common/visitor_report_screen.dart';
+import '../member/community/vehicle_list_screen.dart';
+import '../member/notice_list_screen.dart';
+import '../secretary/event_manage_screen.dart';
 
 class SecurityGuardDashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -217,6 +220,32 @@ class _SecurityGuardDashboardScreenState
                         title: 'Visitor Logs',
                         subtitle: 'Browse complete entry & exit history',
                         onTap: () => _go(const VisitorReportScreen()),
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+                    _buildSectionHeader('Community'),
+                    const SizedBox(height: 14),
+                    _buildTileCard([
+                      _Tile(
+                        icon: Icons.directions_car_outlined,
+                        color: AppColors.accentTeal,
+                        title: 'Vehicles',
+                        subtitle: 'View registered vehicles in the society',
+                        onTap: () => _go(const VehicleListScreen()),
+                      ),
+                      _Tile(
+                        icon: Icons.campaign_outlined,
+                        color: AppColors.accentIndigo,
+                        title: 'Notices',
+                        subtitle: 'View society notices and announcements',
+                        onTap: () => _go(const NoticeListScreen()),
+                      ),
+                      _Tile(
+                        icon: Icons.event_outlined,
+                        color: AppColors.accentPink,
+                        title: 'Events',
+                        subtitle: 'View upcoming society events',
+                        onTap: () => _go(const EventManageScreen()),
                       ),
                     ]),
                     const SizedBox(height: 24),

@@ -7,7 +7,7 @@ router.use(auth);
 
 router.post('/', hasPermission('VEHICLES', 'create'), controller.addVehicle);
 router.get('/', hasPermission('VEHICLES', 'view'), controller.getMyVehicles);
-router.get('/all', hasPermission('VEHICLES', 'approve'), controller.getAllVehicles); // Admin route — broader visibility
+router.get('/all', hasPermission('VEHICLES', 'view'), controller.getAllVehicles);
 router.delete('/:id', hasPermission('VEHICLES', 'delete'), controller.deleteVehicle);
 
 module.exports = router;
