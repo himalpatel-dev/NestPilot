@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         type: {
-            type: DataTypes.ENUM('NOTICE', 'BILL', 'COMPLAINT', 'POLL', 'PAYMENT', 'VISITOR', 'OTHER'),
+            type: DataTypes.ENUM('NOTICE', 'BILL', 'COMPLAINT', 'POLL', 'PAYMENT', 'VISITOR', 'EVENT', 'OTHER'),
             defaultValue: 'NOTICE'
         },
         title: {

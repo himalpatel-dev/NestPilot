@@ -6,6 +6,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_field_card.dart';
+import 'event_detail_screen.dart';
 
 
 class EventManageScreen extends StatefulWidget {
@@ -146,9 +147,17 @@ class _EventManageScreenState extends State<EventManageScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: _events.length,
                     separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _EventCard(
-                      event: _events[i],
-                      onDelete: canDelete ? () => _deleteEvent(_events[i]) : null,
+                    itemBuilder: (_, i) => GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EventDetailScreen(event: _events[i]),
+                        ),
+                      ),
+                      child: _EventCard(
+                        event: _events[i],
+                        onDelete: canDelete ? () => _deleteEvent(_events[i]) : null,
+                      ),
                     ),
                   ),
                 ),
