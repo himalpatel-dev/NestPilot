@@ -145,7 +145,10 @@ const getNotices = async (societyId, userScope) => {
 
     return db.Notice.findAll({
         where,
-        include: [db.NoticeAttachment],
+        include: [
+            db.NoticeAttachment,
+            { model: db.User, as: 'createdBy', attributes: ['full_name'] }
+        ],
         order: [['publish_date', 'DESC']]
     });
 };
