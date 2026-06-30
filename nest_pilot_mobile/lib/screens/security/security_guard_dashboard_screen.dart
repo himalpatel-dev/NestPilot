@@ -15,6 +15,7 @@ import '../common/visitor_report_screen.dart';
 import '../member/community/vehicle_list_screen.dart';
 import '../member/notice_list_screen.dart';
 import '../secretary/event_manage_screen.dart';
+import 'service_staff_screen.dart';
 
 class SecurityGuardDashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -246,6 +247,13 @@ class _SecurityGuardDashboardScreenState
                         title: 'Events',
                         subtitle: 'View upcoming society events',
                         onTap: () => _go(const EventManageScreen()),
+                      ),
+                      _Tile(
+                        icon: Icons.badge_outlined,
+                        color: AppColors.accentOrange,
+                        title: 'Service Staff',
+                        subtitle: 'Add and manage society service staff',
+                        onTap: () => _go(const ServiceStaffScreen()),
                       ),
                     ]),
                     const SizedBox(height: 24),

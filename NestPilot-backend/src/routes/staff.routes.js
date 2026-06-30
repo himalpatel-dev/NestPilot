@@ -10,6 +10,7 @@ router.get('/', hasPermission('STAFF', 'view'), controller.getAllStaff);
 router.post('/', hasPermission('STAFF', 'create'), controller.addStaff);
 
 // Logging attendance is an update on the STAFF module.
+router.patch('/:id', hasPermission('STAFF', 'update'), controller.updateStaff);
 router.post('/attendance', hasPermission('STAFF', 'update'), controller.logAttendance);
 router.get('/:staff_id/attendance', hasPermission('STAFF', 'view'), controller.getStaffAttendance);
 

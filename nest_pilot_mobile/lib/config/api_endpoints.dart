@@ -66,6 +66,7 @@ class ApiEndpoints {
 
   // Staff
   static const String staff = '/api/staff';
+  static String staffById(int id) => '/api/staff/$id';
   static String staffAttendance(int id) => '/api/staff/$id/attendance';
 
   // Polls

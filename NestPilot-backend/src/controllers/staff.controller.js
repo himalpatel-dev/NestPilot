@@ -72,9 +72,21 @@ const getStaffAttendance = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const updateStaff = async (req, res, next) => {
+    try {
+        const staff = await db.ServiceStaff.findOne({
+            where: { id: req.params.id, society_id: req.user.society_id, is_active: true }
+        });
+        if (!staff) throw new ApiError(404, 'Staff not found');
+        await staff.update(req.body);
+        res.status(200).json(new ApiResponse(200, staff, 'Staff updated successfully'));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     addStaff,
     getAllStaff,
+    updateStaff,
     logAttendance,
     getStaffAttendance
 };
