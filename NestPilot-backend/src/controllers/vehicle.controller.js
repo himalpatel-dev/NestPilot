@@ -1,5 +1,4 @@
 const db = require('../models');
-const { Op } = require('sequelize');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 
@@ -79,25 +78,11 @@ const deleteVehicle = async (req, res, next) => {
 
 const getAllVehicles = async (req, res, next) => {
     try {
+        const isMember = req.user?.Role?.code === 'MEMBER';
         const where = { society_id: req.user.society_id, is_active: true };
 
-        if (req.userScope && !req.userScope.unscoped) {
-            if (!req.userScope.building_ids.length) {
-                return res.status(200).json(new ApiResponse(200, []));
-            }
-            const rows = await db.UserHouseMapping.findAll({
-                attributes: ['user_id'],
-                include: [{
-                    model: db.House,
-                    attributes: [],
-                    where: { building_id: { [Op.in]: req.userScope.building_ids } },
-                    required: true
-                }],
-                raw: true
-            });
-            const userIds = Array.from(new Set(rows.map(r => r.user_id)));
-            if (!userIds.length) return res.status(200).json(new ApiResponse(200, []));
-            where.user_id = { [Op.in]: userIds };
+        if (isMember) {
+            where.user_id = req.user.id;
         }
 
         const vehicles = await db.Vehicle.findAll({
