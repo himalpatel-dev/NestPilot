@@ -6,7 +6,7 @@ import '../config/roles.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
 import 'pending_approval_screen.dart';
-import 'super_admin/super_admin_dashboard_screen.dart';
+import 'dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,12 +49,10 @@ class _SplashScreenState extends State<SplashScreen>
     )..repeat(reverse: true);
 
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-    );
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
 
     _fadeController.forward();
     _slideController.forward();
@@ -146,9 +144,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Stack(
             children: [
               // ── Dot grid overlay ─────────────────────────────────────────────
-              Positioned.fill(
-                child: CustomPaint(painter: _DotGridPainter()),
-              ),
+              Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
 
               // ── Ambient blobs ─────────────────────────────────────────────────
               Positioned(
@@ -326,9 +322,7 @@ class _Blob extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }

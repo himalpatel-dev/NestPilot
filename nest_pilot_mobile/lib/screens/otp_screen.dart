@@ -8,7 +8,7 @@ import '../theme/app_text_styles.dart';
 import '../theme/nest_loader.dart';
 import '../widgets/glare_button.dart';
 import 'pending_approval_screen.dart';
-import 'super_admin/super_admin_dashboard_screen.dart';
+import 'dashboard_screen.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 

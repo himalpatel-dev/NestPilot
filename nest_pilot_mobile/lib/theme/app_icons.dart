@@ -1,6 +1,77 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
+/// Module card used on the unified dashboard: white rounded card with a
+/// soft pastel icon circle and the module name below.
+///
+/// Edit this class to restyle every module card on the dashboard.
+class AppModuleCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback? onTap;
+
+  const AppModuleCard({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: color, size: 25),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 16,
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Shared Quick-Action tile: circular gradient icon with white symbol,
 /// colored drop-shadow, and a short label below.
 ///

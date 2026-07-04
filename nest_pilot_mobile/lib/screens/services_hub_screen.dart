@@ -1,54 +1,15 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user_model.dart';
-import '../config/roles.dart';
-import '../config/modules.dart';
 import '../services/auth_service.dart';
-import '../services/permission_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dashboard_header.dart';
-import '../theme/app_icons.dart';
 import '../theme/app_bottom_nav.dart';
 import '../theme/tab_route.dart';
 
 import 'login_screen.dart';
 import 'notification_list_screen.dart';
-
-import 'super_admin/society_create_screen.dart';
-import 'super_admin/building_create_screen.dart';
-import 'super_admin/flat_create_screen.dart';
-import 'super_admin/flats_list_screen.dart';
-
-import 'secretary/pending_members_screen.dart';
-import 'secretary/notice_create_screen.dart';
-import 'secretary/bill_create_screen.dart';
-import 'secretary/bills_manage_screen.dart';
-import 'secretary/bills_dashboard_screen.dart';
-import 'secretary/visitor_dashboard_screen.dart';
-import 'secretary/amenity_management_screen.dart';
-import 'secretary/member_list_screen.dart';
-import 'secretary/poll_create_screen.dart';
-import 'secretary/document_upload_screen.dart';
-import 'secretary/staff_add_screen.dart';
-import 'secretary/vehicle_management_screen.dart';
-import 'secretary/event_manage_screen.dart';
-import 'secretary/payment_mark_screen.dart';
-import 'secretary/complaint_manage_screen.dart';
-
-import 'member/notice_list_screen.dart';
-import 'member/complaint_list_screen.dart';
-import 'member/bills_list_screen.dart';
-import 'member/ledger_screen.dart';
-import 'member/community/visitor_management_screen.dart';
-import 'member/community/amenity_booking_screen.dart';
-import 'member/community/staff_list_screen.dart';
-import 'member/community/poll_list_screen.dart';
-import 'member/community/document_list_screen.dart';
-import 'member/community/vehicle_list_screen.dart';
-
-import 'security/security_dashboard_screen.dart';
-import 'security/current_visitors_screen.dart';
-import 'common/visitor_report_screen.dart';
+import 'module_catalog.dart';
 
 class ServicesHubScreen extends StatefulWidget {
   final UserModel user;
@@ -68,9 +29,6 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
-  bool get _isMember => widget.user.role == UserRoles.member;
-  bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
-
   @override
   void initState() {
     super.initState();
@@ -89,7 +47,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sections = _applyPermissionFilter(_masterSections());
+    final sections = filterModuleSections(_masterSections());
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -137,7 +95,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
                           padding: EdgeInsets.only(
                             bottom: i == sections.length - 1 ? 0 : 24,
                           ),
-                          child: _Section(title: s.title, tiles: s.tiles),
+                          child: ModuleSectionView(title: s.title, tiles: s.tiles),
                         );
                       }, childCount: sections.length),
                     )
@@ -234,7 +192,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   // ─── Search results ──────────────────────────────────────────────────────────
 
-  Widget _buildSearchResults(List<_HubSection> sections) {
+  Widget _buildSearchResults(List<ModuleSection> sections) {
     final tiles = _filterTiles(sections);
     if (tiles.isEmpty) {
       return Padding(
@@ -268,17 +226,17 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         ),
       );
     }
-    return _Grid(tiles: tiles);
+    return ModuleGrid(tiles: tiles);
   }
 
-  List<_Tile> _filterTiles(List<_HubSection> sections) {
+  List<ModuleTile> _filterTiles(List<ModuleSection> sections) {
     final words = _searchQuery
         .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
         .toList();
     if (words.isEmpty) return [];
 
-    final scores = <_Tile, int>{};
+    final scores = <ModuleTile, int>{};
     for (final section in sections) {
       for (final tile in section.tiles) {
         final s = _scoreTile(tile, words);
@@ -290,7 +248,7 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     return result;
   }
 
-  int _scoreTile(_Tile tile, List<String> words) {
+  int _scoreTile(ModuleTile tile, List<String> words) {
     final label = tile.label.toLowerCase();
     final terms = [label, ...tile.tags];
     int total = 0;
@@ -323,15 +281,6 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
   // ─── Bottom nav ───────────────────────────────────────────────────────────────
 
   List<AppNavItem> _navItems() {
-    if (_isSecretary) {
-      return const [
-        AppNavItem(Icons.home_rounded, 'Home'),
-        AppNavItem(Icons.contacts_rounded, 'Residents'),
-        AppNavItem(Icons.apps_rounded, 'Services'),
-        AppNavItem(Icons.receipt_long_rounded, 'Bills'),
-        AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
-      ];
-    }
     return const [
       AppNavItem(Icons.home_rounded, 'Home'),
       AppNavItem(Icons.people_rounded, 'Community'),
@@ -343,40 +292,19 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
 
   void _onNavTap(int index) {
     if (index == 2) return;
-    if (index == 0) {
+    if (index == 0 || index == 4) {
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
     setState(() => _selectedTab = index);
     Widget? screen;
-    if (_isSecretary) {
-      switch (index) {
-        case 1:
-          screen = const MemberListScreen();
-          break;
-        case 3:
-          screen = const BillsDashboardScreen();
-          break;
-        case 4:
-          screen = const VisitorDashboardScreen();
-          break;
-      }
-    } else {
-      switch (index) {
-        case 1:
-          screen = _isMember
-              ? const NoticeListScreen()
-              : const NoticeCreateScreen();
-          break;
-        case 3:
-          screen = _isMember
-              ? const BillsListScreen()
-              : const BillsManageScreen();
-          break;
-        case 4:
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          return;
-      }
+    switch (index) {
+      case 1:
+        screen = noticesDest();
+        break;
+      case 3:
+        screen = billsDest();
+        break;
     }
     if (screen != null) {
       Navigator.push(context, tabRoute(screen)).then((_) {
@@ -385,242 +313,26 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     }
   }
 
-  // ─── Permission-driven master tile catalogue ─────────────────────────────────
-  //
-  // One master section list shared by every role. Each tile is gated by a
-  // (module, action) pair, so _applyPermissionFilter() drops anything the user
-  // can't see. Tiles that have both a "manager" view and a "member" view auto-
-  // pick the destination via the helper builders below — e.g. a user with
-  // canCreate(NOTICES) lands on NoticeCreateScreen, everyone else on
-  // NoticeListScreen. Add a tile here once and it shows for any role whose
-  // permissions allow it.
+  // ─── Sections: shared catalogue + hub-only settings ──────────────────────────
 
-  /// Drop tiles whose module the user can't access. Drop sections that end up empty.
-  List<_HubSection> _applyPermissionFilter(List<_HubSection> sections) {
-    final perms = PermissionService();
-    final out = <_HubSection>[];
-    for (final s in sections) {
-      final allowed = s.tiles
-          .where((t) => t.module == null || perms.can(t.module!, t.requiredAction))
-          .toList();
-      if (allowed.isNotEmpty) {
-        out.add(_HubSection(s.title, allowed));
-      }
-    }
-    return out;
-  }
-
-  // ── Destination pickers ─────────────────────────────────────────────────────
-  // Each picker inspects the user's permissions and returns the correct screen
-  // for that tile. Keeps the section list declarative.
-
-  Widget _noticesDest() => PermissionService().canCreate(ModuleCodes.notices)
-      ? const NoticeCreateScreen()
-      : const NoticeListScreen();
-
-  Widget _pollsDest() => PermissionService().canCreate(ModuleCodes.polls)
-      ? const PollCreateScreen()
-      : const PollListScreen();
-
-  Widget _documentsDest() => PermissionService().canCreate(ModuleCodes.documents)
-      ? const DocumentUploadScreen()
-      : const DocumentListScreen();
-
-  Widget _vehiclesDest() => PermissionService().canApprove(ModuleCodes.vehicles)
-      ? const VehicleManagementScreen()
-      : const VehicleListScreen();
-
-  Widget _amenitiesDest() {
-    final p = PermissionService();
-    // Admins (approve bookings or create amenities) get the management screen,
-    // everyone else gets the booking screen.
-    return (p.canApprove(ModuleCodes.amenities) || p.canCreate(ModuleCodes.amenities))
-        ? const AmenityManagementScreen()
-        : const AmenityBookingScreen();
-  }
-
-  Widget _staffDest() => PermissionService().canCreate(ModuleCodes.staff)
-      ? const StaffAddScreen()
-      : const StaffListScreen();
-
-  Widget _complaintsDest() => PermissionService().canUpdate(ModuleCodes.complaints)
-      ? const ComplaintManageScreen()
-      : const ComplaintListScreen();
-
-  Widget _billsDest() => PermissionService().canCreate(ModuleCodes.bills)
-      ? const BillsManageScreen()
-      : const BillsListScreen();
-
-  // ── Master section list ─────────────────────────────────────────────────────
-
-  List<_HubSection> _masterSections() => [
-    _HubSection('Community', [
-      _Tile.gated(
-        Icons.campaign_outlined, 'Notices', AppColors.accentAmber,
-        (c) => _go(c, _noticesDest()),
-        ModuleCodes.notices,
-        tags: const ['announcement', 'news', 'update', 'broadcast', 'circular', 'alert'],
-      ),
-      _Tile.gated(
-        Icons.event_outlined, 'Events', AppColors.accentIndigo,
-        (c) => _go(c, const EventManageScreen()),
-        ModuleCodes.events,
-        tags: const ['event', 'celebration', 'party', 'gathering', 'programme', 'function', 'occasion', 'festival'],
-      ),
-      _Tile.gated(
-        Icons.how_to_vote_outlined, 'Polls', AppColors.accentPurple,
-        (c) => _go(c, _pollsDest()),
-        ModuleCodes.polls,
-        tags: const ['vote', 'survey', 'decision', 'opinion', 'question'],
-      ),
-      _Tile.gated(
-        Icons.folder_open_outlined, 'Documents', AppColors.accentGreen,
-        (c) => _go(c, _documentsDest()),
-        ModuleCodes.documents,
-        tags: const ['doc', 'file', 'pdf', 'upload', 'download', 'paper', 'record', 'form'],
-      ),
-      _Tile.gated(
-        Icons.directions_car_outlined, 'Vehicles', AppColors.accentBlue,
-        (c) => _go(c, _vehiclesDest()),
-        ModuleCodes.vehicles,
-        tags: const ['car', 'bike', 'parking', 'motor', 'transport', 'sticker', 'two wheeler', 'four wheeler'],
-      ),
-    ]),
-    _HubSection('Services', [
-      _Tile.gated(
-        Icons.calendar_today_outlined, 'Amenities', AppColors.accentIndigo,
-        (c) => _go(c, _amenitiesDest()),
-        ModuleCodes.amenities,
-        tags: const ['gym', 'pool', 'hall', 'club', 'book', 'booking', 'facility', 'sport', 'court', 'ground'],
-      ),
-      _Tile.gated(
-        Icons.report_problem_outlined, 'Complaints', AppColors.accentRed,
-        (c) => _go(c, _complaintsDest()),
-        ModuleCodes.complaints,
-        tags: const ['issue', 'problem', 'report', 'complain', 'fix', 'repair', 'request', 'raise', 'grievance'],
-      ),
-      _Tile.gated(
-        Icons.cleaning_services_outlined, 'Daily Help', AppColors.accentPink,
-        (c) => _go(c, _staffDest()),
-        ModuleCodes.staff,
-        tags: const ['maid', 'cook', 'servant', 'helper', 'housekeeping', 'staff', 'worker', 'cleaning', 'domestic'],
-      ),
-    ]),
-    _HubSection('Visitors', [
-      _Tile.gated(
-        Icons.person_add_outlined, 'Invite / History', AppColors.accentBlue,
-        (c) => _go(c, const VisitorManagementScreen()),
-        ModuleCodes.visitors,
-        tags: const ['guest', 'pass', 'entry', 'invite', 'visitor', 'outsider', 'log', 'history'],
-      ),
-      _Tile.gated(
-        Icons.directions_run_outlined, 'Visitor Entry', AppColors.accentOrange,
-        (c) => _go(c, const SecurityDashboardScreen()),
-        ModuleCodes.visitors,
-        requiredAction: PermAction.create,
-        tags: const ['gate', 'guard', 'entry', 'check in', 'security', 'allow', 'approve entry', 'walk-in', 'walk in'],
-      ),
-      _Tile.gated(
-        Icons.group_outlined, 'Inside Now', AppColors.accentGreen,
-        (c) => _go(c, const CurrentVisitorsScreen()),
-        ModuleCodes.visitors,
-        tags: const ['current', 'present', 'inside', 'visitor', 'who', 'guest', 'active', 'ongoing'],
-      ),
-      _Tile.gated(
-        Icons.history_outlined, 'Visitor Logs', AppColors.accentBlue,
-        (c) => _go(c, const VisitorReportScreen()),
-        ModuleCodes.visitors,
-        tags: const ['history', 'past', 'log', 'visitor', 'report', 'guest', 'exit', 'record'],
-      ),
-    ]),
-    _HubSection('Billing & Payments', [
-      _Tile.gated(
-        Icons.add_card_outlined, 'Create Bill', AppColors.accentGreen,
-        (c) => _go(c, const BillCreateScreen()),
-        ModuleCodes.bills,
-        requiredAction: PermAction.create,
-        tags: const ['generate', 'new', 'billing', 'invoice', 'bill generate', 'make bill', 'add bill'],
-      ),
-      _Tile.gated(
-        Icons.receipt_long_outlined, 'Bills', AppColors.accentAmber,
-        (c) => _go(c, _billsDest()),
-        ModuleCodes.bills,
-        tags: const ['bill', 'payment', 'dues', 'maintenance', 'fees', 'rent', 'pay', 'charge', 'amount', 'monthly', 'view bills', 'all bills'],
-      ),
-      _Tile.gated(
-        Icons.payments_outlined, 'Mark Payment', AppColors.accentTeal,
-        (c) => _go(c, const PaymentMarkScreen()),
-        ModuleCodes.bills,
-        requiredAction: PermAction.update,
-        tags: const ['payment', 'pay', 'dues', 'maintenance', 'collect', 'mark', 'record', 'paid', 'receipt', 'bill pay', 'collected'],
-      ),
-      _Tile.gated(
-        Icons.account_balance_outlined, 'Ledger', AppColors.accentTeal,
-        (c) => _go(c, const LedgerScreen()),
-        ModuleCodes.bills,
-        tags: const ['history', 'statement', 'account', 'transaction', 'balance', 'paid', 'receipt'],
-      ),
-    ]),
-    _HubSection('Administration', [
-      _Tile.gated(
-        Icons.person_add_alt_1_outlined, 'Pending', AppColors.accentAmber,
-        (c) => _go(c, const PendingMembersScreen()),
-        ModuleCodes.users,
-        requiredAction: PermAction.approve,
-        tags: const ['approve', 'request', 'new member', 'join', 'pending member', 'waiting', 'acceptance'],
-      ),
-      _Tile.gated(
-        Icons.contacts_outlined, 'Residents', AppColors.accentBlue,
-        (c) => _go(c, const MemberListScreen()),
-        ModuleCodes.users,
-        tags: const ['member', 'flat', 'tenant', 'owner', 'resident', 'people', 'family', 'occupant', 'contact'],
-      ),
-      _Tile.gated(
-        Icons.business_outlined, 'Societies', AppColors.accentOrange,
-        (c) => _go(c, const SocietyCreateScreen()),
-        ModuleCodes.buildings,
-        requiredAction: PermAction.create,
-        tags: const ['society', 'create society', 'new society', 'apartment', 'complex', 'housing', 'colony'],
-      ),
-      _Tile.gated(
-        Icons.apartment_outlined, 'Buildings', AppColors.accentBlue,
-        (c) => _go(c, const BuildingCreateScreen()),
-        ModuleCodes.buildings,
-        requiredAction: PermAction.create,
-        tags: const ['building', 'tower', 'block', 'wing', 'floor', 'structure'],
-      ),
-      _Tile.gated(
-        Icons.door_front_door_outlined, 'Add Flat', AppColors.accentPurple,
-        (c) => _go(c, const FlatCreateScreen()),
-        ModuleCodes.buildings,
-        requiredAction: PermAction.create,
-        tags: const ['flat', 'unit', 'apartment', 'room', 'house', 'add flat', 'new flat'],
-      ),
-      _Tile.gated(
-        Icons.list_alt_outlined, 'Flats', AppColors.accentTeal,
-        (c) => _go(c, const FlatsListScreen()),
-        ModuleCodes.buildings,
-        tags: const ['flat list', 'unit list', 'all flats', 'rooms', 'units', 'view flats'],
-      ),
-    ]),
-    _HubSection('Settings', [
-      _Tile(
+  List<ModuleSection> _masterSections() => [
+    ...masterModuleSections(),
+    ModuleSection('Settings', [
+      ModuleTile(
         Icons.notifications_outlined, 'Notifications', AppColors.accentOrange,
-        (c) => _go(c, const NotificationListScreen()),
+        (c) => Navigator.push(
+          c,
+          MaterialPageRoute(builder: (_) => const NotificationListScreen()),
+        ),
         ['alert', 'notify', 'push', 'message', 'reminder', 'bell'],
       ),
-      _Tile(
+      ModuleTile(
         Icons.logout_rounded, 'Logout', AppColors.accentRed,
         (c) => _logout(c),
         ['sign out', 'exit', 'signout', 'quit', 'leave'],
       ),
     ]),
   ];
-
-
-  void _go(BuildContext context, Widget screen) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
-  }
 
   Future<void> _logout(BuildContext context) async {
     await AuthService().logout();
@@ -631,143 +343,4 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
       (route) => false,
     );
   }
-}
-
-// ─── Section block ───────────────────────────────────────────────────────────
-
-class _Section extends StatelessWidget {
-  final String title;
-  final List<_Tile> tiles;
-  const _Section({required this.title, required this.tiles});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.50),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-        _Grid(tiles: tiles),
-      ],
-    );
-  }
-}
-
-class _Grid extends StatelessWidget {
-  final List<_Tile> tiles;
-  const _Grid({required this.tiles});
-
-  @override
-  Widget build(BuildContext context) {
-    const columns = 4;
-    const gap = 10.0;
-    final rowCount = (tiles.length / columns).ceil();
-    return Column(
-      children: List.generate(rowCount, (rowIdx) {
-        final start = rowIdx * columns;
-        final end = (start + columns).clamp(0, tiles.length);
-        final rowTiles = tiles.sublist(start, end);
-        return Padding(
-          padding: EdgeInsets.only(top: rowIdx == 0 ? 0 : gap),
-          child: Row(
-            children: [
-              for (int i = 0; i < columns; i++) ...[
-                if (i > 0) const SizedBox(width: gap),
-                Expanded(
-                  child: i < rowTiles.length
-                      ? _TileView(tile: rowTiles[i])
-                      : const SizedBox(height: 90),
-                ),
-              ],
-            ],
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _TileView extends StatelessWidget {
-  final _Tile tile;
-  const _TileView({required this.tile});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => tile.onTap(context),
-      behavior: HitTestBehavior.opaque,
-      child: AppIconTile(
-        icon: tile.icon,
-        color: tile.color,
-        label: tile.label,
-        iconSize: 22,
-      ),
-    );
-  }
-}
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-class _HubSection {
-  final String title;
-  final List<_Tile> tiles;
-  const _HubSection(this.title, this.tiles);
-}
-
-class _Tile {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final void Function(BuildContext context) onTap;
-  final List<String> tags;
-  /// Module this tile belongs to. null = always shown (e.g. Logout, Notifications).
-  final String? module;
-  /// Action required on [module] for this tile to be shown. Defaults to view.
-  final String requiredAction;
-  const _Tile(
-    this.icon,
-    this.label,
-    this.color,
-    this.onTap, [
-    this.tags = const [],
-  ]) : module = null, requiredAction = PermAction.view;
-
-  const _Tile.gated(
-    this.icon,
-    this.label,
-    this.color,
-    this.onTap,
-    this.module, {
-    this.requiredAction = PermAction.view,
-    this.tags = const [],
-  });
 }

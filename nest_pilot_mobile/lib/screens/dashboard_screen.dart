@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:nest_pilot_mobile/screens/secretary/payment_mark_screen.dart';
 import '../theme/nest_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -12,38 +11,26 @@ import '../services/auth_service.dart';
 import '../services/permission_service.dart';
 import '../services/notification_service.dart';
 import '../services/billing_payment_service.dart';
+import '../services/community_service.dart';
 import '../services/activity_service.dart';
 import '../models/activity_model.dart';
 import 'notification_list_screen.dart';
 import 'login_screen.dart';
-import 'super_admin/society_create_screen.dart';
-import 'super_admin/building_create_screen.dart';
-import 'super_admin/flat_create_screen.dart';
-import 'super_admin/flats_list_screen.dart';
-import 'super_admin/role_management_screen.dart';
-import 'super_admin/secretary_buildings_screen.dart';
-import 'secretary/pending_members_screen.dart';
-import 'secretary/notice_create_screen.dart';
-import 'secretary/bills_manage_screen.dart';
-import 'secretary/bills_dashboard_screen.dart';
-import 'secretary/visitor_dashboard_screen.dart';
-import 'secretary/member_list_screen.dart';
-import 'member/notice_list_screen.dart';
-import 'security/security_dashboard_screen.dart';
-import 'security/current_visitors_screen.dart';
-import 'common/visitor_report_screen.dart';
 import 'member/complaint_list_screen.dart';
-import 'member/bills_list_screen.dart';
-import 'member/community/visitor_management_screen.dart';
-import 'member/community/amenity_booking_screen.dart';
-import 'member/community/staff_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
+import 'secretary/member_list_screen.dart';
+import 'super_admin/buildings_list_screen.dart';
+import 'super_admin/role_management_screen.dart';
+import 'module_catalog.dart';
 import 'services_hub_screen.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dashboard_header.dart';
-import '../theme/dashboard_cards.dart';
-import '../theme/app_bottom_nav.dart';
+import '../theme/app_icons.dart';
+
+/// Single unified home for every role. The dashboard adapts itself through
+/// module permissions — no per-role dashboard screens anymore.
+Widget homeScreenFor(UserModel user) => DashboardScreen(user: user);
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -57,8 +44,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _unreadCount = 0;
   double _outstandingAmount = 0.0;
   bool _loadingBills = false;
-  int _selectedTab = 0;
   DashboardStats? _dashStats;
+  SuperAdminStats? _superStats;
+
+  // Security visitor stats (shown in the header for security roles).
+  int _todayCount = 0;
+  int _insideCount = 0;
+  int _exitedCount = 0;
+  int _totalCount = 0;
 
   List<ActivityModel> _recentActivity = const [];
   bool _loadingActivity = false;
@@ -70,16 +63,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchOutstandingBills();
     _fetchRecentActivity();
     _fetchDashboardStats();
+    _fetchSecurityStats();
     _setupSocket();
   }
 
   Future<void> _fetchDashboardStats() async {
-    if (!_isAdmin) return;
     try {
-      final stats = await AdminService().getDashboardStats();
-      if (mounted) setState(() => _dashStats = stats);
+      if (_isSuperAdmin) {
+        final stats = await AdminService().getSuperAdminStats();
+        if (mounted) setState(() => _superStats = stats);
+      } else if (_isSecretary) {
+        final stats = await AdminService().getDashboardStats();
+        if (mounted) setState(() => _dashStats = stats);
+      }
     } catch (e) {
       debugPrint('Dashboard stats error: $e');
+    }
+  }
+
+  Future<void> _fetchSecurityStats() async {
+    if (!_isSecurity) return;
+    try {
+      final community = CommunityService();
+      final results = await Future.wait([
+        community.getInsideVisitors(),
+        community.getAllSocietyVisitors(),
+      ]);
+
+      if (!mounted) return;
+
+      final inside = results[0];
+      final all = results[1];
+      final today = DateTime.now();
+
+      bool isToday(dynamic v) {
+        try {
+          final t = DateTime.parse(v['entry_time'] as String);
+          return t.year == today.year &&
+              t.month == today.month &&
+              t.day == today.day;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      final todayLogs = all.where(isToday).toList();
+
+      setState(() {
+        _insideCount = inside.length;
+        _totalCount = all.length;
+        _todayCount = todayLogs.length;
+        _exitedCount = todayLogs.where((v) => v['status'] == 'EXITED').length;
+      });
+    } catch (e) {
+      debugPrint('Security stats error: $e');
     }
   }
 
@@ -115,14 +152,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchRecentActivity() async {
-    debugPrint(
-      'RecentActivity fetch — role=${widget.user.role} isAdmin=$_isAdmin isSecurity=$_isSecurity',
-    );
     if (!_isAdmin && !_isSecurity) return;
     setState(() => _loadingActivity = true);
     try {
       final items = await ActivityService().getRecent(limit: 5);
-      debugPrint('RecentActivity items received: ${items.length}');
       if (mounted) setState(() => _recentActivity = items);
     } catch (e) {
       debugPrint('Activity error: $e');
@@ -339,22 +372,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.cardBackground,
-        bottomNavigationBar: AppBottomNav(
-          selectedIndex: _selectedTab,
-          bottomPadding: bottomPad,
-          onTap: _onNavTap,
-          items: _navItems(),
-        ),
-        body: IndexedStack(
-          index: _selectedTab,
-          children: _buildTabScreens(bottomPad),
-        ),
+        body: _buildHome(bottomPad),
       ),
     );
   }
 
-  List<Widget> _buildTabScreens(double bottomPad) {
-    final homeTab = SafeArea(
+  Widget _buildHome(double bottomPad) {
+    final perms = PermissionService();
+    final modules = _moduleEntries();
+    final showNoticeEvent =
+        perms.canView(ModuleCodes.notices) || perms.canView(ModuleCodes.events);
+    final showMyComplaints = perms.canView(ModuleCodes.complaints) &&
+        !perms.canUpdate(ModuleCodes.complaints);
+
+    return SafeArea(
       top: false,
       bottom: false,
       child: RefreshIndicator(
@@ -363,6 +394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           await _fetchOutstandingBills();
           await _fetchRecentActivity();
           await _fetchDashboardStats();
+          await _fetchSecurityStats();
         },
         color: AppColors.white,
         backgroundColor: AppColors.primary,
@@ -374,22 +406,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  if (_getQuickActions().isNotEmpty) ...[
-                    _buildSectionHeader('Quick Actions'),
+                  // Module cards — one per module, shown to every user and
+                  // filtered by their module permissions.
+                  if (modules.isNotEmpty) ...[
+                    _buildModulesHeader(),
                     const SizedBox(height: 14),
-                    _buildQuickActions(),
+                    _buildModulesGrid(modules),
                   ],
-                  if (PermissionService().canView(ModuleCodes.roles)) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('System Management'),
-                    const SizedBox(height: 14),
-                    _buildSystemManagement(),
-                  ],
-                  if (_isMember || _isAdmin) ...[
+                  if (showNoticeEvent) ...[
                     const SizedBox(height: 24),
                     _buildNoticeAndEvent(),
                   ],
-                  if (_isMember) ...[
+                  if (showMyComplaints) ...[
                     const SizedBox(height: 24),
                     _buildSectionHeader(
                       'My Complaints',
@@ -411,24 +439,158 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
 
-    if (_isSecretary) {
-      return [
-        homeTab,
-        const MemberListScreen(embedded: true),
-        ServicesHubScreen(user: widget.user, embedded: true),
-        const BillsDashboardScreen(),
-        const VisitorDashboardScreen(),
-      ];
-    }
+  // ─── Modules grid ────────────────────────────────────────────────────────────
 
-    return [
-      homeTab,
-      _isMember ? const NoticeListScreen() : const NoticeCreateScreen(),
-      ServicesHubScreen(user: widget.user, embedded: true),
-      _isMember ? const BillsListScreen() : const BillsManageScreen(),
-      const SizedBox.shrink(), // profile is shown as a sheet
+  /// One card per module, gated by a (module, action) pair — the grid only
+  /// shows what the logged-in user's role permissions allow.
+  List<_ModuleEntry> _moduleEntries() {
+    final perms = PermissionService();
+    final all = [
+      _ModuleEntry(
+        Icons.campaign_outlined, 'Notices', AppColors.accentIndigo,
+        () => _go(noticesDest()),
+        module: ModuleCodes.notices,
+      ),
+      _ModuleEntry(
+        Icons.report_problem_outlined, 'Complaints', AppColors.accentPink,
+        () => _go(complaintsDest()),
+        module: ModuleCodes.complaints,
+      ),
+      _ModuleEntry(
+        Icons.receipt_long_outlined, 'Bills & Ledger', AppColors.accentOrange,
+        () => _go(billsDest(), refresh: _fetchOutstandingBills),
+        module: ModuleCodes.bills,
+      ),
+      _ModuleEntry(
+        Icons.event_outlined, 'Events', AppColors.accentPurple,
+        () => _go(eventsDest()),
+        module: ModuleCodes.events,
+      ),
+      _ModuleEntry(
+        Icons.calendar_today_outlined, 'Amenities', AppColors.accentGreen,
+        () => _go(amenitiesDest()),
+        module: ModuleCodes.amenities,
+      ),
+      _ModuleEntry(
+        Icons.person_pin_circle_outlined, 'Visitors', AppColors.accentTeal,
+        () => _go(visitorsDest()),
+        module: ModuleCodes.visitors,
+      ),
+      _ModuleEntry(
+        Icons.engineering_outlined, 'Staff', AppColors.accentAmber,
+        () => _go(staffDest()),
+        module: ModuleCodes.staff,
+      ),
+      _ModuleEntry(
+        Icons.how_to_vote_outlined, 'Polls', AppColors.accentTeal,
+        () => _go(pollsDest()),
+        module: ModuleCodes.polls,
+      ),
+      _ModuleEntry(
+        Icons.folder_open_outlined, 'Documents', AppColors.accentIndigo,
+        () => _go(documentsDest()),
+        module: ModuleCodes.documents,
+      ),
+      _ModuleEntry(
+        Icons.directions_car_outlined, 'Vehicles', AppColors.accentBlue,
+        () => _go(vehiclesDest()),
+        module: ModuleCodes.vehicles,
+      ),
+      _ModuleEntry(
+        Icons.contacts_outlined, 'Residents', AppColors.accentBlue,
+        () => _go(const MemberListScreen()),
+        module: ModuleCodes.users,
+      ),
+      _ModuleEntry(
+        Icons.apartment_outlined, 'Buildings', AppColors.accentOrange,
+        () => _go(const BuildingsListScreen()),
+        module: ModuleCodes.buildings,
+        requiredAction: PermAction.create,
+      ),
+      _ModuleEntry(
+        Icons.shield_outlined, 'Roles', AppColors.accentIndigo,
+        () => _go(const RoleManagementScreen()),
+        module: ModuleCodes.roles,
+      ),
+      _ModuleEntry(
+        Icons.apps_rounded, 'Services', AppColors.accentGreen,
+        () => _go(ServicesHubScreen(user: widget.user, embedded: true)),
+      ),
+      _ModuleEntry(
+        Icons.notifications_outlined, 'Alerts', AppColors.accentRed,
+        _showNotifications,
+      ),
+      _ModuleEntry(
+        Icons.person_outline, 'Profile', AppColors.accentPurple,
+        _showProfileSheet,
+      ),
     ];
+    return all
+        .where((m) => m.module == null || perms.can(m.module!, m.requiredAction))
+        .toList();
+  }
+
+  Widget _buildModulesHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Modules',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            'Tap to open',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModulesGrid(List<_ModuleEntry> entries) {
+    const columns = 3;
+    const gap = 12.0;
+    final rowCount = (entries.length / columns).ceil();
+    return Column(
+      children: List.generate(rowCount, (rowIdx) {
+        final start = rowIdx * columns;
+        final end = (start + columns).clamp(0, entries.length);
+        final row = entries.sublist(start, end);
+        return Padding(
+          padding: EdgeInsets.only(top: rowIdx == 0 ? 0 : gap),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < columns; i++) ...[
+                if (i > 0) const SizedBox(width: gap),
+                Expanded(
+                  child: i < row.length
+                      ? AppModuleCard(
+                          icon: row[i].icon,
+                          color: row[i].color,
+                          label: row[i].label,
+                          onTap: row[i].onTap,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ],
+          ),
+        );
+      }),
+    );
   }
 
   // ─── Hero ───────────────────────────────────────────────────────────────────
@@ -500,45 +662,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (_isSecurity) {
       return [
         AppHeaderStat(
-            value: '0',
-            label: 'Inside Now',
-            color: AppColors.accentGreen,
-            icon: Icons.group_outlined),
-        AppHeaderStat(
-            value: '0',
-            label: "Today's Entries",
+            value: '$_todayCount',
+            label: "Today's Entry",
             color: AppColors.accentBlue,
             icon: Icons.login_outlined),
         AppHeaderStat(
-            value: '$_unreadCount',
-            label: 'Notifications',
-            color: AppColors.accentPurple,
-            icon: Icons.notifications_outlined),
+            value: '$_insideCount',
+            label: 'Inside',
+            color: AppColors.accentGreen,
+            icon: Icons.group_outlined),
         AppHeaderStat(
-            value: '0',
-            label: 'Daily Help',
-            color: AppColors.accentPink,
-            icon: Icons.cleaning_services_outlined),
+            value: '$_exitedCount',
+            label: 'Exited',
+            color: AppColors.accentOrange,
+            icon: Icons.logout_outlined),
+        AppHeaderStat(
+            value: '$_totalCount',
+            label: 'Total Visitors',
+            color: AppColors.accentPurple,
+            icon: Icons.people_outline_rounded),
       ];
     } else if (_isSuperAdmin) {
       return [
         AppHeaderStat(
-            value: '0',
+            value: '${_superStats?.totalSocieties ?? 0}',
             label: 'Societies',
             color: AppColors.accentOrange,
             icon: Icons.business_outlined),
         AppHeaderStat(
-            value: '0',
+            value: '${_superStats?.totalBuildings ?? 0}',
             label: 'Buildings',
             color: AppColors.accentBlue,
             icon: Icons.apartment_outlined),
         AppHeaderStat(
-            value: '0',
+            value: '${_superStats?.totalFlats ?? 0}',
             label: 'Flats',
             color: AppColors.accentPurple,
             icon: Icons.door_front_door_outlined),
         AppHeaderStat(
-            value: '0',
+            value: '${_superStats?.totalMembers ?? 0}',
             label: 'Members',
             color: AppColors.accentGreen,
             icon: Icons.people_outlined),
@@ -563,288 +725,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icons.report_problem_outlined),
       ];
     }
-  }
-
-  // ─── Quick Actions ───────────────────────────────────────────────────────────
-
-  Widget _buildQuickActions() {
-    final actions = _getQuickActions();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          for (int i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(width: 10),
-            Expanded(
-              child: DashActionCard(
-                icon: actions[i].icon,
-                color: actions[i].color,
-                label: actions[i].label,
-                onTap: actions[i].onTap,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  List<_Action> _getQuickActions() {
-    List<_Action> all;
-    if (_isMember) {
-      all = [
-        _Action(
-          Icons.person_add_outlined,
-          'Invite\nGuest',
-          AppColors.accentBlue,
-          () => _go(const VisitorManagementScreen()),
-          module: ModuleCodes.visitors,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.credit_card_outlined,
-          'Pay\nMaintenance',
-          AppColors.accentGreen,
-          () => _go(const BillsListScreen(), refresh: _fetchOutstandingBills),
-          module: ModuleCodes.bills,
-        ),
-        _Action(
-          Icons.campaign_outlined,
-          'Raise\nComplaint',
-          AppColors.accentRed,
-          () => _go(const ComplaintListScreen()),
-          module: ModuleCodes.complaints,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.calendar_today_outlined,
-          'Book\nAmenities',
-          AppColors.accentIndigo,
-          () => _go(const AmenityBookingScreen()),
-          module: ModuleCodes.amenities,
-          requiredAction: PermAction.create,
-        ),
-      ];
-    } else if (_isSecurity) {
-      all = [
-        _Action(
-          Icons.directions_run_outlined,
-          'Visitor\nEntry',
-          AppColors.accentOrange,
-          () => _go(const SecurityDashboardScreen()),
-          module: ModuleCodes.visitors,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.history_outlined,
-          'Visitor\nLogs',
-          AppColors.accentBlue,
-          () => _go(const VisitorReportScreen()),
-          module: ModuleCodes.visitors,
-        ),
-        _Action(
-          Icons.group_outlined,
-          'Inside\nNow',
-          AppColors.accentGreen,
-          () => _go(const CurrentVisitorsScreen()),
-          module: ModuleCodes.visitors,
-        ),
-        _Action(
-          Icons.cleaning_services_outlined,
-          'Daily\nHelp',
-          AppColors.accentPink,
-          () => _go(const StaffListScreen()),
-          module: ModuleCodes.staff,
-        ),
-      ];
-    } else if (_isSuperAdmin) {
-      all = [
-        _Action(
-          Icons.business_outlined,
-          'Create\nSociety',
-          AppColors.accentPink,
-          () => _go(const SocietyCreateScreen()),
-          module: ModuleCodes.buildings,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.apartment_outlined,
-          'Add\nBuilding',
-          AppColors.accentBlue,
-          () => _go(const BuildingCreateScreen()),
-          module: ModuleCodes.buildings,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.door_front_door_outlined,
-          'Add\nFlat',
-          AppColors.accentOrange,
-          () => _go(const FlatCreateScreen()),
-          module: ModuleCodes.buildings,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.list_alt_outlined,
-          'Flats\nList',
-          AppColors.accentTeal,
-          () => _go(const FlatsListScreen()),
-          module: ModuleCodes.buildings,
-        ),
-      ];
-    } else {
-      all = [
-        _Action(
-          Icons.person_add_alt_1_outlined,
-          'Pending',
-          AppColors.accentAmber,
-          () => _go(const PendingMembersScreen()),
-          module: ModuleCodes.users,
-          requiredAction: PermAction.approve,
-        ),
-        _Action(
-          Icons.campaign_outlined,
-          'Notices',
-          AppColors.accentPurple,
-          () => _go(const NoticeCreateScreen()),
-          module: ModuleCodes.notices,
-          requiredAction: PermAction.create,
-        ),
-        _Action(
-          Icons.warning_amber_rounded,
-          'Complaints',
-          AppColors.accentGreen,
-          () => _go(const ComplaintListScreen()),
-          module: ModuleCodes.complaints,
-        ),
-        _Action(
-          Icons.payment_outlined,
-          'Payments',
-          AppColors.accentBlue,
-          () => _go(const PaymentMarkScreen()),
-          module: ModuleCodes.bills,
-          requiredAction: PermAction.update,
-        ),
-      ];
-    }
-    final perms = PermissionService();
-    return all
-        .where((a) => a.module == null || perms.can(a.module!, a.requiredAction))
-        .toList();
-  }
-
-  // ─── System Management (SuperAdmin) ─────────────────────────────────────────
-
-  Widget _buildSystemManagement() {
-    final perms = PermissionService();
-    final tiles = <_SystemTile>[
-      _SystemTile(
-        icon: Icons.shield_outlined,
-        color: AppColors.accentIndigo,
-        title: 'Roles & Permissions',
-        subtitle: 'Create roles and configure module access',
-        onTap: () => _go(const RoleManagementScreen()),
-        module: ModuleCodes.roles,
-      ),
-      _SystemTile(
-        icon: Icons.apartment_outlined,
-        color: AppColors.accentBlue,
-        title: 'Secretary Buildings',
-        subtitle: 'Assign buildings to each Society Admin',
-        onTap: () => _go(const SecretaryBuildingsScreen()),
-        module: ModuleCodes.buildings,
-      ),
-    ].where((t) => t.module == null || perms.can(t.module!, t.requiredAction)).toList();
-    if (tiles.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < tiles.length; i++) ...[
-            if (i > 0)
-              Divider(height: 1, indent: 60, color: AppColors.border),
-            _buildSystemTile(tiles[i]),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSystemTile(_SystemTile tile) {
-    return InkWell(
-      onTap: tile.onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: tile.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              alignment: Alignment.center,
-              child: Icon(tile.icon, color: tile.color, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tile.title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tile.subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textHint,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // ─── Notice + Event ──────────────────────────────────────────────────────────
@@ -890,11 +770,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => _go(
-                  _isMember
-                      ? const NoticeListScreen()
-                      : const NoticeCreateScreen(),
-                ),
+                onTap: () => _go(noticesDest()),
                 child: const Text(
                   'View all',
                   style: TextStyle(
@@ -918,9 +794,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 14),
           GestureDetector(
-            onTap: () => _go(
-              _isMember ? const NoticeListScreen() : const NoticeCreateScreen(),
-            ),
+            onTap: () => _go(noticesDest()),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
@@ -1262,34 +1136,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  List<AppNavItem> _navItems() {
-    if (_isSecretary) {
-      return const [
-        AppNavItem(Icons.home_rounded, 'Home'),
-        AppNavItem(Icons.contacts_rounded, 'Residents'),
-        AppNavItem(Icons.apps_rounded, 'Services'),
-        AppNavItem(Icons.receipt_long_rounded, 'Bills'),
-        AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
-      ];
-    }
-    return const [
-      AppNavItem(Icons.home_rounded, 'Home'),
-      AppNavItem(Icons.people_rounded, 'Community'),
-      AppNavItem(Icons.apps_rounded, 'Services'),
-      AppNavItem(Icons.account_balance_wallet_rounded, 'Payments'),
-      AppNavItem(Icons.person_rounded, 'Profile'),
-    ];
-  }
-
-  void _onNavTap(int index) {
-    if (!_isSecretary && index == 4) {
-      _showProfileSheet();
-      return;
-    }
-    setState(() => _selectedTab = index);
-    if (index == 3 && _isMember) _fetchOutstandingBills();
-  }
-
   // ─── Navigation helper ───────────────────────────────────────────────────────
 
   void _go(Widget screen, {VoidCallback? refresh}) {
@@ -1302,39 +1148,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ─── Data classes ────────────────────────────────────────────────────────────
 
-class _Action {
+class _ModuleEntry {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
-  /// Module this action belongs to (null = no gate, always shown).
+
+  /// Module this card belongs to. null = always shown (e.g. Alerts, Profile).
   final String? module;
-  /// Action required on [module] for this entry to be shown.
+
+  /// Action required on [module] for this card to be shown. Defaults to view.
   final String requiredAction;
-  const _Action(
+
+  const _ModuleEntry(
     this.icon,
     this.label,
     this.color,
     this.onTap, {
-    this.module,
-    this.requiredAction = PermAction.view,
-  });
-}
-
-class _SystemTile {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final String? module;
-  final String requiredAction;
-  const _SystemTile({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
     this.module,
     this.requiredAction = PermAction.view,
   });
