@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/billing_payment_service.dart';
 import '../../models/billing_payment.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/module_page_header.dart';
 import '../../widgets/status_widgets.dart';
 import 'bill_detail_screen.dart';
 
@@ -44,18 +46,34 @@ class _BillsListScreenState extends State<BillsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final due = _bills.where((b) => b.status != 'PAID').length;
+    final paid = _bills.where((b) => b.status == 'PAID').length;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('My Bills')),
-      body: _isLoading
-          ? const LoadingWidget()
-          : _error != null
-          ? ErrorWidgetView(message: _error!, onRetry: _fetchBills)
-          : _bills.isEmpty
-          ? const EmptyWidget(
-              message: 'No bills found',
-              icon: Icons.receipt_long_outlined,
-            )
-          : RefreshIndicator(
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'My Bills',
+            description: 'Your dues & payment history',
+            icon: Icons.receipt_long_outlined,
+            iconColor: AppColors.accentOrange,
+            stats: [
+              ModuleHeaderStat('$due', 'DUE'),
+              ModuleHeaderStat('$paid', 'PAID'),
+            ],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const LoadingWidget()
+                : _error != null
+                ? ErrorWidgetView(message: _error!, onRetry: _fetchBills)
+                : _bills.isEmpty
+                ? const EmptyWidget(
+                    message: 'No bills found',
+                    icon: Icons.receipt_long_outlined,
+                  )
+                : RefreshIndicator(
               onRefresh: _fetchBills,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -84,6 +102,9 @@ class _BillsListScreenState extends State<BillsListScreen> {
                 },
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 }

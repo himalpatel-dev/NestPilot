@@ -19,6 +19,8 @@ import 'login_screen.dart';
 import 'member/complaint_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
 import 'secretary/member_list_screen.dart';
+import 'security/verify_passcode_screen.dart';
+import 'security/walk_in_entry_screen.dart';
 import 'super_admin/buildings_list_screen.dart';
 import 'super_admin/role_management_screen.dart';
 import 'module_catalog.dart';
@@ -477,6 +479,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Icons.person_pin_circle_outlined, 'Visitors', AppColors.accentTeal,
         () => _go(visitorsDest()),
         module: ModuleCodes.visitors,
+      ),
+      _ModuleEntry(
+        Icons.vpn_key_outlined, 'Verify Code', AppColors.accentGreen,
+        () => _go(const VerifyPasscodeScreen()),
+        module: ModuleCodes.visitors,
+        requiredAction: PermAction.manage,
+      ),
+      _ModuleEntry(
+        Icons.directions_walk_rounded, 'Walk-in Entry', AppColors.accentOrange,
+        () => _go(const WalkInEntryScreen()),
+        module: ModuleCodes.visitors,
+        requiredAction: PermAction.manage,
       ),
       _ModuleEntry(
         Icons.engineering_outlined, 'Staff', AppColors.accentAmber,

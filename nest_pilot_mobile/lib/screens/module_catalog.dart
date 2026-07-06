@@ -15,20 +15,13 @@ import 'super_admin/role_management_screen.dart';
 import 'super_admin/secretary_buildings_screen.dart';
 
 import 'secretary/pending_members_screen.dart';
-import 'secretary/notice_create_screen.dart';
 import 'secretary/bill_create_screen.dart';
 import 'secretary/bills_manage_screen.dart';
 import 'secretary/bills_dashboard_screen.dart';
-import 'secretary/visitor_dashboard_screen.dart';
 import 'secretary/amenity_management_screen.dart';
 import 'secretary/member_list_screen.dart';
-import 'secretary/poll_create_screen.dart';
-import 'secretary/document_upload_screen.dart';
-import 'secretary/staff_add_screen.dart';
-import 'secretary/vehicle_management_screen.dart';
 import 'secretary/event_manage_screen.dart';
 import 'secretary/payment_mark_screen.dart';
-import 'secretary/complaint_manage_screen.dart';
 
 import 'member/notice_list_screen.dart';
 import 'member/complaint_list_screen.dart';
@@ -41,7 +34,8 @@ import 'member/community/poll_list_screen.dart';
 import 'member/community/document_list_screen.dart';
 import 'member/community/vehicle_list_screen.dart';
 
-import 'security/security_dashboard_screen.dart';
+import 'security/verify_passcode_screen.dart';
+import 'security/walk_in_entry_screen.dart';
 import 'security/current_visitors_screen.dart';
 import 'common/visitor_report_screen.dart';
 
@@ -114,21 +108,17 @@ List<ModuleSection> filterModuleSections(List<ModuleSection> sections) {
 // Each picker inspects the user's permissions and returns the correct screen
 // for that tile. Keeps the section list declarative.
 
-Widget noticesDest() => PermissionService().canManage(ModuleCodes.notices)
-    ? const NoticeCreateScreen()
-    : const NoticeListScreen();
+// One shared notices screen for every role — the list shows a manage-gated
+// floating add button that opens the create form.
+Widget noticesDest() => const NoticeListScreen();
 
-Widget pollsDest() => PermissionService().canManage(ModuleCodes.polls)
-    ? const PollCreateScreen()
-    : const PollListScreen();
+// List-first: every role lands on the list; create/upload screens open via
+// the manage-gated floating add button inside each list.
+Widget pollsDest() => const PollListScreen();
 
-Widget documentsDest() => PermissionService().canManage(ModuleCodes.documents)
-    ? const DocumentUploadScreen()
-    : const DocumentListScreen();
+Widget documentsDest() => const DocumentListScreen();
 
-Widget vehiclesDest() => PermissionService().canManage(ModuleCodes.vehicles)
-    ? const VehicleManagementScreen()
-    : const VehicleListScreen();
+Widget vehiclesDest() => const VehicleListScreen();
 
 Widget amenitiesDest() {
   // Managers get the management screen, everyone else the booking screen.
@@ -137,21 +127,17 @@ Widget amenitiesDest() {
       : const AmenityBookingScreen();
 }
 
-Widget staffDest() => PermissionService().canManage(ModuleCodes.staff)
-    ? const StaffAddScreen()
-    : const StaffListScreen();
+Widget staffDest() => const StaffListScreen();
 
 Widget eventsDest() => const EventManageScreen();
 
-/// Managers get the visitor overview dashboard,
-/// everyone else gets invite / history.
-Widget visitorsDest() => PermissionService().canManage(ModuleCodes.visitors)
-    ? const VisitorDashboardScreen()
-    : const VisitorManagementScreen();
+/// Everyone lands on the invite/history list; the analytics overview stays
+/// reachable via the manage-gated "Visitor Overview" tile.
+Widget visitorsDest() => const VisitorManagementScreen();
 
-Widget complaintsDest() => PermissionService().canManage(ModuleCodes.complaints)
-    ? const ComplaintManageScreen()
-    : const ComplaintListScreen();
+// One shared complaints screen for every role — the list gates its add
+// button and detail actions on manage internally.
+Widget complaintsDest() => const ComplaintListScreen();
 
 Widget billsDest() => PermissionService().canManage(ModuleCodes.bills)
     ? const BillsManageScreen()
@@ -220,11 +206,18 @@ List<ModuleSection> masterModuleSections() => [
       tags: const ['guest', 'pass', 'entry', 'invite', 'visitor', 'outsider', 'log', 'history'],
     ),
     ModuleTile.gated(
-      Icons.directions_run_outlined, 'Visitor Entry', AppColors.accentOrange,
-      (c) => _go(c, const SecurityDashboardScreen()),
+      Icons.vpn_key_outlined, 'Verify Code', AppColors.accentGreen,
+      (c) => _go(c, const VerifyPasscodeScreen()),
       ModuleCodes.visitors,
       requiredAction: PermAction.manage,
-      tags: const ['gate', 'guard', 'entry', 'check in', 'security', 'allow', 'approve entry', 'walk-in', 'walk in'],
+      tags: const ['gate', 'guard', 'verify', 'pass code', 'passcode', 'security', 'invite code', 'check in'],
+    ),
+    ModuleTile.gated(
+      Icons.directions_walk_rounded, 'Walk-in Entry', AppColors.accentOrange,
+      (c) => _go(c, const WalkInEntryScreen()),
+      ModuleCodes.visitors,
+      requiredAction: PermAction.manage,
+      tags: const ['gate', 'guard', 'entry', 'delivery', 'walk-in', 'walk in', 'security', 'allow', 'log visitor'],
     ),
     ModuleTile.gated(
       Icons.group_outlined, 'Inside Now', AppColors.accentGreen,
@@ -237,13 +230,6 @@ List<ModuleSection> masterModuleSections() => [
       (c) => _go(c, const VisitorReportScreen()),
       ModuleCodes.visitors,
       tags: const ['history', 'past', 'log', 'visitor', 'report', 'guest', 'exit', 'record'],
-    ),
-    ModuleTile.gated(
-      Icons.analytics_outlined, 'Visitor Overview', AppColors.accentPurple,
-      (c) => _go(c, const VisitorDashboardScreen()),
-      ModuleCodes.visitors,
-      requiredAction: PermAction.manage,
-      tags: const ['overview', 'stats', 'visitor dashboard', 'summary', 'gate report'],
     ),
   ]),
   ModuleSection('Billing & Payments', [

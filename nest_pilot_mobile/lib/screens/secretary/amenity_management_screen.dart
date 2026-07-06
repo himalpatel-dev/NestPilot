@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import '../../theme/nest_loader.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
@@ -16,26 +16,20 @@ class AmenityManagementScreen extends StatefulWidget {
       _AmenityManagementScreenState();
 }
 
-class _AmenityManagementScreenState extends State<AmenityManagementScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   final CommunityService _service = CommunityService();
 
   List<Amenity> _amenities = [];
   List<Booking> _bookings = [];
   bool _isLoading = true;
 
+  /// 0 = Facilities, 1 = Bookings
+  int _section = 0;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _fetchData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _fetchData() async {
@@ -83,39 +77,70 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
     });
   }
 
+  Widget _sectionChip(String label, int value) {
+    final selected = _section == value;
+    return GestureDetector(
+      onTap: () => setState(() => _section = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryDark : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primaryDark : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.white : AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: AppColors.cardBackground,
         body: Column(
           children: [
-            _buildHeader(context),
-            _buildTabBarContainer(),
+            ModulePageHeader(
+              title: 'Amenities',
+              description: 'Manage facilities & approve bookings',
+              icon: Icons.calendar_today_outlined,
+              iconColor: AppColors.accentIndigo,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  _sectionChip('Facilities', 0),
+                  const SizedBox(width: 8),
+                  _sectionChip('Bookings', 1),
+                ],
+              ),
+            ),
             Expanded(
               child: _isLoading
                   ? const Center(child: NestLoader())
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        RefreshIndicator(
-                          onRefresh: _fetchData,
-                          color: AppColors.white,
-                          backgroundColor: AppColors.primary,
-                          child: _buildFacilitiesTab(),
-                        ),
-                        RefreshIndicator(
-                          onRefresh: _fetchData,
-                          color: AppColors.white,
-                          backgroundColor: AppColors.primary,
-                          child: _buildBookingsTab(),
-                        ),
-                      ],
+                  : RefreshIndicator(
+                      onRefresh: _fetchData,
+                      color: AppColors.white,
+                      backgroundColor: AppColors.primary,
+                      child: _section == 0
+                          ? _buildFacilitiesTab()
+                          : _buildBookingsTab(),
                     ),
             ),
           ],
@@ -132,117 +157,6 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
                 child: const Icon(Icons.add, size: 28),
               )
             : null,
-      ),
-    );
-  }
-
-  // ─── Sleek Page Header ─────────────────────────────────────────────────────
-
-  Widget _buildHeader(BuildContext context) {
-    final safeTop = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, safeTop + 14, 20, 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryDark,
-            AppColors.primary,
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              if (Navigator.canPop(context))
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: AppColors.white,
-                      size: 16,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 12),
-              const Text(
-                'Amenity Management',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create and manage bookable facilities',
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.70),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Custom TabBar Container ───────────────────────────────────────────────
-
-  Widget _buildTabBarContainer() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TabBar(
-        controller: _tabController,
-        dividerColor: AppColors.transparent,
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-        tabs: const [
-          Tab(text: 'Facilities'),
-          Tab(text: 'Bookings'),
-        ],
       ),
     );
   }

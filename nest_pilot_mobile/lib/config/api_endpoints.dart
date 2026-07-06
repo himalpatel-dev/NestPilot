@@ -45,8 +45,6 @@ class ApiEndpoints {
   static const String myPayments = '/api/payments/my';
   static String paymentReceipt(String id) => '/api/payments/receipts/$id';
 
-  static const String visitorsDashboard = '/api/visitors/dashboard';
-
   // Vehicles
   static const String vehicles = '/api/vehicles';
   static const String allVehicles = '/api/vehicles/all';

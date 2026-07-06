@@ -96,16 +96,23 @@ class _VisitorReportScreenState extends State<VisitorReportScreen> {
                 trailing: GestureDetector(
                   onTap: _fetchReport,
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.15),
+                      color: AppColors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     alignment: Alignment.center,
                     child: const Icon(
                       Icons.refresh_rounded,
-                      color: AppColors.white,
+                      color: AppColors.textPrimary,
                       size: 18,
                     ),
                   ),

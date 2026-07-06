@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
+import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
@@ -278,12 +280,22 @@ class _PollListScreenState extends State<PollListScreen> {
     final canCreate = canManage;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Polls')),
-      body: _isLoading
-          ? const Center(child: NestLoader())
-          : _polls.isEmpty
-          ? const Center(child: Text('No active polls'))
-          : ListView.builder(
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Polls',
+            description: 'Vote & see community decisions',
+            icon: Icons.how_to_vote_outlined,
+            iconColor: AppColors.accentPurple,
+            stats: [ModuleHeaderStat('${_polls.length}', 'ACTIVE')],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: NestLoader())
+                : _polls.isEmpty
+                ? const Center(child: Text('No active polls'))
+                : ListView.builder(
               itemCount: _polls.length,
               itemBuilder: (context, index) {
                 final poll = _polls[index];
@@ -360,8 +372,11 @@ class _PollListScreenState extends State<PollListScreen> {
                     ),
                   ),
                 );
-              },
-            ),
+                    },
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () async {

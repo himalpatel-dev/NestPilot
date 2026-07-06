@@ -297,27 +297,6 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                 subtitle: _isLoading
                     ? 'Loading vehicles…'
                     : '${_vehicles.length} vehicle${_vehicles.length == 1 ? '' : 's'} registered',
-                trailing: canCreate
-                    ? GestureDetector(
-                        onTap: _showAddSheet,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.white.withValues(alpha: 0.30)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add_rounded, color: AppColors.white, size: 16),
-                              SizedBox(width: 5),
-                              Text('Add', style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        ),
-                      )
-                    : null,
               ),
             ),
             if (_isLoading)
@@ -326,7 +305,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
               SliverFillRemaining(child: _buildEmpty(canCreate))
             else
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
+                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, i) => _buildCard(_vehicles[i], canDelete),
@@ -337,6 +316,16 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
           ],
         ),
       ),
+      // Adding a vehicle is a manage-only action — the list itself is
+      // shared with view-only roles.
+      floatingActionButton: canCreate
+          ? FloatingActionButton(
+              onPressed: _showAddSheet,
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 

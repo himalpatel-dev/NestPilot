@@ -9,9 +9,8 @@ import '../../services/society_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
-import '../../theme/app_dashboard_header.dart';
 import '../../theme/tab_route.dart';
-import '../notification_list_screen.dart';
+import '../../widgets/module_page_header.dart';
 import '../dashboard_screen.dart';
 import '../services_hub_screen.dart';
 import '../common/visitor_report_screen.dart';
@@ -174,36 +173,19 @@ class _MemberListScreenState extends State<MemberListScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: AppDashboardHeader(
-                  leftAction: !widget.embedded
-                      ? appHeaderBackButton(context)
-                      : null,
+                child: ModulePageHeader(
                   title: 'Residents',
-                  subtitle: 'Manage society members',
-                  onNotificationTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const NotificationListScreen()),
-                  ),
+                  description: 'Members of your society',
+                  icon: Icons.contacts_outlined,
+                  iconColor: AppColors.accentBlue,
+                  showBack: !widget.embedded,
                   stats: [
-                    AppHeaderStat(
-                      value:
-                          '${_occupiedCount + _vacantCount}/$_occupiedCount',
-                      label: 'Total',
-                      color: AppColors.accentBlue,
-                      icon: Icons.apartment_rounded,
-                    ),
-                    AppHeaderStat(
-                      value: '$_ownerCount',
-                      label: 'Owners',
-                      color: AppColors.accentOrange,
-                      icon: Icons.vpn_key_rounded,
-                    ),
-                    AppHeaderStat(
-                      value: '$_tenantCount',
-                      label: 'Tenants',
-                      color: AppColors.accentPurple,
-                      icon: Icons.people_rounded,
+                    ModuleHeaderStat('${_members.length}', 'TOTAL'),
+                    ModuleHeaderStat('$_ownerCount', 'OWNERS'),
+                    ModuleHeaderStat('$_tenantCount', 'TENANTS'),
+                    ModuleHeaderStat(
+                      '$_occupiedCount/${_occupiedCount + _vacantCount}',
+                      'OCCUPIED',
                     ),
                   ],
                 ),

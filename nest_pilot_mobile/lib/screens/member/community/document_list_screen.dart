@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
+import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
@@ -132,12 +134,22 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     final canDelete = perms.canManage(ModuleCodes.documents);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Documents')),
-      body: _isLoading
-          ? const Center(child: NestLoader())
-          : _documents.isEmpty
-          ? const Center(child: Text('No documents found'))
-          : ListView.builder(
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Documents',
+            description: 'Society files & circulars',
+            icon: Icons.folder_open_outlined,
+            iconColor: AppColors.accentGreen,
+            stats: [ModuleHeaderStat('${_documents.length}', 'TOTAL')],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: NestLoader())
+                : _documents.isEmpty
+                ? const Center(child: Text('No documents found'))
+                : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _documents.length,
               itemBuilder: (context, index) {
@@ -237,8 +249,11 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                     ),
                   ),
                 );
-              },
-            ),
+                    },
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: canUpload
           ? FloatingActionButton.extended(
               onPressed: () async {

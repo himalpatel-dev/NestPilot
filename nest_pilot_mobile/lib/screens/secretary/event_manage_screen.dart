@@ -6,7 +6,7 @@ import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
-import '../../widgets/app_page_header.dart';
+import '../../widgets/module_page_header.dart';
 import '../../widgets/app_field_card.dart';
 import 'event_detail_screen.dart';
 
@@ -137,9 +137,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final perms = PermissionService();
-    final canCreate = perms.canManage(ModuleCodes.events);
-    final canDelete = perms.canManage(ModuleCodes.events);
+    final canManage = PermissionService().canManage(ModuleCodes.events);
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
@@ -151,48 +149,19 @@ class _EventManageScreenState extends State<EventManageScreen> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(
-              child: AppPageHeader(
-                icon: const Icon(Icons.event_outlined, color: AppColors.white, size: 28),
-                title: 'Events',
-                subtitle: _isLoading
-                    ? 'Loading events…'
-                    : '${_events.length} event${_events.length == 1 ? '' : 's'}',
-                trailing: canCreate
-                    ? GestureDetector(
-                        onTap: _openCreateSheet,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.20),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, color: AppColors.white, size: 16),
-                              SizedBox(width: 4),
-                              Text('Add', style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
+            SliverToBoxAdapter(child: _buildHeader()),
             if (_isLoading)
               const SliverFillRemaining(child: NestLoader())
             else if (_error != null)
               SliverFillRemaining(child: _buildError())
             else if (_events.isEmpty)
-              SliverFillRemaining(child: _buildEmpty(canCreate: canCreate))
+              SliverFillRemaining(child: _buildEmpty(canCreate: canManage))
             else
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
+                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _buildCard(_events[i], canDelete),
+                    (ctx, i) => _buildCard(_events[i], canManage),
                     childCount: _events.length,
                   ),
                 ),
@@ -200,6 +169,39 @@ class _EventManageScreenState extends State<EventManageScreen> {
           ],
         ),
       ),
+      // Creating an event is a manage-only action — the list itself is
+      // shared with view-only roles.
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              onPressed: _openCreateSheet,
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildHeader() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final upcoming =
+        _events.where((e) => !e.eventDate.isBefore(today)).length;
+    final thisMonth = _events
+        .where((e) =>
+            e.eventDate.year == now.year && e.eventDate.month == now.month)
+        .length;
+
+    return ModulePageHeader(
+      title: 'Events',
+      description: 'Celebrations & community programmes',
+      icon: Icons.event_outlined,
+      iconColor: AppColors.accentTeal,
+      stats: [
+        ModuleHeaderStat('$upcoming', 'UPCOMING'),
+        ModuleHeaderStat('$thisMonth', 'THIS MONTH'),
+        ModuleHeaderStat('${_events.length}', 'TOTAL'),
+      ],
     );
   }
 

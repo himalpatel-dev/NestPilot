@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
+import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:intl/intl.dart';
@@ -58,39 +60,52 @@ class _StaffListScreenState extends State<StaffListScreen> {
     final canCreate = PermissionService().canManage(ModuleCodes.staff);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daily Help')),
-      body: _isLoading
-          ? const Center(child: NestLoader())
-          : _staff.isEmpty
-          ? const Center(child: Text('No daily help added yet'))
-          : ListView.builder(
-              itemCount: _staff.length,
-              itemBuilder: (context, index) {
-                final s = _staff[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Daily Help',
+            description: 'Society staff & attendance',
+            icon: Icons.cleaning_services_outlined,
+            iconColor: AppColors.accentPink,
+            stats: [ModuleHeaderStat('${_staff.length}', 'TOTAL')],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: NestLoader())
+                : _staff.isEmpty
+                ? const Center(child: Text('No daily help added yet'))
+                : ListView.builder(
+                    itemCount: _staff.length,
+                    itemBuilder: (context, index) {
+                      final s = _staff[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: s.profileImage != null
+                                ? NetworkImage(s.profileImage!)
+                                : null,
+                            child: s.profileImage == null
+                                ? const Icon(Icons.person)
+                                : null,
+                          ),
+                          title: Text(s.name),
+                          subtitle: Text('${s.role} • ${s.mobile}'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.calendar_today),
+                            onPressed: () => _showAttendance(s),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: s.profileImage != null
-                          ? NetworkImage(s.profileImage!)
-                          : null,
-                      child: s.profileImage == null
-                          ? const Icon(Icons.person)
-                          : null,
-                    ),
-                    title: Text(s.name),
-                    subtitle: Text('${s.role} • ${s.mobile}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () => _showAttendance(s),
-                    ),
-                  ),
-                );
-              },
-            ),
+          ),
+        ],
+      ),
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () async {

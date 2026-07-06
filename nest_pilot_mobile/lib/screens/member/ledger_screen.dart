@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../services/billing_payment_service.dart';
 import '../../services/file_service.dart';
 import '../../models/billing_payment.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/module_page_header.dart';
 import '../../widgets/status_widgets.dart';
 
 class LedgerScreen extends StatefulWidget {
@@ -62,12 +64,22 @@ class _LedgerScreenState extends State<LedgerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Ledger')),
-      body: _isLoading
-          ? const LoadingWidget()
-          : _error != null
-          ? ErrorWidgetView(message: _error!, onRetry: _fetchPayments)
-          : Column(
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Ledger',
+            description: 'Your account statement',
+            icon: Icons.account_balance_outlined,
+            iconColor: AppColors.accentTeal,
+            stats: [ModuleHeaderStat('${_payments.length}', 'TOTAL')],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const LoadingWidget()
+                : _error != null
+                ? ErrorWidgetView(message: _error!, onRetry: _fetchPayments)
+                : Column(
               children: [
                 _buildSummaryCard(),
                 const Padding(
@@ -111,6 +123,9 @@ class _LedgerScreenState extends State<LedgerScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 

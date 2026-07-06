@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
+import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
@@ -13,18 +15,18 @@ class AmenityBookingScreen extends StatefulWidget {
   State<AmenityBookingScreen> createState() => _AmenityBookingScreenState();
 }
 
-class _AmenityBookingScreenState extends State<AmenityBookingScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   final CommunityService _service = CommunityService();
   List<Amenity> _amenities = [];
   List<Booking> _myBookings = [];
   bool _isLoading = true;
 
+  /// 0 = Facilities, 1 = My Bookings
+  int _section = 0;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _fetchData();
   }
 
@@ -89,22 +91,60 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Amenities'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Facilities'),
-            Tab(text: 'My Bookings'),
-          ],
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Amenities',
+            description: 'Book facilities & view your bookings',
+            icon: Icons.calendar_today_outlined,
+            iconColor: AppColors.accentIndigo,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                _sectionChip('Facilities', 0),
+                const SizedBox(width: 8),
+                _sectionChip('My Bookings', 1),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: NestLoader())
+                : (_section == 0
+                    ? _buildAmenitiesList()
+                    : _buildBookingsList()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionChip(String label, int value) {
+    final selected = _section == value;
+    return GestureDetector(
+      onTap: () => setState(() => _section = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryDark : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primaryDark : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.white : AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: NestLoader())
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildAmenitiesList(), _buildBookingsList()],
-            ),
     );
   }
 

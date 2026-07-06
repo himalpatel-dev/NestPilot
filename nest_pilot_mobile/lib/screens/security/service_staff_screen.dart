@@ -78,9 +78,8 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.20),
+                      color: AppColors.primaryDark,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,

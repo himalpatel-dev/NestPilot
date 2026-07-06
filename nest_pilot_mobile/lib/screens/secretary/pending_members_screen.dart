@@ -3,6 +3,8 @@ import '../../services/admin_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../models/user_model.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/module_page_header.dart';
 import '../../widgets/status_widgets.dart';
 
 class PendingMembersScreen extends StatefulWidget {
@@ -67,57 +69,82 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
   Widget build(BuildContext context) {
     final canApprove = PermissionService().canManage(ModuleCodes.users);
     return Scaffold(
-      appBar: AppBar(title: const Text('Pending Approvals')),
-      body: _isLoading
-          ? const LoadingWidget()
-          : _error != null
-          ? ErrorWidgetView(message: _error!, onRetry: _fetchPendingUsers)
-          : _pendingUsers.isEmpty
-          ? const EmptyWidget(
-              message: 'No pending approvals',
-              icon: Icons.group_outlined,
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchPendingUsers,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _pendingUsers.length,
-                itemBuilder: (context, index) {
-                  final user = _pendingUsers[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      title: Text(
-                        user.fullName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '${user.mobile}\nFlat: ${user.flatNumber ?? 'N/A'}',
-                      ),
-                      isThreeLine: true,
-                      trailing: canApprove
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                  onPressed: () => _handleApproval(user.id, true),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.cancel, color: Colors.red),
-                                  onPressed: () => _handleApproval(user.id, false),
-                                ),
-                              ],
-                            )
-                          : null,
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Pending Approvals',
+            description: 'New member requests awaiting action',
+            icon: Icons.person_add_alt_1_outlined,
+            iconColor: AppColors.accentAmber,
+            stats: [
+              ModuleHeaderStat('${_pendingUsers.length}', 'PENDING'),
+            ],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const LoadingWidget()
+                : _error != null
+                ? ErrorWidgetView(
+                    message: _error!,
+                    onRetry: _fetchPendingUsers,
+                  )
+                : _pendingUsers.isEmpty
+                ? const EmptyWidget(
+                    message: 'No pending approvals',
+                    icon: Icons.group_outlined,
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchPendingUsers,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _pendingUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = _pendingUsers[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            title: Text(
+                              user.fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${user.mobile}\nFlat: ${user.flatNumber ?? 'N/A'}',
+                            ),
+                            isThreeLine: true,
+                            trailing: canApprove
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                        ),
+                                        onPressed: () =>
+                                            _handleApproval(user.id, true),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.cancel,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () =>
+                                            _handleApproval(user.id, false),
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

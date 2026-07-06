@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../config/modules.dart';
 import '../../services/notice_complaint_service.dart';
 import '../../services/permission_service.dart';
-import '../../config/modules.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_text_field.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/glare_button.dart';
+import '../../widgets/module_page_header.dart';
 import '../../widgets/no_permission_notice.dart';
 
 class NoticeCreateScreen extends StatefulWidget {
@@ -22,6 +24,16 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
   final NoticeService _noticeService = NoticeService();
   String? _selectedFilePath;
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  String get _selectedFileName =>
+      _selectedFilePath!.split(RegExp(r'[\\/]')).last;
 
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles();
@@ -60,56 +72,185 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canManage = PermissionService().canManage(ModuleCodes.notices);
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Notice')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTextField(
-                controller: _titleController,
-                label: 'Title',
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+      backgroundColor: AppColors.cardBackground,
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'New Notice',
+            description: 'Publish an announcement to your society',
+            icon: Icons.campaign_outlined,
+            iconColor: AppColors.accentIndigo,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 28),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppSectionHeader('Notice Details'),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.title_rounded,
+                      label: 'Title',
+                      field: AppBorderlessField(
+                        controller: _titleController,
+                        hint: 'e.g. Water supply maintenance',
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty)
+                                ? 'Title is required'
+                                : null,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppFieldCard(
+                      icon: Icons.notes_rounded,
+                      label: 'Content',
+                      iconAlignment: CrossAxisAlignment.start,
+                      field: AppBorderlessField(
+                        controller: _contentController,
+                        hint: 'Write the full announcement here…',
+                        maxLines: 6,
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty)
+                                ? 'Content is required'
+                                : null,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const AppSectionHeader('Attachment'),
+                    const SizedBox(height: 4),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 12),
+                      child: Text(
+                        'Optional — attach a PDF, image or document',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildAttachmentCard(),
+                    const SizedBox(height: 32),
+                    if (canManage)
+                      GlarePrimaryButton(
+                        text: 'Publish Notice',
+                        trailingIcon: Icons.campaign_rounded,
+                        isLoading: _isLoading,
+                        onPressed: _createNotice,
+                      )
+                    else
+                      const NoPermissionNotice(action: 'publish notices'),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _contentController,
-                label: 'Content',
-                maxLines: 5,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentCard() {
+    final hasFile = _selectedFilePath != null;
+
+    return GestureDetector(
+      onTap: _pickFile,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: hasFile
+                ? AppColors.accentIndigo.withValues(alpha: 0.35)
+                : AppColors.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: hasFile
+                    ? AppColors.accentIndigo.withValues(alpha: 0.12)
+                    : AppColors.cardBackground,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 16),
-              Row(
+              alignment: Alignment.center,
+              child: Icon(
+                hasFile
+                    ? Icons.description_rounded
+                    : Icons.attach_file_rounded,
+                size: 18,
+                color: hasFile ? AppColors.accentIndigo : AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      _selectedFilePath != null
-                          ? 'File: ${_selectedFilePath!.split('/').last}'
-                          : 'No attachment selected',
-                      style: const TextStyle(color: Colors.grey),
+                  Text(
+                    hasFile ? _selectedFileName : 'Attach a file',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: _pickFile,
-                    icon: const Icon(Icons.attach_file),
-                    label: const Text('Attach'),
+                  const SizedBox(height: 2),
+                  Text(
+                    hasFile ? 'Tap to replace' : 'Tap to browse files',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11.5,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
-              if (PermissionService().canManage(ModuleCodes.notices))
-                AppButton(
-                  text: 'Publish Notice',
-                  isLoading: _isLoading,
-                  onPressed: _createNotice,
-                )
-              else
-                const NoPermissionNotice(action: 'publish notices'),
-            ],
-          ),
+            ),
+            if (hasFile)
+              GestureDetector(
+                onTap: () => setState(() => _selectedFilePath = null),
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentRed.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: AppColors.accentRed,
+                  ),
+                ),
+              )
+            else
+              const Icon(
+                Icons.upload_rounded,
+                color: AppColors.textHint,
+                size: 20,
+              ),
+          ],
         ),
       ),
     );

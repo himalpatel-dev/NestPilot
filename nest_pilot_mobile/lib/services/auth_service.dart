@@ -3,6 +3,7 @@ import '../config/api_endpoints.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 import 'permission_service.dart';
+import 'session_service.dart';
 import 'socket_service.dart';
 
 class AuthService {
@@ -29,7 +30,9 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt_token', token);
 
-      return UserModel.fromJson(userJson);
+      final user = UserModel.fromJson(userJson);
+      SessionService().currentUser = user;
+      return user;
     }
     return null;
   }
@@ -60,7 +63,9 @@ class AuthService {
       final response = await _apiService.get(ApiEndpoints.me);
       if (response['success'] == true) {
         final userData = response['data']['user'] ?? response['data'];
-        return UserModel.fromJson(userData);
+        final user = UserModel.fromJson(userData);
+        SessionService().currentUser = user;
+        return user;
       }
     } catch (e) {
       return null;
@@ -72,6 +77,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
     PermissionService().clear();
+    SessionService().clear();
     SocketService().disconnect();
   }
 
