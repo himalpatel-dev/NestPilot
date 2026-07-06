@@ -7,11 +7,11 @@ const { hasPermission } = require('../middlewares/permission.middleware');
 router.use(auth);
 
 // Admin Bill Mgmt
-router.post('/', hasPermission('BILLS', 'create'), controller.create);
+router.post('/', hasPermission('BILLS', 'manage'), controller.create);
 router.get('/', hasPermission('BILLS', 'view'), controller.getAll);
 router.get('/dashboard', hasPermission('BILLS', 'view'), controller.getDashboard);
 router.get('/user/:userId', hasPermission('BILLS', 'view'), controller.getUserBills);
-router.post('/:id/publish', hasPermission('BILLS', 'approve'), controller.publish);
+router.post('/:id/publish', hasPermission('BILLS', 'manage'), controller.publish);
 
 // Member Bills (always available to the authenticated user for their own bills)
 router.get('/my', controller.getMyBills);

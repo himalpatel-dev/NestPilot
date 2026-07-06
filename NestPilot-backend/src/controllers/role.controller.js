@@ -73,10 +73,7 @@ const createRole = async (req, res, next) => {
                     role_id: role.id,
                     module_id: mod.id,
                     can_view: p.can_view || false,
-                    can_create: p.can_create || false,
-                    can_update: p.can_update || false,
-                    can_delete: p.can_delete || false,
-                    can_approve: p.can_approve || false,
+                    can_manage: p.can_manage || false,
                 });
             }
         } else {
@@ -85,8 +82,7 @@ const createRole = async (req, res, next) => {
                 await db.RolePermission.create({
                     role_id: role.id,
                     module_id: mod.id,
-                    can_view: false, can_create: false,
-                    can_update: false, can_delete: false, can_approve: false,
+                    can_view: false, can_manage: false,
                 });
             }
         }
@@ -156,10 +152,7 @@ const getRolePermissions = async (req, res, next) => {
                 module_name: mod.name,
                 sort_order: mod.sort_order,
                 can_view: perm ? perm.can_view : false,
-                can_create: perm ? perm.can_create : false,
-                can_update: perm ? perm.can_update : false,
-                can_delete: perm ? perm.can_delete : false,
-                can_approve: perm ? perm.can_approve : false,
+                can_manage: perm ? perm.can_manage : false,
             };
         });
 
@@ -169,7 +162,7 @@ const getRolePermissions = async (req, res, next) => {
 
 /**
  * Bulk update/replace permissions for a role.
- * Body: { permissions: [{ module_id, can_view, can_create, can_update, can_delete, can_approve }, ...] }
+ * Body: { permissions: [{ module_id, can_view, can_manage }, ...] }
  */
 const updateRolePermissions = async (req, res, next) => {
     try {
@@ -185,10 +178,7 @@ const updateRolePermissions = async (req, res, next) => {
                 role_id: parseInt(id),
                 module_id: p.module_id,
                 can_view: p.can_view || false,
-                can_create: p.can_create || false,
-                can_update: p.can_update || false,
-                can_delete: p.can_delete || false,
-                can_approve: p.can_approve || false,
+                can_manage: p.can_manage || false,
             });
         }
 
@@ -199,7 +189,7 @@ const updateRolePermissions = async (req, res, next) => {
 /**
  * Returns the effective permission map for the currently logged-in user.
  * SUPER_ADMIN gets full access on every active module.
- * Shape: { permissions: [{ module_code, module_name, sort_order, can_view, can_create, can_update, can_delete, can_approve }, ...] }
+ * Shape: { permissions: [{ module_code, module_name, sort_order, can_view, can_manage }, ...] }
  */
 const getMyPermissions = async (req, res, next) => {
     try {
@@ -228,8 +218,7 @@ const getMyPermissions = async (req, res, next) => {
                     module_code: mod.code,
                     module_name: mod.name,
                     sort_order: mod.sort_order,
-                    can_view: true, can_create: true, can_update: true,
-                    can_delete: true, can_approve: true,
+                    can_view: true, can_manage: true,
                 };
             }
             const p = permByModuleId[mod.id];
@@ -238,11 +227,9 @@ const getMyPermissions = async (req, res, next) => {
                 module_code: mod.code,
                 module_name: mod.name,
                 sort_order: mod.sort_order,
-                can_view: p ? p.can_view : false,
-                can_create: p ? p.can_create : false,
-                can_update: p ? p.can_update : false,
-                can_delete: p ? p.can_delete : false,
-                can_approve: p ? p.can_approve : false,
+                // manage implies view — list screens are shared
+                can_view: p ? (p.can_view || p.can_manage) : false,
+                can_manage: p ? p.can_manage : false,
             };
         });
 

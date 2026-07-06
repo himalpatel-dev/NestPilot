@@ -6,7 +6,7 @@ const { hasPermission } = require('../middlewares/permission.middleware');
 
 router.use(auth);
 
-router.post('/offline-sync', hasPermission('BILLS', 'update'), controller.syncOffline);
+router.post('/offline-sync', hasPermission('BILLS', 'manage'), controller.syncOffline);
 router.get('/receipts/:paymentId', controller.downloadReceipt);
 router.get('/my', controller.getMyPayments);
 

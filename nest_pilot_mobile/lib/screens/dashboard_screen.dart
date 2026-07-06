@@ -383,7 +383,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final showNoticeEvent =
         perms.canView(ModuleCodes.notices) || perms.canView(ModuleCodes.events);
     final showMyComplaints = perms.canView(ModuleCodes.complaints) &&
-        !perms.canUpdate(ModuleCodes.complaints);
+        !perms.canManage(ModuleCodes.complaints);
 
     return SafeArea(
       top: false,
@@ -507,7 +507,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Icons.apartment_outlined, 'Buildings', AppColors.accentOrange,
         () => _go(const BuildingsListScreen()),
         module: ModuleCodes.buildings,
-        requiredAction: PermAction.create,
+        requiredAction: PermAction.manage,
       ),
       _ModuleEntry(
         Icons.shield_outlined, 'Roles', AppColors.accentIndigo,

@@ -64,8 +64,7 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canPublish = PermissionService().canApprove(ModuleCodes.bills) ||
-        PermissionService().canUpdate(ModuleCodes.bills);
+    final canPublish = PermissionService().canManage(ModuleCodes.bills);
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Bills')),
       body: _isLoading

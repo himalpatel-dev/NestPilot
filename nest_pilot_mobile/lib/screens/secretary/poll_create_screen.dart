@@ -154,7 +154,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
                 },
               ),
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.polls))
+              if (PermissionService().canManage(ModuleCodes.polls))
                 AppButton(
                   text: 'Create Poll',
                   isLoading: _isLoading,

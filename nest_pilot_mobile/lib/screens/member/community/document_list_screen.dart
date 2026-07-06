@@ -128,8 +128,8 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   @override
   Widget build(BuildContext context) {
     final perms = PermissionService();
-    final canUpload = perms.canCreate(ModuleCodes.documents);
-    final canDelete = perms.canDelete(ModuleCodes.documents);
+    final canUpload = perms.canManage(ModuleCodes.documents);
+    final canDelete = perms.canManage(ModuleCodes.documents);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Documents')),

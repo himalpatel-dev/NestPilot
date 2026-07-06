@@ -13,12 +13,12 @@ router.get('/my-permissions', auth, roleCtrl.getMyPermissions);
 
 // Role CRUD — gated by the ROLES module permissions
 router.get('/', auth, hasPermission('ROLES', 'view'), roleCtrl.getAllRoles);
-router.post('/', auth, hasPermission('ROLES', 'create'), roleCtrl.createRole);
-router.put('/:id', auth, hasPermission('ROLES', 'update'), roleCtrl.updateRole);
-router.delete('/:id', auth, hasPermission('ROLES', 'delete'), roleCtrl.deleteRole);
+router.post('/', auth, hasPermission('ROLES', 'manage'), roleCtrl.createRole);
+router.put('/:id', auth, hasPermission('ROLES', 'manage'), roleCtrl.updateRole);
+router.delete('/:id', auth, hasPermission('ROLES', 'manage'), roleCtrl.deleteRole);
 
 // Permission management per role
 router.get('/:id/permissions', auth, hasPermission('ROLES', 'view'), roleCtrl.getRolePermissions);
-router.put('/:id/permissions', auth, hasPermission('ROLES', 'update'), roleCtrl.updateRolePermissions);
+router.put('/:id/permissions', auth, hasPermission('ROLES', 'manage'), roleCtrl.updateRolePermissions);
 
 module.exports = router;

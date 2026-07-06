@@ -105,7 +105,7 @@ class _StaffAddScreenState extends State<StaffAddScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.staff))
+              if (PermissionService().canManage(ModuleCodes.staff))
                 AppButton(
                   text: 'Add Staff',
                   isLoading: _isLoading,

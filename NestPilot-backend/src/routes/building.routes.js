@@ -6,8 +6,8 @@ const { hasPermission } = require('../middlewares/permission.middleware');
 
 // Public discovery endpoint — used during registration.
 router.get('/:id/flats', societyController.getFlatsByBuilding);
-router.post('/:id/flats', auth, hasPermission('BUILDINGS', 'create'), societyController.createFlatForBuilding);
-router.put('/:id/flats/:flatId', auth, hasPermission('BUILDINGS', 'update'), societyController.updateFlatForBuilding);
-router.put('/:id', auth, hasPermission('BUILDINGS', 'update'), societyController.updateBuilding);
+router.post('/:id/flats', auth, hasPermission('BUILDINGS', 'manage'), societyController.createFlatForBuilding);
+router.put('/:id/flats/:flatId', auth, hasPermission('BUILDINGS', 'manage'), societyController.updateFlatForBuilding);
+router.put('/:id', auth, hasPermission('BUILDINGS', 'manage'), societyController.updateBuilding);
 
 module.exports = router;

@@ -8,12 +8,12 @@ router.use(auth);
 
 // List & create
 router.get('/', hasPermission('EVENTS', 'view'), controller.getAll);
-router.post('/', hasPermission('EVENTS', 'create'), controller.create);
+router.post('/', hasPermission('EVENTS', 'manage'), controller.create);
 
 // Single event
 router.get('/:id', hasPermission('EVENTS', 'view'), controller.getById);
-router.patch('/:id', hasPermission('EVENTS', 'update'), controller.update);
-router.delete('/:id', hasPermission('EVENTS', 'delete'), controller.remove);
+router.patch('/:id', hasPermission('EVENTS', 'manage'), controller.update);
+router.delete('/:id', hasPermission('EVENTS', 'manage'), controller.remove);
 
 // Attendee registration — viewing events implies you can register for them
 router.post('/:id/register', hasPermission('EVENTS', 'view'), controller.register);

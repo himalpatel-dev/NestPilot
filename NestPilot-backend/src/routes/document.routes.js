@@ -27,7 +27,7 @@ const uploadMiddleware = multer({ storage: storage });
 router.use(auth);
 
 router.get('/', hasPermission('DOCUMENTS', 'view'), controller.getDocuments);
-router.post('/', hasPermission('DOCUMENTS', 'create'), uploadMiddleware.single('file'), controller.uploadDocument);
-router.delete('/:id', hasPermission('DOCUMENTS', 'delete'), controller.deleteDocument);
+router.post('/', hasPermission('DOCUMENTS', 'manage'), uploadMiddleware.single('file'), controller.uploadDocument);
+router.delete('/:id', hasPermission('DOCUMENTS', 'manage'), controller.deleteDocument);
 
 module.exports = router;

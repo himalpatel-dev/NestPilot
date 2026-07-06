@@ -374,7 +374,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
             tooltip: 'Permissions',
           ),
           if (!role.isSystem) ...[
-            if (PermissionService().canUpdate(ModuleCodes.roles)) ...[
+            if (PermissionService().canManage(ModuleCodes.roles)) ...[
               const SizedBox(width: 6),
               _actionBtn(
                 Icons.edit_outlined,
@@ -383,7 +383,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                 tooltip: 'Edit',
               ),
             ],
-            if (PermissionService().canDelete(ModuleCodes.roles)) ...[
+            if (PermissionService().canManage(ModuleCodes.roles)) ...[
               const SizedBox(width: 6),
               _actionBtn(
                 Icons.delete_outline_rounded,

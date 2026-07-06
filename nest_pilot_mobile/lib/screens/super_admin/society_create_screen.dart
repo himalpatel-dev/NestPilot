@@ -242,9 +242,7 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    if (widget.isEditing
-                        ? PermissionService().canUpdate(ModuleCodes.buildings)
-                        : PermissionService().canCreate(ModuleCodes.buildings))
+                    if (PermissionService().canManage(ModuleCodes.buildings))
                       GlarePrimaryButton(
                         text: widget.isEditing
                             ? 'Save Society'

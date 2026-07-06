@@ -138,8 +138,8 @@ class _EventManageScreenState extends State<EventManageScreen> {
   @override
   Widget build(BuildContext context) {
     final perms = PermissionService();
-    final canCreate = perms.canCreate(ModuleCodes.events);
-    final canDelete = perms.canDelete(ModuleCodes.events);
+    final canCreate = perms.canManage(ModuleCodes.events);
+    final canDelete = perms.canManage(ModuleCodes.events);
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(

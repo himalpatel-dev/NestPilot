@@ -25,28 +25,29 @@ const DEFAULT_ROLES = [
     { code: 'SECURITY_GUARD', name: 'Security Guard',  is_system: false },
 ];
 
-const ALL  = { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: true  };
-const VIEW = { can_view: true,  can_create: false, can_update: false, can_delete: false, can_approve: false };
-const NONE = { can_view: false, can_create: false, can_update: false, can_delete: false, can_approve: false };
+// Two-flag model: can_view (see list/detail) and can_manage (add/edit/delete/approve).
+const MANAGE = { can_view: true,  can_manage: true  };
+const VIEW   = { can_view: true,  can_manage: false };
+const NONE   = { can_view: false, can_manage: false };
 
 // Permissions per role per module. '*' = applies to every module not listed explicitly.
 const DEFAULT_PERMISSIONS = {
-    SUPER_ADMIN: { '*': ALL },
+    SUPER_ADMIN: { '*': MANAGE },
 
     SOCIETY_ADMIN: {
         DASHBOARD:  VIEW,
-        NOTICES:    { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
-        COMPLAINTS: { can_view: true,  can_create: false, can_update: true,  can_delete: false, can_approve: true  },
-        BILLS:      { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: true  },
-        EVENTS:     { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
-        AMENITIES:  { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: true  },
-        VISITORS:   { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: true  },
-        STAFF:      { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
-        POLLS:      { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
-        DOCUMENTS:  { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
-        VEHICLES:   { can_view: true,  can_create: false, can_update: false, can_delete: false, can_approve: true  },
-        USERS:      { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: true  },
-        BUILDINGS:  { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: false },
+        NOTICES:    MANAGE,
+        COMPLAINTS: MANAGE,
+        BILLS:      MANAGE,
+        EVENTS:     MANAGE,
+        AMENITIES:  MANAGE,
+        VISITORS:   MANAGE,
+        STAFF:      MANAGE,
+        POLLS:      MANAGE,
+        DOCUMENTS:  MANAGE,
+        VEHICLES:   MANAGE,
+        USERS:      MANAGE,
+        BUILDINGS:  MANAGE,
         REPORTS:    VIEW,
         ROLES:      VIEW,
     },
@@ -54,15 +55,15 @@ const DEFAULT_PERMISSIONS = {
     MEMBER: {
         DASHBOARD:  VIEW,
         NOTICES:    VIEW,
-        COMPLAINTS: { can_view: true,  can_create: true,  can_update: false, can_delete: false, can_approve: false },
+        COMPLAINTS: MANAGE,
         BILLS:      VIEW,
         EVENTS:     VIEW,
-        AMENITIES:  { can_view: true,  can_create: true,  can_update: false, can_delete: false, can_approve: false },
-        VISITORS:   { can_view: true,  can_create: true,  can_update: false, can_delete: false, can_approve: true  },
-        STAFF:      { can_view: true,  can_create: false, can_update: true,  can_delete: false, can_approve: false }, // update = log attendance
-        POLLS:      { can_view: true,  can_create: false, can_update: false, can_delete: false, can_approve: false },
+        AMENITIES:  MANAGE,
+        VISITORS:   MANAGE,
+        STAFF:      MANAGE, // manage = log attendance
+        POLLS:      VIEW,
         DOCUMENTS:  VIEW,
-        VEHICLES:   { can_view: true,  can_create: true,  can_update: true,  can_delete: true,  can_approve: false },
+        VEHICLES:   MANAGE,
         USERS:      NONE,
         BUILDINGS:  VIEW,
         REPORTS:    NONE,
@@ -76,8 +77,8 @@ const DEFAULT_PERMISSIONS = {
         BILLS:      NONE,
         EVENTS:     VIEW,
         AMENITIES:  NONE,
-        VISITORS:   { can_view: true,  can_create: true,  can_update: true,  can_delete: false, can_approve: true  },
-        STAFF:      { can_view: true,  can_create: false, can_update: true,  can_delete: false, can_approve: false }, // update = log attendance
+        VISITORS:   MANAGE,
+        STAFF:      MANAGE, // manage = log attendance
         POLLS:      VIEW,
         DOCUMENTS:  NONE,
         VEHICLES:   VIEW,

@@ -128,7 +128,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                 },
               ),
             ),
-      floatingActionButton: PermissionService().canCreate(ModuleCodes.complaints)
+      floatingActionButton: PermissionService().canManage(ModuleCodes.complaints)
           ? FloatingActionButton(
               onPressed: () => Navigator.push(
                 context,

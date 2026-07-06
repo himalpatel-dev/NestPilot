@@ -159,7 +159,7 @@ class _BillCreateScreenState extends State<BillCreateScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.bills))
+              if (PermissionService().canManage(ModuleCodes.bills))
                 AppButton(
                   text: 'Create Bill',
                   isLoading: _isLoading,

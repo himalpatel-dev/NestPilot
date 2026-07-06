@@ -272,10 +272,10 @@ class _PollListScreenState extends State<PollListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Per-module perms: can_create on POLLS distinguishes poll creators (admins)
+    // Per-module perms: can_manage on POLLS distinguishes poll creators (admins)
     // from voters. Voters fall through to the default vote UI.
-    final canCreate = PermissionService().canCreate(ModuleCodes.polls);
-    final canManage = canCreate;
+    final canManage = PermissionService().canManage(ModuleCodes.polls);
+    final canCreate = canManage;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Polls')),

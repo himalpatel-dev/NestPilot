@@ -28,19 +28,8 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             defaultValue: false
         },
-        can_create: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false
-        },
-        can_update: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false
-        },
-        can_delete: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false
-        },
-        can_approve: {
+        // Single flag covering add / edit / delete / approve
+        can_manage: {
             type: DataTypes.BOOLEAN,
             defaultValue: false
         }

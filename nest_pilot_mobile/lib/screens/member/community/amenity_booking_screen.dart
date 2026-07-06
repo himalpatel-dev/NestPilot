@@ -130,7 +130,7 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen>
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(a.isPaid ? '₹${a.pricePerHour}/hr' : 'Free'),
-                trailing: PermissionService().canCreate(ModuleCodes.amenities)
+                trailing: PermissionService().canManage(ModuleCodes.amenities)
                     ? ElevatedButton(
                         onPressed: () => _bookAmenity(a),
                         child: const Text('Book'),

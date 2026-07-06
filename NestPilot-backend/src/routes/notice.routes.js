@@ -7,7 +7,7 @@ const upload = require('../middlewares/upload.middleware');
 
 router.use(auth);
 
-router.post('/', hasPermission('NOTICES', 'create'), upload.array('attachments', 5), controller.create);
+router.post('/', hasPermission('NOTICES', 'manage'), upload.array('attachments', 5), controller.create);
 router.get('/', hasPermission('NOTICES', 'view'), controller.getAll);
 
 module.exports = router;

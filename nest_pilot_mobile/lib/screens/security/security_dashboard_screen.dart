@@ -276,7 +276,7 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final canCreate = PermissionService().canCreate(ModuleCodes.visitors);
+    final canCreate = PermissionService().canManage(ModuleCodes.visitors);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,

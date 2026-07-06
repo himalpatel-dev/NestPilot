@@ -15,7 +15,7 @@ router.get('/pending-users', hasPermission('USERS', 'view'), adminController.get
 router.get('/members', hasPermission('USERS', 'view'), adminController.getSocietyMembers);
 
 // Approve / reject pending residents = USERS approve
-router.post('/users/:id/approve', hasPermission('USERS', 'approve'), adminController.approveUser);
-router.post('/users/:id/reject', hasPermission('USERS', 'approve'), adminController.rejectUser);
+router.post('/users/:id/approve', hasPermission('USERS', 'manage'), adminController.approveUser);
+router.post('/users/:id/reject', hasPermission('USERS', 'manage'), adminController.rejectUser);
 
 module.exports = router;

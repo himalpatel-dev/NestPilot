@@ -5,9 +5,9 @@ const auth = require('../middlewares/auth.middleware');
 const { hasPermission } = require('../middlewares/permission.middleware');
 router.use(auth);
 
-router.post('/', hasPermission('VEHICLES', 'create'), controller.addVehicle);
+router.post('/', hasPermission('VEHICLES', 'manage'), controller.addVehicle);
 router.get('/', hasPermission('VEHICLES', 'view'), controller.getMyVehicles);
 router.get('/all', hasPermission('VEHICLES', 'view'), controller.getAllVehicles);
-router.delete('/:id', hasPermission('VEHICLES', 'delete'), controller.deleteVehicle);
+router.delete('/:id', hasPermission('VEHICLES', 'manage'), controller.deleteVehicle);
 
 module.exports = router;

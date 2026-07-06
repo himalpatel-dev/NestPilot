@@ -42,28 +42,25 @@ class PermissionService {
   /// Check a permission. If the cache is empty (e.g. perms failed to load)
   /// this conservatively returns `false`.
   ///
-  /// Example: `PermissionService().can(ModuleCodes.notices, PermAction.create)`
+  /// `view` passes with either flag (manage implies view — list screens are
+  /// shared); `manage` covers add / edit / delete / approve.
+  ///
+  /// Example: `PermissionService().can(ModuleCodes.notices, PermAction.manage)`
   bool can(String moduleCode, String action) {
     final p = _byModule[moduleCode];
     if (p == null) return false;
     switch (action) {
-      case PermAction.view:    return p.canView;
-      case PermAction.create:  return p.canCreate;
-      case PermAction.update:  return p.canUpdate;
-      case PermAction.delete:  return p.canDelete;
-      case PermAction.approve: return p.canApprove;
+      case PermAction.view:   return p.canView || p.canManage;
+      case PermAction.manage: return p.canManage;
       default: return false;
     }
   }
 
-  bool canView(String moduleCode)    => can(moduleCode, PermAction.view);
-  bool canCreate(String moduleCode)  => can(moduleCode, PermAction.create);
-  bool canUpdate(String moduleCode)  => can(moduleCode, PermAction.update);
-  bool canDelete(String moduleCode)  => can(moduleCode, PermAction.delete);
-  bool canApprove(String moduleCode) => can(moduleCode, PermAction.approve);
+  bool canView(String moduleCode)   => can(moduleCode, PermAction.view);
+  bool canManage(String moduleCode) => can(moduleCode, PermAction.manage);
 
-  /// Has at least one of view/create/update/delete/approve on this module —
-  /// useful for deciding whether to show a module entry in a menu at all.
+  /// Has at least one of view/manage on this module — useful for deciding
+  /// whether to show a module entry in a menu at all.
   bool canAny(String moduleCode) {
     final p = _byModule[moduleCode];
     return p?.hasAny ?? false;

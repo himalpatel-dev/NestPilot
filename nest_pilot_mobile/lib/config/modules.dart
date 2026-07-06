@@ -18,10 +18,9 @@ class ModuleCodes {
 }
 
 /// Actions — match the `can_<action>` boolean columns on RolePermission.
+/// Two-permission model: `view` (see list/detail) and `manage`
+/// (add / edit / delete / approve — one combined permission).
 class PermAction {
-  static const String view    = 'view';
-  static const String create  = 'create';
-  static const String update  = 'update';
-  static const String delete  = 'delete';
-  static const String approve = 'approve';
+  static const String view   = 'view';
+  static const String manage = 'manage';
 }

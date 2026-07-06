@@ -162,7 +162,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = PermissionService().canUpdate(ModuleCodes.complaints);
+    final isAdmin = PermissionService().canManage(ModuleCodes.complaints);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Complaint Detail')),

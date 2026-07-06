@@ -153,7 +153,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.documents))
+              if (PermissionService().canManage(ModuleCodes.documents))
                 AppButton(
                   text: 'Upload',
                   isLoading: _isLoading,

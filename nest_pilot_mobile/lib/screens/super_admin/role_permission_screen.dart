@@ -70,16 +70,13 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     }
   }
 
-  bool get _readOnly => !PermissionService().canUpdate(ModuleCodes.roles);
+  bool get _readOnly => !PermissionService().canManage(ModuleCodes.roles);
 
   void _toggleAll(ModulePermission perm, bool value) {
     if (_readOnly) return;
     setState(() {
       perm.canView = value;
-      perm.canCreate = value;
-      perm.canUpdate = value;
-      perm.canDelete = value;
-      perm.canApprove = value;
+      perm.canManage = value;
     });
   }
 
@@ -165,7 +162,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isSuperAdmin = widget.role.code == 'SUPER_ADMIN';
-    final canEditPerms = PermissionService().canUpdate(ModuleCodes.roles);
+    final canEditPerms = PermissionService().canManage(ModuleCodes.roles);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -226,7 +223,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
               ),
             ),
           ),
-          for (final label in ['View', 'Create', 'Edit', 'Delete', 'Approve'])
+          for (final label in ['View', 'Manage'])
             Expanded(
               flex: 2,
               child: Text(
@@ -300,17 +297,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
           _permToggle(perm.canView, color, (v) {
             if (!_readOnly) setState(() => perm.canView = v);
           }),
-          _permToggle(perm.canCreate, color, (v) {
-            if (!_readOnly) setState(() => perm.canCreate = v);
-          }),
-          _permToggle(perm.canUpdate, color, (v) {
-            if (!_readOnly) setState(() => perm.canUpdate = v);
-          }),
-          _permToggle(perm.canDelete, AppColors.accentRed, (v) {
-            if (!_readOnly) setState(() => perm.canDelete = v);
-          }),
-          _permToggle(perm.canApprove, AppColors.accentOrange, (v) {
-            if (!_readOnly) setState(() => perm.canApprove = v);
+          _permToggle(perm.canManage, AppColors.accentOrange, (v) {
+            if (!_readOnly) setState(() => perm.canManage = v);
           }),
           // All-or-nothing toggle
           const SizedBox(width: 4),

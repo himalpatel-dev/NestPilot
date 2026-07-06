@@ -167,7 +167,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canCreate = PermissionService().canCreate(ModuleCodes.visitors);
+    final canCreate = PermissionService().canManage(ModuleCodes.visitors);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,

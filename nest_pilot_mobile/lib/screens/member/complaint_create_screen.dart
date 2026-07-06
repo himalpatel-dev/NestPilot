@@ -127,7 +127,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                 ),
               ],
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.complaints))
+              if (PermissionService().canManage(ModuleCodes.complaints))
                 AppButton(
                   text: 'Submit Complaint',
                   isLoading: _isLoading,

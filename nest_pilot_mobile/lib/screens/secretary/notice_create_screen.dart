@@ -100,7 +100,7 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              if (PermissionService().canCreate(ModuleCodes.notices))
+              if (PermissionService().canManage(ModuleCodes.notices))
                 AppButton(
                   text: 'Publish Notice',
                   isLoading: _isLoading,

@@ -55,7 +55,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canCreate = PermissionService().canCreate(ModuleCodes.staff);
+    final canCreate = PermissionService().canManage(ModuleCodes.staff);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daily Help')),
@@ -188,7 +188,7 @@ class _StaffAttendanceSheetState extends State<StaffAttendanceSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          if (PermissionService().canUpdate(ModuleCodes.staff))
+          if (PermissionService().canManage(ModuleCodes.staff))
             Row(
               children: [
                 Expanded(

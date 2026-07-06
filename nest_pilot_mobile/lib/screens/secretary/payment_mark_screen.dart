@@ -211,7 +211,7 @@ class _PaymentMarkScreenState extends State<PaymentMarkScreen> {
                         hint: 'Optional',
                       ),
                       const SizedBox(height: 32),
-                      if (PermissionService().canUpdate(ModuleCodes.bills))
+                      if (PermissionService().canManage(ModuleCodes.bills))
                         AppButton(
                           text: 'Record Payment',
                           isLoading: _isLoading,

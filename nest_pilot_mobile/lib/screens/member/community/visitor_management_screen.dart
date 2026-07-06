@@ -173,8 +173,8 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen>
   @override
   Widget build(BuildContext context) {
     final perms = PermissionService();
-    final canInvite  = perms.canCreate(ModuleCodes.visitors);
-    final canApprove = perms.canApprove(ModuleCodes.visitors);
+    final canInvite  = perms.canManage(ModuleCodes.visitors);
+    final canApprove = perms.canManage(ModuleCodes.visitors);
 
     final tabs = <Widget>[
       const Tab(text: 'History'),

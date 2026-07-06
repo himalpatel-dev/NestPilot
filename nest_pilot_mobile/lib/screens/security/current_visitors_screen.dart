@@ -217,7 +217,7 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final canExit = PermissionService().canUpdate(ModuleCodes.visitors);
+    final canExit = PermissionService().canManage(ModuleCodes.visitors);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,

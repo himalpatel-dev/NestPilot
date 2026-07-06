@@ -52,7 +52,7 @@ import 'common/visitor_report_screen.dart';
 // pair, so filterModuleSections() drops anything the user can't see. Tiles
 // that have both a "manager" view and a "member" view auto-pick the
 // destination via the dest helpers below — e.g. a user with
-// canCreate(NOTICES) lands on NoticeCreateScreen, everyone else on
+// canManage(NOTICES) lands on NoticeCreateScreen, everyone else on
 // NoticeListScreen. Add a tile here once and it shows for any role whose
 // permissions allow it.
 
@@ -114,48 +114,46 @@ List<ModuleSection> filterModuleSections(List<ModuleSection> sections) {
 // Each picker inspects the user's permissions and returns the correct screen
 // for that tile. Keeps the section list declarative.
 
-Widget noticesDest() => PermissionService().canCreate(ModuleCodes.notices)
+Widget noticesDest() => PermissionService().canManage(ModuleCodes.notices)
     ? const NoticeCreateScreen()
     : const NoticeListScreen();
 
-Widget pollsDest() => PermissionService().canCreate(ModuleCodes.polls)
+Widget pollsDest() => PermissionService().canManage(ModuleCodes.polls)
     ? const PollCreateScreen()
     : const PollListScreen();
 
-Widget documentsDest() => PermissionService().canCreate(ModuleCodes.documents)
+Widget documentsDest() => PermissionService().canManage(ModuleCodes.documents)
     ? const DocumentUploadScreen()
     : const DocumentListScreen();
 
-Widget vehiclesDest() => PermissionService().canApprove(ModuleCodes.vehicles)
+Widget vehiclesDest() => PermissionService().canManage(ModuleCodes.vehicles)
     ? const VehicleManagementScreen()
     : const VehicleListScreen();
 
 Widget amenitiesDest() {
-  final p = PermissionService();
-  // Admins (approve bookings or create amenities) get the management screen,
-  // everyone else gets the booking screen.
-  return (p.canApprove(ModuleCodes.amenities) || p.canCreate(ModuleCodes.amenities))
+  // Managers get the management screen, everyone else the booking screen.
+  return PermissionService().canManage(ModuleCodes.amenities)
       ? const AmenityManagementScreen()
       : const AmenityBookingScreen();
 }
 
-Widget staffDest() => PermissionService().canCreate(ModuleCodes.staff)
+Widget staffDest() => PermissionService().canManage(ModuleCodes.staff)
     ? const StaffAddScreen()
     : const StaffListScreen();
 
 Widget eventsDest() => const EventManageScreen();
 
-/// Managers (update = manage entries) get the visitor overview dashboard,
+/// Managers get the visitor overview dashboard,
 /// everyone else gets invite / history.
-Widget visitorsDest() => PermissionService().canUpdate(ModuleCodes.visitors)
+Widget visitorsDest() => PermissionService().canManage(ModuleCodes.visitors)
     ? const VisitorDashboardScreen()
     : const VisitorManagementScreen();
 
-Widget complaintsDest() => PermissionService().canUpdate(ModuleCodes.complaints)
+Widget complaintsDest() => PermissionService().canManage(ModuleCodes.complaints)
     ? const ComplaintManageScreen()
     : const ComplaintListScreen();
 
-Widget billsDest() => PermissionService().canCreate(ModuleCodes.bills)
+Widget billsDest() => PermissionService().canManage(ModuleCodes.bills)
     ? const BillsManageScreen()
     : const BillsListScreen();
 
@@ -225,7 +223,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.directions_run_outlined, 'Visitor Entry', AppColors.accentOrange,
       (c) => _go(c, const SecurityDashboardScreen()),
       ModuleCodes.visitors,
-      requiredAction: PermAction.create,
+      requiredAction: PermAction.manage,
       tags: const ['gate', 'guard', 'entry', 'check in', 'security', 'allow', 'approve entry', 'walk-in', 'walk in'],
     ),
     ModuleTile.gated(
@@ -244,7 +242,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.analytics_outlined, 'Visitor Overview', AppColors.accentPurple,
       (c) => _go(c, const VisitorDashboardScreen()),
       ModuleCodes.visitors,
-      requiredAction: PermAction.update,
+      requiredAction: PermAction.manage,
       tags: const ['overview', 'stats', 'visitor dashboard', 'summary', 'gate report'],
     ),
   ]),
@@ -253,7 +251,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.add_card_outlined, 'Create Bill', AppColors.accentGreen,
       (c) => _go(c, const BillCreateScreen()),
       ModuleCodes.bills,
-      requiredAction: PermAction.create,
+      requiredAction: PermAction.manage,
       tags: const ['generate', 'new', 'billing', 'invoice', 'bill generate', 'make bill', 'add bill'],
     ),
     ModuleTile.gated(
@@ -266,7 +264,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.payments_outlined, 'Mark Payment', AppColors.accentTeal,
       (c) => _go(c, const PaymentMarkScreen()),
       ModuleCodes.bills,
-      requiredAction: PermAction.update,
+      requiredAction: PermAction.manage,
       tags: const ['payment', 'pay', 'dues', 'maintenance', 'collect', 'mark', 'record', 'paid', 'receipt', 'bill pay', 'collected'],
     ),
     ModuleTile.gated(
@@ -279,7 +277,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.pie_chart_outline_rounded, 'Bills Overview', AppColors.accentIndigo,
       (c) => _go(c, const BillsDashboardScreen()),
       ModuleCodes.bills,
-      requiredAction: PermAction.approve,
+      requiredAction: PermAction.manage,
       tags: const ['overview', 'stats', 'collection', 'summary', 'billing dashboard', 'outstanding'],
     ),
   ]),
@@ -288,7 +286,7 @@ List<ModuleSection> masterModuleSections() => [
       Icons.person_add_alt_1_outlined, 'Pending', AppColors.accentAmber,
       (c) => _go(c, const PendingMembersScreen()),
       ModuleCodes.users,
-      requiredAction: PermAction.approve,
+      requiredAction: PermAction.manage,
       tags: const ['approve', 'request', 'new member', 'join', 'pending member', 'waiting', 'acceptance'],
     ),
     ModuleTile.gated(
@@ -301,21 +299,21 @@ List<ModuleSection> masterModuleSections() => [
       Icons.business_outlined, 'Societies', AppColors.accentOrange,
       (c) => _go(c, const SocietyCreateScreen()),
       ModuleCodes.buildings,
-      requiredAction: PermAction.create,
+      requiredAction: PermAction.manage,
       tags: const ['society', 'create society', 'new society', 'apartment', 'complex', 'housing', 'colony'],
     ),
     ModuleTile.gated(
       Icons.apartment_outlined, 'Buildings', AppColors.accentBlue,
       (c) => _go(c, const BuildingCreateScreen()),
       ModuleCodes.buildings,
-      requiredAction: PermAction.create,
+      requiredAction: PermAction.manage,
       tags: const ['building', 'tower', 'block', 'wing', 'floor', 'structure'],
     ),
     ModuleTile.gated(
       Icons.door_front_door_outlined, 'Add Flat', AppColors.accentPurple,
       (c) => _go(c, const FlatCreateScreen()),
       ModuleCodes.buildings,
-      requiredAction: PermAction.create,
+      requiredAction: PermAction.manage,
       tags: const ['flat', 'unit', 'apartment', 'room', 'house', 'add flat', 'new flat'],
     ),
     ModuleTile.gated(

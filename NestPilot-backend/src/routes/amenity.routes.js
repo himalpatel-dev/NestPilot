@@ -8,14 +8,14 @@ router.use(auth);
 
 // Amenities
 router.get('/', hasPermission('AMENITIES', 'view'), controller.getAllAmenities);
-router.post('/', hasPermission('AMENITIES', 'create'), controller.createAmenity);
+router.post('/', hasPermission('AMENITIES', 'manage'), controller.createAmenity);
 
 // Bookings — creating a booking is `create` on the AMENITIES module
-router.post('/book', hasPermission('AMENITIES', 'create'), controller.createBooking);
+router.post('/book', hasPermission('AMENITIES', 'manage'), controller.createBooking);
 router.get('/my-bookings', hasPermission('AMENITIES', 'view'), controller.getMyBookings);
 
 // Admin Booking Management
 router.get('/bookings', hasPermission('AMENITIES', 'view'), controller.getAllBookings);
-router.put('/bookings/:id', hasPermission('AMENITIES', 'approve'), controller.updateBookingStatus);
+router.put('/bookings/:id', hasPermission('AMENITIES', 'manage'), controller.updateBookingStatus);
 
 module.exports = router;

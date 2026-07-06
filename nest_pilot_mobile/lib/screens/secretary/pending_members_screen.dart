@@ -65,7 +65,7 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canApprove = PermissionService().canApprove(ModuleCodes.users);
+    final canApprove = PermissionService().canManage(ModuleCodes.users);
     return Scaffold(
       appBar: AppBar(title: const Text('Pending Approvals')),
       body: _isLoading

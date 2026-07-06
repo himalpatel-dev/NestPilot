@@ -71,10 +71,9 @@ class ModulePermission {
   final String moduleName;
   final int sortOrder;
   bool canView;
-  bool canCreate;
-  bool canUpdate;
-  bool canDelete;
-  bool canApprove;
+
+  /// Single flag covering add / edit / delete / approve.
+  bool canManage;
 
   ModulePermission({
     required this.moduleId,
@@ -82,10 +81,7 @@ class ModulePermission {
     required this.moduleName,
     required this.sortOrder,
     required this.canView,
-    required this.canCreate,
-    required this.canUpdate,
-    required this.canDelete,
-    required this.canApprove,
+    required this.canManage,
   });
 
   factory ModulePermission.fromJson(Map<String, dynamic> json) {
@@ -95,22 +91,16 @@ class ModulePermission {
       moduleName: json['module_name'] as String,
       sortOrder: json['sort_order'] as int? ?? 0,
       canView: json['can_view'] as bool? ?? false,
-      canCreate: json['can_create'] as bool? ?? false,
-      canUpdate: json['can_update'] as bool? ?? false,
-      canDelete: json['can_delete'] as bool? ?? false,
-      canApprove: json['can_approve'] as bool? ?? false,
+      canManage: json['can_manage'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
         'module_id': moduleId,
         'can_view': canView,
-        'can_create': canCreate,
-        'can_update': canUpdate,
-        'can_delete': canDelete,
-        'can_approve': canApprove,
+        'can_manage': canManage,
       };
 
-  bool get hasAny => canView || canCreate || canUpdate || canDelete || canApprove;
-  bool get hasAll => canView && canCreate && canUpdate && canDelete && canApprove;
+  bool get hasAny => canView || canManage;
+  bool get hasAll => canView && canManage;
 }

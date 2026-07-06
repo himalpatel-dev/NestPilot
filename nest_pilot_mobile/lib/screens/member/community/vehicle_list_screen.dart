@@ -278,8 +278,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final canCreate = PermissionService().canCreate(ModuleCodes.vehicles);
-    final canDelete = PermissionService().canDelete(ModuleCodes.vehicles);
+    final canCreate = PermissionService().canManage(ModuleCodes.vehicles);
+    final canDelete = PermissionService().canManage(ModuleCodes.vehicles);
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,

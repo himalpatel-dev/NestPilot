@@ -120,7 +120,7 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
             ),
           ],
         ),
-        floatingActionButton: PermissionService().canCreate(ModuleCodes.amenities)
+        floatingActionButton: PermissionService().canManage(ModuleCodes.amenities)
             ? FloatingActionButton(
                 onPressed: _showAddAmenityDialog,
                 backgroundColor: AppColors.primary,
@@ -572,7 +572,7 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen>
                         ),
                       ],
                     ),
-                    if (isPending && PermissionService().canApprove(ModuleCodes.amenities)) ...[
+                    if (isPending && PermissionService().canManage(ModuleCodes.amenities)) ...[
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,

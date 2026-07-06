@@ -12,8 +12,19 @@ const getSuperAdminRoleId = async () => {
 };
 
 /**
+ * Resolve an action against a permission row.
+ * 'view'   → can_view OR can_manage (manage implies view)
+ * 'manage' → can_manage (legacy 'create'/'update'/'delete'/'approve' map here too)
+ */
+const allows = (perm, action) => {
+    if (!perm) return false;
+    if (action === 'view') return !!(perm.can_view || perm.can_manage);
+    return !!perm.can_manage;
+};
+
+/**
  * Check a single module permission.
- * action: 'view' | 'create' | 'update' | 'delete' | 'approve'
+ * action: 'view' | 'manage'
  *
  * Usage: router.get('/', auth, hasPermission('NOTICES', 'view'), controller.list)
  */
@@ -34,7 +45,7 @@ const hasPermission = (moduleCode, action) => {
                 where: { role_id: req.user.role_id, module_id: module.id }
             });
 
-            if (!perm || !perm[`can_${action}`]) {
+            if (!allows(perm, action)) {
                 return next(new ApiError(403, `Forbidden: no '${action}' permission on ${moduleCode}`));
             }
 
@@ -48,7 +59,7 @@ const hasPermission = (moduleCode, action) => {
 /**
  * Check multiple module+action pairs (OR logic — user passes if ANY match).
  *
- * Usage: hasAnyPermission([{ module: 'VISITORS', action: 'approve' }, { module: 'USERS', action: 'approve' }])
+ * Usage: hasAnyPermission([{ module: 'VISITORS', action: 'manage' }, { module: 'USERS', action: 'manage' }])
  */
 const hasAnyPermission = (checks) => {
     return async (req, res, next) => {
@@ -66,7 +77,7 @@ const hasAnyPermission = (checks) => {
                     where: { role_id: req.user.role_id, module_id: module.id }
                 });
 
-                if (perm && perm[`can_${action}`]) return next();
+                if (allows(perm, action)) return next();
             }
 
             return next(new ApiError(403, 'Forbidden: insufficient permissions'));
@@ -78,7 +89,7 @@ const hasAnyPermission = (checks) => {
 
 /**
  * Attach the full permission map for the current user to req.userPermissions.
- * { NOTICES: { can_view, can_create, ... }, COMPLAINTS: { ... }, ... }
+ * { NOTICES: { can_view, can_manage }, COMPLAINTS: { ... }, ... }
  * Useful for controllers that need to conditionally show/hide data.
  */
 const attachPermissions = async (req, res, next) => {
@@ -92,10 +103,7 @@ const attachPermissions = async (req, res, next) => {
             const modules = await db.Module.findAll({ where: { is_active: true } });
             req.userPermissions = {};
             modules.forEach(m => {
-                req.userPermissions[m.code] = {
-                    can_view: true, can_create: true, can_update: true,
-                    can_delete: true, can_approve: true
-                };
+                req.userPermissions[m.code] = { can_view: true, can_manage: true };
             });
             return next();
         }
@@ -109,11 +117,8 @@ const attachPermissions = async (req, res, next) => {
         perms.forEach(p => {
             if (p.Module) {
                 req.userPermissions[p.Module.code] = {
-                    can_view: p.can_view,
-                    can_create: p.can_create,
-                    can_update: p.can_update,
-                    can_delete: p.can_delete,
-                    can_approve: p.can_approve
+                    can_view: p.can_view || p.can_manage,
+                    can_manage: p.can_manage
                 };
             }
         });

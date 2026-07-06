@@ -480,11 +480,8 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 32),
-                                if (widget.isEditing
-                                    ? PermissionService()
-                                        .canUpdate(ModuleCodes.buildings)
-                                    : PermissionService()
-                                        .canCreate(ModuleCodes.buildings))
+                                if (PermissionService()
+                                    .canManage(ModuleCodes.buildings))
                                   GlarePrimaryButton(
                                     text: widget.isEditing
                                         ? 'Save Flat / Unit'
