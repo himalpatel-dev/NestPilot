@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import '../screens/notification_list_screen.dart';
 import '../theme/app_colors.dart';
 
 /// One stat shown in the bar under the hero card ("24 / ACTIVE").
@@ -72,25 +73,56 @@ class ModulePageHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top bar: back button (+ optional trailing action) ────────
-          if (showBack || trailing != null) ...[
-            Row(
-              children: [
-                if (showBack)
-                  _circleButton(
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
+          // ── Top bar: back · trailing action · notification bell ──────
+          Row(
+            children: [
+              if (showBack)
+                _circleButton(
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: AppColors.textPrimary,
+                    size: 20,
+                  ),
+                  onTap: onBack ?? () => Navigator.pop(context),
+                ),
+              const Spacer(),
+              if (trailing != null) ...[
+                trailing!,
+                const SizedBox(width: 8),
+              ],
+              _circleButton(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(
+                      Icons.notifications_none_rounded,
                       color: AppColors.textPrimary,
                       size: 20,
                     ),
-                    onTap: onBack ?? () => Navigator.pop(context),
+                    Positioned(
+                      top: -1,
+                      right: -1,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: AppColors.accentOrange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationListScreen(),
                   ),
-                const Spacer(),
-                if (trailing != null) trailing!,
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           // ── Hero card — same light pastel tint as the dashboard tiles ─
           Container(
             width: double.infinity,

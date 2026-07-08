@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
-import '../theme/nest_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
 import '../config/roles.dart';
-import '../config/modules.dart';
 import '../models/society_structure.dart';
 import '../services/admin_service.dart';
 import '../services/auth_service.dart';
-import '../services/permission_service.dart';
 import '../services/notification_service.dart';
 import '../services/billing_payment_service.dart';
 import '../services/community_service.dart';
-import '../services/activity_service.dart';
-import '../models/activity_model.dart';
 import 'notification_list_screen.dart';
 import 'login_screen.dart';
-import 'member/complaint_list_screen.dart';
-import 'member/community/poll_list_screen.dart';
 import 'module_catalog.dart';
 import 'services_hub_screen.dart';
 import '../services/socket_service.dart';
@@ -50,15 +43,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _exitedCount = 0;
   int _totalCount = 0;
 
-  List<ActivityModel> _recentActivity = const [];
-  bool _loadingActivity = false;
-
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
     _fetchOutstandingBills();
-    _fetchRecentActivity();
     _fetchDashboardStats();
     _fetchSecurityStats();
     _setupSocket();
@@ -148,19 +137,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _fetchRecentActivity() async {
-    if (!_isAdmin && !_isSecurity) return;
-    setState(() => _loadingActivity = true);
-    try {
-      final items = await ActivityService().getRecent(limit: 5);
-      if (mounted) setState(() => _recentActivity = items);
-    } catch (e) {
-      debugPrint('Activity error: $e');
-    } finally {
-      if (mounted) setState(() => _loadingActivity = false);
-    }
-  }
-
   Future<void> _fetchOutstandingBills() async {
     if (widget.user.role != UserRoles.member) return;
     setState(() => _loadingBills = true);
@@ -223,9 +199,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  bool get _isAdmin =>
-      widget.user.role == UserRoles.superAdmin ||
-      widget.user.role == UserRoles.societyAdmin;
   bool get _isMember => widget.user.role == UserRoles.member;
   bool get _isSecurity => widget.user.role == UserRoles.securityGuard;
   bool get _isSuperAdmin => widget.user.role == UserRoles.superAdmin;
@@ -375,12 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHome(double bottomPad) {
-    final perms = PermissionService();
     final modules = _moduleEntries();
-    final showNoticeEvent =
-        perms.canView(ModuleCodes.notices) || perms.canView(ModuleCodes.events);
-    final showMyComplaints = perms.canView(ModuleCodes.complaints) &&
-        !perms.canManage(ModuleCodes.complaints);
 
     return SafeArea(
       top: false,
@@ -389,7 +357,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: () async {
           await _fetchNotifications();
           await _fetchOutstandingBills();
-          await _fetchRecentActivity();
           await _fetchDashboardStats();
           await _fetchSecurityStats();
         },
@@ -409,25 +376,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildModulesHeader(),
                     const SizedBox(height: 14),
                     _buildModulesGrid(modules),
-                  ],
-                  if (showNoticeEvent) ...[
-                    const SizedBox(height: 24),
-                    _buildNoticeAndEvent(),
-                  ],
-                  if (showMyComplaints) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader(
-                      'My Complaints',
-                      onViewAll: () => _go(const ComplaintListScreen()),
-                    ),
-                    const SizedBox(height: 14),
-                    _buildRecentComplaints(),
-                  ],
-                  if (_isAdmin || _isSecurity) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('Recent Activity'),
-                    const SizedBox(height: 14),
-                    _buildRecentActivity(),
                   ],
                 ]),
               ),
@@ -665,415 +613,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // ─── Notice + Event ──────────────────────────────────────────────────────────
-
-  Widget _buildNoticeAndEvent() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _buildLatestNoticeCard()),
-        const SizedBox(width: 12),
-        Expanded(child: _buildUpcomingEventCard()),
-      ],
-    );
-  }
-
-  Widget _buildLatestNoticeCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Latest Notice',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _go(noticesDest()),
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const SizedBox(
-            height: 48,
-            child: Center(
-              child: Text(
-                'No notices yet',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () => _go(noticesDest()),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'View Notices',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    color: AppColors.primary,
-                    size: 13,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUpcomingEventCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Upcoming Event',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _go(const PollListScreen()),
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const SizedBox(
-            height: 48,
-            child: Center(
-              child: Text(
-                'No upcoming events',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () => _go(const PollListScreen()),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'View Events',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    color: AppColors.primary,
-                    size: 13,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Recent Complaints ───────────────────────────────────────────────────────
-
-  Widget _buildRecentComplaints() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: const Text(
-        'No recent complaints',
-        style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
-      ),
-    );
-  }
-
-  // ─── Recent Activity ─────────────────────────────────────────────────────────
-
-  Widget _buildRecentActivity() {
-    final cardDecoration = BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.05),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    );
-    if (_loadingActivity && _recentActivity.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        alignment: Alignment.center,
-        decoration: cardDecoration,
-        child: const NestLoader(size: 32, showDots: false),
-      );
-    }
-    if (_recentActivity.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: cardDecoration,
-        child: const Text(
-          'No recent activity yet',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
-        ),
-      );
-    }
-    return Container(
-      decoration: cardDecoration,
-      child: Column(
-        children: [
-          for (int i = 0; i < _recentActivity.length; i++) ...[
-            if (i > 0)
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.border,
-                indent: 16,
-                endIndent: 16,
-              ),
-            _activityTile(_recentActivity[i]),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _activityTile(ActivityModel a) {
-    final palette = _activityPalette(a);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: palette.color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Icon(palette.icon, color: palette.color, size: 17),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              a.message,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 10),
-          if (a.createdAt != null)
-            Text(
-              _relativeTime(a.createdAt!),
-              style: TextStyle(
-                color: palette.color.withValues(alpha: 0.85),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  _ActivityPalette _activityPalette(ActivityModel a) {
-    switch (a.entityType) {
-      case 'VISITOR_LOG':
-      case 'VISITOR':
-        return _ActivityPalette(
-          icon: a.action == 'DENIED'
-              ? Icons.block_outlined
-              : Icons.person_outline,
-          color: a.action == 'DENIED'
-              ? AppColors.accentRed
-              : AppColors.accentGreen,
-        );
-      case 'BILL':
-        return _ActivityPalette(
-          icon: Icons.receipt_long_outlined,
-          color: AppColors.accentBlue,
-        );
-      case 'COMPLAINT':
-        return _ActivityPalette(
-          icon: Icons.report_problem_outlined,
-          color: a.action == 'RESOLVED' || a.action == 'CLOSED'
-              ? AppColors.accentGreen
-              : AppColors.accentAmber,
-        );
-      case 'NOTICE':
-        return _ActivityPalette(
-          icon: Icons.campaign_outlined,
-          color: AppColors.accentPurple,
-        );
-      default:
-        return _ActivityPalette(
-          icon: Icons.history_outlined,
-          color: AppColors.primary,
-        );
-    }
-  }
-
-  String _relativeTime(DateTime when) {
-    final diff = DateTime.now().difference(when);
-    if (diff.inSeconds < 60) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) {
-      final h = diff.inHours;
-      return '$h hr${h == 1 ? '' : 's'} ago';
-    }
-    if (diff.inDays < 7) {
-      final d = diff.inDays;
-      return '$d day${d == 1 ? '' : 's'} ago';
-    }
-    return DateFormat('d MMM').format(when);
-  }
-
-  // ─── Section header ──────────────────────────────────────────────────────────
-
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 3,
-              height: 18,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.50),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        if (onViewAll != null)
-          GestureDetector(
-            onTap: onViewAll,
-            child: const Text(
-              'View all',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   // ─── Navigation helper ───────────────────────────────────────────────────────
 
   void _go(Widget screen, {VoidCallback? refresh}) {
@@ -1100,8 +639,3 @@ class _ModuleEntry {
   );
 }
 
-class _ActivityPalette {
-  final IconData icon;
-  final Color color;
-  const _ActivityPalette({required this.icon, required this.color});
-}
