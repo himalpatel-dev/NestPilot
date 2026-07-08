@@ -85,7 +85,8 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   List<Notice> get _filtered {
     final q = _query.trim().toLowerCase();
     return _notices.where((n) {
-      final matchesQuery = q.isEmpty ||
+      final matchesQuery =
+          q.isEmpty ||
           n.title.toLowerCase().contains(q) ||
           n.description.toLowerCase().contains(q) ||
           (n.createdBy ?? '').toLowerCase().contains(q);
@@ -163,8 +164,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     final now = DateTime.now();
     final weekAgo = now.subtract(const Duration(days: 7));
     final total = _notices.length;
-    final thisWeek =
-        _notices.where((n) => n.createdAt.isAfter(weekAgo)).length;
+    final thisWeek = _notices.where((n) => n.createdAt.isAfter(weekAgo)).length;
     final withFiles = _notices
         .where((n) => n.attachmentUrl != null && n.attachmentUrl!.isNotEmpty)
         .length;
@@ -173,7 +173,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       title: 'Notices',
       description: 'Announcements & circulars',
       icon: Icons.campaign_outlined,
-      iconColor: AppColors.accentIndigo,
+      iconColor: ModuleColors.notices,
       stats: [
         ModuleHeaderStat('$total', 'TOTAL'),
         ModuleHeaderStat('$thisWeek', 'THIS WEEK'),
@@ -199,8 +199,11 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.search_rounded,
-                    color: AppColors.textHint, size: 20),
+                const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.textHint,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
@@ -208,8 +211,10 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                     onChanged: (v) => setState(() => _query = v),
                     decoration: const InputDecoration(
                       hintText: 'Search notices...',
-                      hintStyle:
-                          TextStyle(color: AppColors.textHint, fontSize: 13.5),
+                      hintStyle: TextStyle(
+                        color: AppColors.textHint,
+                        fontSize: 13.5,
+                      ),
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -229,8 +234,11 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                       _searchController.clear();
                       setState(() => _query = '');
                     },
-                    child: const Icon(Icons.close_rounded,
-                        color: AppColors.textHint, size: 18),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textHint,
+                      size: 18,
+                    ),
                   ),
               ],
             ),
@@ -376,8 +384,9 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.accentGreen
-                                .withValues(alpha: 0.12),
+                            color: AppColors.accentGreen.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -444,8 +453,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.accentBlue.withValues(alpha: 0.10),
+                            color: AppColors.accentBlue.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Row(
@@ -510,8 +518,10 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
             GestureDetector(
               onTap: _fetch,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),

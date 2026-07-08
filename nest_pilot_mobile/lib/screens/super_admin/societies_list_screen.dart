@@ -128,6 +128,7 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
               size: 28,
             ),
             title: 'All Societies',
+            accentColor: ModuleColors.buildings,
             subtitle: 'Browse and manage onboarded societies',
           ),
           Expanded(

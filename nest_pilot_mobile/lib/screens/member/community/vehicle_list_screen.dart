@@ -294,6 +294,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
               child: AppPageHeader(
                 icon: const Icon(Icons.directions_car_rounded, color: AppColors.white, size: 28),
                 title: 'Vehicles',
+                accentColor: ModuleColors.vehicles,
                 subtitle: _isLoading
                     ? 'Loading vehicles…'
                     : '${_vehicles.length} vehicle${_vehicles.length == 1 ? '' : 's'} registered',

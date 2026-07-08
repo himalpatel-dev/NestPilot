@@ -57,7 +57,7 @@ class _BillsListScreenState extends State<BillsListScreen> {
             title: 'My Bills',
             description: 'Your dues & payment history',
             icon: Icons.receipt_long_outlined,
-            iconColor: AppColors.accentOrange,
+            iconColor: ModuleColors.bills,
             stats: [
               ModuleHeaderStat('$due', 'DUE'),
               ModuleHeaderStat('$paid', 'PAID'),

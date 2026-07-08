@@ -70,6 +70,7 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
               child: AppPageHeader(
                 icon: const Icon(Icons.badge_outlined, color: AppColors.white, size: 28),
                 title: 'Service Staff',
+                accentColor: ModuleColors.staff,
                 subtitle: _isLoading
                     ? 'Loading…'
                     : '${_staff.length} staff member${_staff.length == 1 ? '' : 's'}',

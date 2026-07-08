@@ -92,6 +92,7 @@ class _SecretaryAssignScreenState extends State<SecretaryAssignScreen> {
               size: 28,
             ),
             title: 'Assign Buildings',
+            accentColor: ModuleColors.roles,
             subtitle: widget.admin.fullName,
           ),
           Expanded(

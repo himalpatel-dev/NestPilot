@@ -413,7 +413,7 @@ class ModuleGrid extends StatelessWidget {
                 Expanded(
                   child: i < rowTiles.length
                       ? _ModuleTileView(tile: rowTiles[i])
-                      : const SizedBox(height: 90),
+                      : const SizedBox(height: 98),
                 ),
               ],
             ],
@@ -437,7 +437,6 @@ class _ModuleTileView extends StatelessWidget {
         icon: tile.icon,
         color: tile.color,
         label: tile.label,
-        iconSize: 22,
       ),
     );
   }

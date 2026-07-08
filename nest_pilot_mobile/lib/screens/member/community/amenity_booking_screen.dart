@@ -98,7 +98,7 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
             title: 'Amenities',
             description: 'Book facilities & view your bookings',
             icon: Icons.calendar_today_outlined,
-            iconColor: AppColors.accentIndigo,
+            iconColor: ModuleColors.amenities,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),

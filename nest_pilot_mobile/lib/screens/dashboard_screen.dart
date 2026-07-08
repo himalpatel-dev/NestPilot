@@ -18,11 +18,6 @@ import 'notification_list_screen.dart';
 import 'login_screen.dart';
 import 'member/complaint_list_screen.dart';
 import 'member/community/poll_list_screen.dart';
-import 'secretary/member_list_screen.dart';
-import 'security/verify_passcode_screen.dart';
-import 'security/walk_in_entry_screen.dart';
-import 'super_admin/buildings_list_screen.dart';
-import 'super_admin/role_management_screen.dart';
 import 'module_catalog.dart';
 import 'services_hub_screen.dart';
 import '../services/socket_service.dart';
@@ -445,89 +440,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── Modules grid ────────────────────────────────────────────────────────────
 
-  /// One card per module, gated by a (module, action) pair — the grid only
-  /// shows what the logged-in user's role permissions allow.
+  /// One card per catalogue tile — the dashboard mirrors the services hub:
+  /// every tile the user's permissions allow there shows here too, so the
+  /// two screens can never drift apart. Alerts and Profile are appended as
+  /// dashboard-only extras.
   List<_ModuleEntry> _moduleEntries() {
-    final perms = PermissionService();
-    final all = [
-      _ModuleEntry(
-        Icons.campaign_outlined, 'Notices', AppColors.accentIndigo,
-        () => _go(noticesDest()),
-        module: ModuleCodes.notices,
-      ),
-      _ModuleEntry(
-        Icons.report_problem_outlined, 'Complaints', AppColors.accentPink,
-        () => _go(complaintsDest()),
-        module: ModuleCodes.complaints,
-      ),
-      _ModuleEntry(
-        Icons.receipt_long_outlined, 'Bills & Ledger', AppColors.accentOrange,
-        () => _go(billsDest(), refresh: _fetchOutstandingBills),
-        module: ModuleCodes.bills,
-      ),
-      _ModuleEntry(
-        Icons.event_outlined, 'Events', AppColors.accentPurple,
-        () => _go(eventsDest()),
-        module: ModuleCodes.events,
-      ),
-      _ModuleEntry(
-        Icons.calendar_today_outlined, 'Amenities', AppColors.accentGreen,
-        () => _go(amenitiesDest()),
-        module: ModuleCodes.amenities,
-      ),
-      _ModuleEntry(
-        Icons.person_pin_circle_outlined, 'Visitors', AppColors.accentTeal,
-        () => _go(visitorsDest()),
-        module: ModuleCodes.visitors,
-      ),
-      _ModuleEntry(
-        Icons.vpn_key_outlined, 'Verify Code', AppColors.accentGreen,
-        () => _go(const VerifyPasscodeScreen()),
-        module: ModuleCodes.visitors,
-        requiredAction: PermAction.manage,
-      ),
-      _ModuleEntry(
-        Icons.directions_walk_rounded, 'Walk-in Entry', AppColors.accentOrange,
-        () => _go(const WalkInEntryScreen()),
-        module: ModuleCodes.visitors,
-        requiredAction: PermAction.manage,
-      ),
-      _ModuleEntry(
-        Icons.engineering_outlined, 'Staff', AppColors.accentAmber,
-        () => _go(staffDest()),
-        module: ModuleCodes.staff,
-      ),
-      _ModuleEntry(
-        Icons.how_to_vote_outlined, 'Polls', AppColors.accentTeal,
-        () => _go(pollsDest()),
-        module: ModuleCodes.polls,
-      ),
-      _ModuleEntry(
-        Icons.folder_open_outlined, 'Documents', AppColors.accentIndigo,
-        () => _go(documentsDest()),
-        module: ModuleCodes.documents,
-      ),
-      _ModuleEntry(
-        Icons.directions_car_outlined, 'Vehicles', AppColors.accentBlue,
-        () => _go(vehiclesDest()),
-        module: ModuleCodes.vehicles,
-      ),
-      _ModuleEntry(
-        Icons.contacts_outlined, 'Residents', AppColors.accentBlue,
-        () => _go(const MemberListScreen()),
-        module: ModuleCodes.users,
-      ),
-      _ModuleEntry(
-        Icons.apartment_outlined, 'Buildings', AppColors.accentOrange,
-        () => _go(const BuildingsListScreen()),
-        module: ModuleCodes.buildings,
-        requiredAction: PermAction.manage,
-      ),
-      _ModuleEntry(
-        Icons.shield_outlined, 'Roles', AppColors.accentIndigo,
-        () => _go(const RoleManagementScreen()),
-        module: ModuleCodes.roles,
-      ),
+    final sections = filterModuleSections(masterModuleSections());
+    return [
+      for (final section in sections)
+        for (final tile in section.tiles)
+          _ModuleEntry(
+            tile.icon,
+            tile.label,
+            tile.color,
+            () => tile.onTap(context),
+          ),
       _ModuleEntry(
         Icons.apps_rounded, 'Services', AppColors.accentGreen,
         () => _go(ServicesHubScreen(user: widget.user, embedded: true)),
@@ -541,9 +468,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _showProfileSheet,
       ),
     ];
-    return all
-        .where((m) => m.module == null || perms.can(m.module!, m.requiredAction))
-        .toList();
   }
 
   Widget _buildModulesHeader() {
@@ -1168,20 +1092,12 @@ class _ModuleEntry {
   final Color color;
   final VoidCallback onTap;
 
-  /// Module this card belongs to. null = always shown (e.g. Alerts, Profile).
-  final String? module;
-
-  /// Action required on [module] for this card to be shown. Defaults to view.
-  final String requiredAction;
-
   const _ModuleEntry(
     this.icon,
     this.label,
     this.color,
-    this.onTap, {
-    this.module,
-    this.requiredAction = PermAction.view,
-  });
+    this.onTap,
+  );
 }
 
 class _ActivityPalette {

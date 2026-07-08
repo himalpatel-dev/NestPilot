@@ -71,7 +71,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
             title: 'Ledger',
             description: 'Your account statement',
             icon: Icons.account_balance_outlined,
-            iconColor: AppColors.accentTeal,
+            iconColor: ModuleColors.bills,
             stats: [ModuleHeaderStat('${_payments.length}', 'TOTAL')],
           ),
           Expanded(

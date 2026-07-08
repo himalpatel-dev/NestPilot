@@ -90,6 +90,7 @@ class _VisitorReportScreenState extends State<VisitorReportScreen> {
                   size: 28,
                 ),
                 title: 'Visitor Logs',
+                accentColor: ModuleColors.visitors,
                 subtitle: _isLoading
                     ? 'Loading records…'
                     : '${_allVisitors.length} total visitor record${_allVisitors.length == 1 ? '' : 's'}',

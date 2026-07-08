@@ -83,7 +83,7 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
             title: 'New Notice',
             description: 'Publish an announcement to your society',
             icon: Icons.campaign_outlined,
-            iconColor: AppColors.accentIndigo,
+            iconColor: ModuleColors.notices,
           ),
           Expanded(
             child: SingleChildScrollView(

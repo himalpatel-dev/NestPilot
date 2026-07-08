@@ -180,6 +180,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
               size: 28,
             ),
             title: 'Walk-in / Delivery',
+            accentColor: ModuleColors.walkIn,
             subtitle: 'Log an unannounced visitor or delivery',
           ),
           Expanded(

@@ -178,6 +178,7 @@ class _BuildingCreateScreenState extends State<BuildingCreateScreen> {
             subtitle: widget.isEditing
                 ? 'Update the details below'
                 : 'Add a building or sector to a society',
+            accentColor: ModuleColors.buildings,
           ),
           Expanded(
             child: _isLoadingSocieties

@@ -76,7 +76,7 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
             title: 'Pending Approvals',
             description: 'New member requests awaiting action',
             icon: Icons.person_add_alt_1_outlined,
-            iconColor: AppColors.accentAmber,
+            iconColor: ModuleColors.users,
             stats: [
               ModuleHeaderStat('${_pendingUsers.length}', 'PENDING'),
             ],

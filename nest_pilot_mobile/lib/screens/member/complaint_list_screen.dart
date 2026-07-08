@@ -234,7 +234,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
       title: 'Complaints',
       description: 'Raise & track maintenance issues',
       icon: Icons.report_problem_outlined,
-      iconColor: AppColors.accentPink,
+      iconColor: ModuleColors.complaints,
       stats: [
         ModuleHeaderStat('$open', 'OPEN'),
         ModuleHeaderStat('$inProgress', 'IN PROGRESS'),

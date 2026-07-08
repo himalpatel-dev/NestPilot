@@ -42,6 +42,7 @@ class EventDetailScreen extends StatelessWidget {
             child: AppPageHeader(
               icon: const Icon(Icons.event_outlined, color: AppColors.white, size: 28),
               title: 'Event',
+              accentColor: ModuleColors.events,
               subtitle: event.eventType,
             ),
           ),

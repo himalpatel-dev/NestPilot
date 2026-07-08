@@ -140,6 +140,7 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
           AppPageHeader(
             icon: const SocietyIcon(size: 28, color: AppColors.white),
             title: widget.isEditing ? 'Edit Society' : 'Add New Society',
+            accentColor: ModuleColors.buildings,
             subtitle: widget.isEditing
                 ? 'Update the details below'
                 : 'Tell us about your new community',

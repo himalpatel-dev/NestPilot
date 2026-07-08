@@ -119,38 +119,40 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     }
   }
 
+  /// Module colours mirror [ModuleColors] so this page matches the
+  /// dashboard tiles and page headers.
   Color _moduleColor(String code) {
     switch (code) {
       case 'DASHBOARD':
         return AppColors.accentBlue;
       case 'NOTICES':
-        return AppColors.accentPurple;
+        return ModuleColors.notices;
       case 'COMPLAINTS':
-        return AppColors.accentRed;
+        return ModuleColors.complaints;
       case 'BILLS':
-        return AppColors.accentOrange;
+        return ModuleColors.bills;
       case 'EVENTS':
-        return AppColors.accentTeal;
+        return ModuleColors.events;
       case 'AMENITIES':
-        return AppColors.accentGreen;
+        return ModuleColors.amenities;
       case 'VISITORS':
-        return AppColors.accentPink;
+        return ModuleColors.visitors;
       case 'STAFF':
-        return AppColors.accentBrown;
+        return ModuleColors.staff;
       case 'POLLS':
-        return AppColors.accentIndigo;
+        return ModuleColors.polls;
       case 'DOCUMENTS':
-        return AppColors.accentAmber;
+        return ModuleColors.documents;
       case 'VEHICLES':
-        return AppColors.accentBlue;
+        return ModuleColors.vehicles;
       case 'USERS':
-        return AppColors.accentGreen;
+        return ModuleColors.users;
       case 'BUILDINGS':
-        return AppColors.accentOrange;
+        return ModuleColors.buildings;
       case 'REPORTS':
         return AppColors.accentTeal;
       case 'ROLES':
-        return AppColors.accentRed;
+        return ModuleColors.roles;
       default:
         return AppColors.primary;
     }
@@ -180,6 +182,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
                 size: 28,
               ),
               title: widget.role.name,
+              accentColor: ModuleColors.roles,
               subtitle: isSuperAdmin
                   ? 'Super Admin has full access to all modules'
                   : 'Configure module-level permissions',

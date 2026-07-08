@@ -1,25 +1,29 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
-import '../screens/notification_list_screen.dart';
-import '../services/session_service.dart';
 import '../theme/app_colors.dart';
 
-/// One stat pill shown inside the module card ("3 / OPEN").
+/// One stat shown in the bar under the hero card ("24 / ACTIVE").
 class ModuleHeaderStat {
   final String value;
   final String label;
   const ModuleHeaderStat(this.value, this.label);
 }
 
-/// Light page header used on module list screens:
+/// Universal inner-page header:
 ///
-///   ← Complaints                    🔔
-///     Palm Meadows · Secretary
-///   ┌──────────────────────────────────┐
-///   │ [icon]  Complaints               │
-///   │         Raise & track issues     │
-///   │  [3 OPEN] [18 RESOLVED] [2 ...]  │
-///   └──────────────────────────────────┘
+///   (←)  Palm Meadows · Secretary            (🔔)
+///   ┌──────────────────────────────────────────┐
+///   │ [icon chip]                              │
+///   │ Notices                                  │
+///   │ Broadcast updates to all residents       │
+///   └───┬──────────────────────────────────┬───┘
+///       │ (24 ACTIVE) 12 PENDING  158 READ │
+///       └──────────────────────────────────┘
 ///
+/// A bold hero card tinted with the module accent (white icon + title +
+/// description) and, when [stats] are given, a light stats bar overlapping
+/// the card's bottom edge with the first stat highlighted as a white pill.
 /// The context line (society · role) comes from [SessionService].
 class ModulePageHeader extends StatelessWidget {
   final String title;
@@ -27,7 +31,10 @@ class ModulePageHeader extends StatelessWidget {
   final IconData? icon;
 
   /// Custom icon widget (used instead of [icon]) — e.g. painted icons.
+  /// Rendered on the colored hero, so it should read well in white.
   final Widget? iconWidget;
+
+  /// Module accent — used as the hero card background.
   final Color iconColor;
   final List<ModuleHeaderStat> stats;
   final bool showBack;
@@ -36,7 +43,7 @@ class ModulePageHeader extends StatelessWidget {
   /// Optional action widget shown left of the bell in the top bar.
   final Widget? trailing;
 
-  /// Optional widget rendered below the module card (e.g. tabs).
+  /// Optional widget rendered below the header (e.g. section chips).
   final Widget? bottom;
 
   const ModulePageHeader({
@@ -51,184 +58,143 @@ class ModulePageHeader extends StatelessWidget {
     this.onBack,
     this.trailing,
     this.bottom,
-  }) : assert(icon != null || iconWidget != null,
-            'Provide either icon or iconWidget');
+  }) : assert(
+         icon != null || iconWidget != null,
+         'Provide either icon or iconWidget',
+       );
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final contextLine = SessionService().contextLine;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, topPad + 12, 16, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top bar: back · title/context · bell ─────────────────────
-          Row(
-            children: [
-              if (showBack) ...[
-                _circleButton(
-                  child: const Icon(
-                    Icons.arrow_back_rounded,
-                    color: AppColors.textPrimary,
-                    size: 20,
-                  ),
-                  onTap: onBack ?? () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+          // ── Top bar: back button (+ optional trailing action) ────────
+          if (showBack || trailing != null) ...[
+            Row(
+              children: [
+                if (showBack)
+                  _circleButton(
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.textPrimary,
+                      size: 20,
                     ),
-                    if (contextLine.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                    onTap: onBack ?? () => Navigator.pop(context),
+                  ),
+                const Spacer(),
+                if (trailing != null) trailing!,
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          // ── Hero card — same light pastel tint as the dashboard tiles ─
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              stats.isNotEmpty ? 36 : 22,
+            ),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.center,
+                  child:
+                      iconWidget ??
+                      Icon(
+                        icon,
+                        color: Color.lerp(iconColor, AppColors.black, 0.25),
+                        size: 26,
+                      ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        contextLine,
+                        title,
                         style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          height: 1.1,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (trailing != null) ...[
-                trailing!,
-                const SizedBox(width: 8),
-              ],
-              _circleButton(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(
-                      Icons.notifications_none_rounded,
-                      color: AppColors.textPrimary,
-                      size: 20,
-                    ),
-                    Positioned(
-                      top: -1,
-                      right: -1,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: AppColors.accentOrange,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationListScreen(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // ── Module card: icon · title/description · stats ────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.07),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: iconColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      alignment: Alignment.center,
-                      child: iconWidget ??
-                          Icon(icon, color: iconColor, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
+                      if (description != null && description!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          description!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
                           ),
-                          if (description != null &&
-                              description!.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              description!,
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 12.5,
-                                height: 1.35,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (stats.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      for (int i = 0; i < stats.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 10),
-                        Expanded(child: _statPill(stats[i])),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
-          if (bottom != null) ...[
-            const SizedBox(height: 14),
-            bottom!,
-          ],
+          // ── Frosted translucent stats bar overlapping the hero ───────
+          if (stats.isNotEmpty)
+            Container(
+              transform: Matrix4.translationValues(0, -18, 0),
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < stats.length; i++) ...[
+                          if (i > 0)
+                            Container(
+                              width: 1,
+                              height: 34,
+                              color: AppColors.border.withValues(alpha: 0.6),
+                            ),
+                          Expanded(child: _statCell(stats[i])),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (bottom != null) ...[const SizedBox(height: 14), bottom!],
         ],
       ),
     );
@@ -257,40 +223,33 @@ class ModulePageHeader extends StatelessWidget {
     );
   }
 
-  Widget _statPill(ModuleHeaderStat stat) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            stat.value,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+  Widget _statCell(ModuleHeaderStat stat) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          stat.label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
           ),
-          const SizedBox(height: 2),
-          Text(
-            stat.label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 8.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          stat.value,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
           ),
-        ],
-      ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

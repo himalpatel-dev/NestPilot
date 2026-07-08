@@ -177,7 +177,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   title: 'Residents',
                   description: 'Members of your society',
                   icon: Icons.contacts_outlined,
-                  iconColor: AppColors.accentBlue,
+                  iconColor: ModuleColors.users,
                   showBack: !widget.embedded,
                   stats: [
                     ModuleHeaderStat('${_members.length}', 'TOTAL'),

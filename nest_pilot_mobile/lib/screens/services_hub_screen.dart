@@ -95,7 +95,10 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
                           padding: EdgeInsets.only(
                             bottom: i == sections.length - 1 ? 0 : 24,
                           ),
-                          child: ModuleSectionView(title: s.title, tiles: s.tiles),
+                          child: ModuleSectionView(
+                            title: s.title,
+                            tiles: s.tiles,
+                          ),
                         );
                       }, childCount: sections.length),
                     )
@@ -319,7 +322,9 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
     ...masterModuleSections(),
     ModuleSection('Settings', [
       ModuleTile(
-        Icons.notifications_outlined, 'Notifications', AppColors.accentOrange,
+        Icons.notifications_outlined,
+        'Notifications',
+        AppColors.accentOrange,
         (c) => Navigator.push(
           c,
           MaterialPageRoute(builder: (_) => const NotificationListScreen()),
@@ -327,7 +332,9 @@ class _ServicesHubScreenState extends State<ServicesHubScreen> {
         ['alert', 'notify', 'push', 'message', 'reminder', 'bell'],
       ),
       ModuleTile(
-        Icons.logout_rounded, 'Logout', AppColors.accentRed,
+        Icons.logout_rounded,
+        'Logout',
+        AppColors.accentRed,
         (c) => _logout(c),
         ['sign out', 'exit', 'signout', 'quit', 'leave'],
       ),

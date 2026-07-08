@@ -141,7 +141,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
             title: 'Documents',
             description: 'Society files & circulars',
             icon: Icons.folder_open_outlined,
-            iconColor: AppColors.accentGreen,
+            iconColor: ModuleColors.documents,
             stats: [ModuleHeaderStat('${_documents.length}', 'TOTAL')],
           ),
           Expanded(

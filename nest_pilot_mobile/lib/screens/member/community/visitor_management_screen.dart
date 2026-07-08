@@ -184,7 +184,7 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
             title: 'Visitors',
             description: 'Invite guests & view history',
             icon: Icons.person_pin_circle_outlined,
-            iconColor: AppColors.accentBlue,
+            iconColor: ModuleColors.visitors,
             stats: [
               ModuleHeaderStat('$inside', 'INSIDE'),
               ModuleHeaderStat('$waiting', 'WAITING'),

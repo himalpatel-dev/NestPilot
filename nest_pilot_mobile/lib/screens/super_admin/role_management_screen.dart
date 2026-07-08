@@ -245,6 +245,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                   size: 28,
                 ),
                 title: 'Roles & Permissions',
+                accentColor: ModuleColors.roles,
                 subtitle: 'Manage access control across modules',
               ),
             ),

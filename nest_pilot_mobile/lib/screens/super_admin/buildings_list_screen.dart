@@ -144,6 +144,7 @@ class _BuildingsListScreenState extends State<BuildingsListScreen> {
                 ? '${widget.society!.name} Buildings'
                 : 'All Buildings',
             subtitle: 'Browse buildings, blocks, sectors and lanes',
+            accentColor: ModuleColors.buildings,
           ),
           Expanded(
             child: _isLoadingSocieties

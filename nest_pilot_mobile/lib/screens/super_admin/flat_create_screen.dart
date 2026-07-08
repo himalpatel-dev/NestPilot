@@ -216,6 +216,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
               size: 28,
             ),
             title: widget.isEditing ? 'Edit Flat / Unit' : 'Add Flat / Unit',
+            accentColor: ModuleColors.buildings,
             subtitle: widget.isEditing
                 ? 'Update the details below'
                 : 'Add a flat, house, shop or office to a building',

@@ -7,9 +7,10 @@ import 'module_page_header.dart';
 /// circular back button, page title with the society · role context line,
 /// notification bell, and the white module card (icon chip + description).
 ///
-/// Callers historically passed white icons (for the old gradient hero);
-/// the icon is recolored to [accentColor] so they render correctly on the
-/// light card. Pass a module accent via [accentColor] to tint the icon chip.
+/// Callers historically pass white icons (from the old dark hero); they are
+/// recolored to a darker shade of [accentColor] so they read correctly on
+/// the light pastel hero. Pass a module accent via [accentColor] to set the
+/// hero tint.
 class AppPageHeader extends StatelessWidget {
   final Widget icon;
   final String title;
@@ -38,7 +39,10 @@ class AppPageHeader extends StatelessWidget {
       title: title,
       description: subtitle,
       iconWidget: ColorFiltered(
-        colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+        colorFilter: ColorFilter.mode(
+          Color.lerp(accentColor, AppColors.black, 0.25)!,
+          BlendMode.srcIn,
+        ),
         child: icon,
       ),
       iconColor: accentColor,

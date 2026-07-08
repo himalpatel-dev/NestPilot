@@ -196,7 +196,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
       title: 'Events',
       description: 'Celebrations & community programmes',
       icon: Icons.event_outlined,
-      iconColor: AppColors.accentTeal,
+      iconColor: ModuleColors.events,
       stats: [
         ModuleHeaderStat('$upcoming', 'UPCOMING'),
         ModuleHeaderStat('$thisMonth', 'THIS MONTH'),

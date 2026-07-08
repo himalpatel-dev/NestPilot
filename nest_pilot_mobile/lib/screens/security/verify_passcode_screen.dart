@@ -121,6 +121,7 @@ class _VerifyPasscodeScreenState extends State<VerifyPasscodeScreen> {
               size: 28,
             ),
             title: 'Verify Pass Code',
+            accentColor: ModuleColors.verifyCode,
             subtitle: 'Check a resident\'s pre-approved invite',
           ),
           Expanded(

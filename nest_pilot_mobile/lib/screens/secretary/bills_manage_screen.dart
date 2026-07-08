@@ -78,7 +78,7 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
             title: 'Bills',
             description: 'Create & publish maintenance bills',
             icon: Icons.receipt_long_outlined,
-            iconColor: AppColors.accentOrange,
+            iconColor: ModuleColors.bills,
             stats: [
               ModuleHeaderStat('$draft', 'DRAFT'),
               ModuleHeaderStat('$published', 'PUBLISHED'),

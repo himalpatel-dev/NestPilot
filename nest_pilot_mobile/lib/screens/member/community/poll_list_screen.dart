@@ -287,7 +287,7 @@ class _PollListScreenState extends State<PollListScreen> {
             title: 'Polls',
             description: 'Vote & see community decisions',
             icon: Icons.how_to_vote_outlined,
-            iconColor: AppColors.accentPurple,
+            iconColor: ModuleColors.polls,
             stats: [ModuleHeaderStat('${_polls.length}', 'ACTIVE')],
           ),
           Expanded(

@@ -7,7 +7,7 @@ abstract final class AppColors {
   static const Color primaryLight = Color(0xFF7CA5D4);
 
   // Backgrounds
-  static const Color cardBackground = Color(0xFFF8F1E5);
+  static const Color cardBackground = Color.fromARGB(255, 243, 240, 234);
   static const Color white = Colors.white;
   static const Color transparent = Colors.transparent;
   static const Color black = Colors.black;
@@ -30,8 +30,12 @@ abstract final class AppColors {
   static const Color border = Color(0xFFE0E0E0); // grey.shade300
   static const Color dividerOnDark = Color(0x3DFFFFFF); // white ~24%
   static const Color whiteTranslucent = Color(0xB3FFFFFF); // white ~70%
-  static const Color whiteSheenLow = Color(0x14FFFFFF); // white ~8% — glass sheen
-  static const Color whiteSheenMid = Color(0x38FFFFFF); // white ~22% — glass sheen
+  static const Color whiteSheenLow = Color(
+    0x14FFFFFF,
+  ); // white ~8% — glass sheen
+  static const Color whiteSheenMid = Color(
+    0x38FFFFFF,
+  ); // white ~22% — glass sheen
 
   // Shadows
   static const Color textShadow = Color(0xFF1A1A1A);
@@ -69,4 +73,27 @@ abstract final class AppColors {
   static const Color accentIndigoDeep = Color(0xFF4F46E5);
   static const Color accentAmber = Color(0xFFF59E0B);
   static const Color accentBrown = Color(0xFF8B5A3C);
+}
+
+/// Per-module accent colours — one colour per module, matching the tiles on
+/// the main dashboard grid. Use these for page headers, tiles and badges so
+/// a module keeps the same colour everywhere in the app.
+abstract final class ModuleColors {
+  static const Color notices = AppColors.accentIndigo;
+  static const Color complaints = AppColors.accentPink;
+  static const Color bills = AppColors.accentOrange;
+  static const Color events = AppColors.accentPurple;
+  static const Color amenities = AppColors.accentGreen;
+  static const Color visitors = AppColors.accentTeal;
+  static const Color staff = AppColors.accentAmber;
+  static const Color polls = AppColors.accentTeal;
+  static const Color documents = AppColors.accentIndigo;
+  static const Color vehicles = AppColors.accentBlue;
+  static const Color users = AppColors.accentBlue;
+  static const Color buildings = AppColors.accentOrange;
+  static const Color roles = AppColors.accentIndigo;
+
+  // Gate-control tiles (visitors module, distinct tile colours on dashboard)
+  static const Color verifyCode = AppColors.accentGreen;
+  static const Color walkIn = AppColors.accentOrange;
 }

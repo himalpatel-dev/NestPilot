@@ -236,6 +236,7 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
                   size: 28,
                 ),
                 title: 'Inside Now',
+                accentColor: ModuleColors.visitors,
                 subtitle: _isLoading
                     ? 'Visitors currently on the premises'
                     : '${_visitors.length} visitor${_visitors.length == 1 ? '' : 's'} currently inside',

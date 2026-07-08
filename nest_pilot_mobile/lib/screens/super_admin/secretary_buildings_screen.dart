@@ -96,6 +96,7 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
                   size: 28,
                 ),
                 title: 'Secretary Buildings',
+                accentColor: ModuleColors.roles,
                 subtitle: 'Add secretaries and assign their buildings',
               ),
             ),

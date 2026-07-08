@@ -153,6 +153,7 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
               size: 28,
             ),
             title: widget.isEditing ? 'Edit Secretary' : 'Add Secretary',
+            accentColor: ModuleColors.roles,
             subtitle: widget.isEditing
                 ? 'Update the secretary\'s details'
                 : 'If the mobile is already registered, that user is promoted',

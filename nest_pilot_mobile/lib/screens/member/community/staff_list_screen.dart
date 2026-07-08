@@ -67,7 +67,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
             title: 'Daily Help',
             description: 'Society staff & attendance',
             icon: Icons.cleaning_services_outlined,
-            iconColor: AppColors.accentPink,
+            iconColor: ModuleColors.staff,
             stats: [ModuleHeaderStat('${_staff.length}', 'TOTAL')],
           ),
           Expanded(

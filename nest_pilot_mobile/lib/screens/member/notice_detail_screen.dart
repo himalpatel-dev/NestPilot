@@ -28,6 +28,7 @@ class NoticeDetailScreen extends StatelessWidget {
             child: AppPageHeader(
               icon: const Icon(Icons.campaign_outlined, color: AppColors.white, size: 28),
               title: 'Notice',
+              accentColor: ModuleColors.notices,
               subtitle: 'Posted $date',
             ),
           ),

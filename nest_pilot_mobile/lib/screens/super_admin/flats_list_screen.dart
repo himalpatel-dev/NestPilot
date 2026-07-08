@@ -197,6 +197,7 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
               size: 28,
             ),
             title: 'Society Units Directory',
+            accentColor: ModuleColors.buildings,
             subtitle: 'Browse flats, houses, shops and offices',
           ),
           Expanded(
