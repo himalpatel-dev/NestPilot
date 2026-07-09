@@ -13,14 +13,17 @@ import 'notification_list_screen.dart';
 import 'login_screen.dart';
 import 'module_catalog.dart';
 import 'services_hub_screen.dart';
+import 'super_admin/super_admin_dashboard_screen.dart';
 import '../services/socket_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dashboard_header.dart';
 import '../theme/app_icons.dart';
 
-/// Single unified home for every role. The dashboard adapts itself through
-/// module permissions — no per-role dashboard screens anymore.
-Widget homeScreenFor(UserModel user) => DashboardScreen(user: user);
+/// Home for every role. Super Admin gets its own management-focused dashboard;
+/// all other roles share the unified, permission-driven dashboard.
+Widget homeScreenFor(UserModel user) => user.role == UserRoles.superAdmin
+    ? SuperAdminDashboardScreen(user: user)
+    : DashboardScreen(user: user);
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
