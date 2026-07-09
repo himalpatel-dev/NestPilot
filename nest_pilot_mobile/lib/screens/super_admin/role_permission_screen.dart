@@ -176,11 +176,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: AppPageHeader(
-              icon: const Icon(
-                Icons.shield_outlined,
-                color: AppColors.white,
-                size: 28,
-              ),
+              icon: Icons.shield_outlined,
               title: widget.role.name,
               accentColor: ModuleColors.roles,
               subtitle: isSuperAdmin

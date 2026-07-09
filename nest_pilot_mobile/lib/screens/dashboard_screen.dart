@@ -353,35 +353,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return SafeArea(
       top: false,
       bottom: false,
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await _fetchNotifications();
-          await _fetchOutstandingBills();
-          await _fetchDashboardStats();
-          await _fetchSecurityStats();
-        },
-        color: AppColors.white,
-        backgroundColor: AppColors.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _buildHero()),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 24),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // Module cards — one per module, shown to every user and
-                  // filtered by their module permissions.
-                  if (modules.isNotEmpty) ...[
-                    _buildModulesHeader(),
-                    const SizedBox(height: 14),
-                    _buildModulesGrid(modules),
+      child: Column(
+        children: [
+          // Fixed hero header + "Modules" title — stay pinned while the
+          // module grid below scrolls.
+          _buildHero(),
+          if (modules.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
+              child: _buildModulesHeader(),
+            ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await _fetchNotifications();
+                await _fetchOutstandingBills();
+                await _fetchDashboardStats();
+                await _fetchSecurityStats();
+              },
+              color: AppColors.white,
+              backgroundColor: AppColors.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Module cards — one per module, filtered by permissions.
+                    if (modules.isNotEmpty) _buildModulesGrid(modules),
                   ],
-                ]),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

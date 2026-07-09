@@ -26,7 +26,7 @@ class NoticeDetailScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: AppPageHeader(
-              icon: const Icon(Icons.campaign_outlined, color: AppColors.white, size: 28),
+              icon: Icons.campaign_outlined,
               title: 'Notice',
               accentColor: ModuleColors.notices,
               subtitle: 'Posted $date',

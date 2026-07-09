@@ -84,11 +84,7 @@ class _VisitorReportScreenState extends State<VisitorReportScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(
-                  Icons.assignment_outlined,
-                  color: AppColors.white,
-                  size: 28,
-                ),
+                icon: Icons.assignment_outlined,
                 title: 'Visitor Logs',
                 accentColor: ModuleColors.visitors,
                 subtitle: _isLoading

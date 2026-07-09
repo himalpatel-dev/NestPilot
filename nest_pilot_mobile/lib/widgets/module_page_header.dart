@@ -1,7 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import '../screens/notification_list_screen.dart';
 import '../theme/app_colors.dart';
 
 /// One stat shown in the bar under the hero card ("24 / ACTIVE").
@@ -27,6 +26,10 @@ class ModuleHeaderStat {
 /// the card's bottom edge with the first stat highlighted as a white pill.
 /// The context line (society · role) comes from [SessionService].
 class ModulePageHeader extends StatelessWidget {
+  /// Universal size for the module icon shown in the hero card. Change this
+  /// one value to resize the header icon on every inner page at once.
+  static const double iconSize = 40;
+
   final String title;
   final String? description;
   final IconData? icon;
@@ -73,64 +76,14 @@ class ModulePageHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top bar: back · trailing action · notification bell ──────
-          Row(
-            children: [
-              if (showBack)
-                _circleButton(
-                  child: const Icon(
-                    Icons.arrow_back_rounded,
-                    color: AppColors.textPrimary,
-                    size: 20,
-                  ),
-                  onTap: onBack ?? () => Navigator.pop(context),
-                ),
-              const Spacer(),
-              if (trailing != null) ...[
-                trailing!,
-                const SizedBox(width: 8),
-              ],
-              _circleButton(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(
-                      Icons.notifications_none_rounded,
-                      color: AppColors.textPrimary,
-                      size: 20,
-                    ),
-                    Positioned(
-                      top: -1,
-                      right: -1,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: AppColors.accentOrange,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationListScreen(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // ── Hero card — same light pastel tint as the dashboard tiles ─
+          // ── Hero card — pastel tint; back · icon · title in one row ──
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
+              16,
+              18,
               20,
-              20,
-              20,
-              stats.isNotEmpty ? 36 : 22,
+              stats.isNotEmpty ? 42 : 22,
             ),
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.12),
@@ -138,23 +91,35 @@ class ModulePageHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (showBack) ...[
+                  _circleButton(
+                    background: iconColor,
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.white,
+                      size: 22,
+                    ),
+                    onTap: onBack ?? () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 Container(
                   width: 52,
                   height: 52,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  // decoration: BoxDecoration(
+                  //   color: iconColor.withValues(alpha: 0.16),
+                  //   shape: BoxShape.circle,
+                  // ),
                   alignment: Alignment.center,
                   child:
                       iconWidget ??
                       Icon(
                         icon,
                         color: Color.lerp(iconColor, AppColors.black, 0.25),
-                        size: 26,
+                        size: iconSize,
                       ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +153,7 @@ class ModulePageHeader extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (trailing != null) ...[const SizedBox(width: 8), trailing!],
               ],
             ),
           ),
@@ -195,7 +161,7 @@ class ModulePageHeader extends StatelessWidget {
           if (stats.isNotEmpty)
             Container(
               transform: Matrix4.translationValues(0, -18, 0),
-              margin: const EdgeInsets.symmetric(horizontal: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 6),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: BackdropFilter(
@@ -232,14 +198,18 @@ class ModulePageHeader extends StatelessWidget {
     );
   }
 
-  Widget _circleButton({required Widget child, required VoidCallback onTap}) {
+  Widget _circleButton({
+    required Widget child,
+    required VoidCallback onTap,
+    Color background = AppColors.white,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 42,
-        height: 42,
+        width: 35,
+        height: 35,
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: background,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(

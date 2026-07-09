@@ -33,28 +33,40 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     setState(() => _isLoading = true);
     try {
       final vehicles = await _service.getAllVehicles();
-      if (mounted) setState(() { _vehicles = vehicles; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _vehicles = vehicles;
+          _isLoading = false;
+        });
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   IconData _vehicleIcon(String type) {
     switch (type) {
-      case 'BIKE': return Icons.two_wheeler_rounded;
-      case 'CAR':  return Icons.directions_car_rounded;
-      default:     return Icons.commute_rounded;
+      case 'BIKE':
+        return Icons.two_wheeler_rounded;
+      case 'CAR':
+        return Icons.directions_car_rounded;
+      default:
+        return Icons.commute_rounded;
     }
   }
 
   Color _vehicleColor(String type) {
     switch (type) {
-      case 'BIKE': return AppColors.accentOrange;
-      case 'CAR':  return AppColors.accentBlue;
-      default:     return AppColors.accentPurple;
+      case 'BIKE':
+        return AppColors.accentOrange;
+      case 'CAR':
+        return AppColors.accentBlue;
+      default:
+        return AppColors.accentPurple;
     }
   }
 
@@ -95,15 +107,37 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.white.withValues(alpha: 0.20),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.white.withValues(alpha: 0.40), width: 1.5),
+                        border: Border.all(
+                          color: AppColors.white.withValues(alpha: 0.40),
+                          width: 1.5,
+                        ),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.delete_outline_rounded, color: AppColors.white, size: 24),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    const Text('Remove Vehicle?', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Remove Vehicle?',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(v.vehicleNumber, style: TextStyle(color: AppColors.white.withValues(alpha: 0.80), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      v.vehicleNumber,
+                      style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.80),
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -114,7 +148,11 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                     const Text(
                       'This vehicle will be removed from the society registry.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     Row(
@@ -124,9 +162,20 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                             onTap: () => Navigator.pop(ctx, false),
                             child: Container(
                               height: 46,
-                              decoration: BoxDecoration(color: AppColors.cardBackground, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.border),
+                              ),
                               alignment: Alignment.center,
-                              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w600)),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -139,10 +188,25 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.accentRed,
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [BoxShadow(color: AppColors.accentRed.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accentRed.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               alignment: Alignment.center,
-                              child: const Text('Remove', style: TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                              child: const Text(
+                                'Remove',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -162,7 +226,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
         await _service.deleteVehicle(v.id);
         if (mounted) _fetch();
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -177,7 +244,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     final user = await AuthService().getMe();
     if (user == null || !mounted) return;
 
-    final stickerNumber = '${user.flatNumber ?? 'N/A'}-${user.societyId ?? 'N/A'}-${user.id}';
+    final stickerNumber =
+        '${user.flatNumber ?? 'N/A'}-${user.societyId ?? 'N/A'}-${user.id}';
 
     await showModalBottomSheet(
       context: context,
@@ -189,7 +257,12 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
             color: AppColors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
           child: Form(
             key: formKey,
             child: Column(
@@ -201,13 +274,20 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   child: Container(
                     width: 40,
                     height: 4,
-                    decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   'Add Vehicle',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -221,15 +301,21 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   field: AppBorderlessField(
                     controller: numberCtrl,
                     hint: 'e.g. GJ01AB1234',
-                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]'))],
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    ],
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                 ),
                 const SizedBox(height: 12),
                 AppFieldCard(
                   icon: Icons.directions_car_outlined,
                   label: 'Model (optional)',
-                  field: AppBorderlessField(controller: modelCtrl, hint: 'e.g. Honda City'),
+                  field: AppBorderlessField(
+                    controller: modelCtrl,
+                    hint: 'e.g. Honda City',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 AppFieldCard(
@@ -238,8 +324,14 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   field: AppCardDropdown<String>(
                     value: selectedType,
                     items: const ['CAR', 'BIKE', 'OTHER'],
-                    itemLabel: (t) => t == 'CAR' ? 'Car' : t == 'BIKE' ? 'Bike / Two-Wheeler' : 'Other',
-                    onChanged: (v) { if (v != null) setSheet(() => selectedType = v); },
+                    itemLabel: (t) => t == 'CAR'
+                        ? 'Car'
+                        : t == 'BIKE'
+                        ? 'Bike / Two-Wheeler'
+                        : 'Other',
+                    onChanged: (v) {
+                      if (v != null) setSheet(() => selectedType = v);
+                    },
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -261,7 +353,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       if (ctx.mounted) Navigator.pop(ctx);
                       _fetch();
                     } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      if (mounted)
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
                     } finally {
                       if (ctx.mounted) setSheet(() => saving = false);
                     }
@@ -292,7 +387,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(Icons.directions_car_rounded, color: AppColors.white, size: 28),
+                icon: Icons.directions_car_rounded,
                 title: 'Vehicles',
                 accentColor: ModuleColors.vehicles,
                 subtitle: _isLoading
@@ -333,7 +428,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
   Widget _buildCard(Vehicle v, bool canDelete) {
     final color = _vehicleColor(v.type);
     final icon = _vehicleIcon(v.type);
-    final displayName = [v.model, v.brand].where((s) => s != null && s.isNotEmpty).join(' · ');
+    final displayName = [
+      v.model,
+      v.brand,
+    ].where((s) => s != null && s.isNotEmpty).join(' · ');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -386,44 +484,96 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: color.withValues(alpha: 0.30)),
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.30),
+                          ),
                         ),
                         child: Text(
                           v.type,
-                          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   if (displayName.isNotEmpty) ...[
                     const SizedBox(height: 3),
-                    Text(displayName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                   if (v.flatNumber != null && v.flatNumber!.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.home_rounded, size: 11, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.home_rounded,
+                          size: 11,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Flat ${v.flatNumber}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        Text(
+                          'Flat ${v.flatNumber}',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
                         if (v.userName != null && v.userName!.isNotEmpty) ...[
-                          const Text('  ·  ', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                          Flexible(child: Text(v.userName!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                          const Text(
+                            '  ·  ',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              v.userName!,
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ],
                     ),
                   ],
-                  if (v.stickerNumber != null && v.stickerNumber!.isNotEmpty) ...[
+                  if (v.stickerNumber != null &&
+                      v.stickerNumber!.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.confirmation_number_outlined, size: 11, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.confirmation_number_outlined,
+                          size: 11,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Sticker: ${v.stickerNumber}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                        Text(
+                          'Sticker: ${v.stickerNumber}',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11.5,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -444,7 +594,11 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.delete_outline_rounded, color: AppColors.accentRed, size: 18),
+                  child: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.accentRed,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -459,15 +613,25 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.directions_car_outlined, color: AppColors.border, size: 56),
+          const Icon(
+            Icons.directions_car_outlined,
+            color: AppColors.border,
+            size: 56,
+          ),
           const SizedBox(height: 12),
           const Text(
             'No vehicles registered',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            canCreate ? 'Tap + Add to register your vehicle' : 'Pull down to refresh',
+            canCreate
+                ? 'Tap + Add to register your vehicle'
+                : 'Pull down to refresh',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],

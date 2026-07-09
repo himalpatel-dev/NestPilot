@@ -239,11 +239,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(
-                  Icons.shield_outlined,
-                  color: AppColors.white,
-                  size: 28,
-                ),
+                icon: Icons.shield_outlined,
                 title: 'Roles & Permissions',
                 accentColor: ModuleColors.roles,
                 subtitle: 'Manage access control across modules',

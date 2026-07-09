@@ -161,12 +161,13 @@ class _GlarePrimaryButtonState extends State<GlarePrimaryButton>
                                 ),
                               ),
                             ),
-                            if (widget.trailingIcon != null)
-                              Icon(
-                                widget.trailingIcon,
-                                color: AppColors.white,
-                                size: 20 * s,
-                              ),
+                            //to add icon back to button
+                            // if (widget.trailingIcon != null)
+                            //   Icon(
+                            //     widget.trailingIcon,
+                            //     color: AppColors.white,
+                            //     size: 20 * s,
+                            //   ),
                           ],
                         ),
                 ),

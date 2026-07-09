@@ -174,11 +174,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.directions_walk_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.directions_walk_rounded,
             title: 'Walk-in / Delivery',
             accentColor: ModuleColors.walkIn,
             subtitle: 'Log an unannounced visitor or delivery',

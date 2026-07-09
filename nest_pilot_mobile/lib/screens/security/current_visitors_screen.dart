@@ -230,11 +230,7 @@ class _CurrentVisitorsScreenState extends State<CurrentVisitorsScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(
-                  Icons.groups_outlined,
-                  color: AppColors.white,
-                  size: 28,
-                ),
+                icon: Icons.groups_outlined,
                 title: 'Inside Now',
                 accentColor: ModuleColors.visitors,
                 subtitle: _isLoading

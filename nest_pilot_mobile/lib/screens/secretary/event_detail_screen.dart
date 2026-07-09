@@ -10,12 +10,18 @@ class EventDetailScreen extends StatelessWidget {
 
   Color get _typeColor {
     switch (event.eventType) {
-      case 'MEETING':     return AppColors.accentBlue;
-      case 'SOCIAL':      return AppColors.accentPurple;
-      case 'CULTURAL':    return AppColors.accentPink;
-      case 'SPORTS':      return AppColors.accentGreen;
-      case 'MAINTENANCE': return AppColors.accentAmber;
-      default:            return AppColors.primary;
+      case 'MEETING':
+        return AppColors.accentBlue;
+      case 'SOCIAL':
+        return AppColors.accentPurple;
+      case 'CULTURAL':
+        return AppColors.accentPink;
+      case 'SPORTS':
+        return AppColors.accentGreen;
+      case 'MAINTENANCE':
+        return AppColors.accentAmber;
+      default:
+        return AppColors.primary;
     }
   }
 
@@ -26,7 +32,8 @@ class EventDetailScreen extends StatelessWidget {
     final timeRange = event.endTime != null
         ? '${event.startTime} – ${event.endTime}'
         : event.startTime;
-    final hasDescription = event.description != null && event.description!.isNotEmpty;
+    final hasDescription =
+        event.description != null && event.description!.isNotEmpty;
     final authorName = event.createdByName;
     final authorInitial = (authorName != null && authorName.isNotEmpty)
         ? authorName[0].toUpperCase()
@@ -40,7 +47,7 @@ class EventDetailScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: AppPageHeader(
-              icon: const Icon(Icons.event_outlined, color: AppColors.white, size: 28),
+              icon: Icons.event_outlined,
               title: 'Event',
               accentColor: ModuleColors.events,
               subtitle: event.eventType,
@@ -53,7 +60,6 @@ class EventDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // ── Info card ──────────────────────────────────────────
                   _card(
                     padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
@@ -62,20 +68,33 @@ class EventDetailScreen extends StatelessWidget {
                       children: [
                         // Type badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: typeColor.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: typeColor.withValues(alpha: 0.25)),
+                            border: Border.all(
+                              color: typeColor.withValues(alpha: 0.25),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.event_outlined, size: 13, color: typeColor),
+                              Icon(
+                                Icons.event_outlined,
+                                size: 13,
+                                color: typeColor,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 event.eventType,
-                                style: TextStyle(color: typeColor, fontSize: 12, fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                  color: typeColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ],
                           ),
@@ -128,7 +147,8 @@ class EventDetailScreen extends StatelessWidget {
                             icon: Icons.people_outlined,
                             color: AppColors.accentAmber,
                             label: 'Registered',
-                            value: '$registeredCount / ${event.maxAttendees} attendees',
+                            value:
+                                '$registeredCount / ${event.maxAttendees} attendees',
                           ),
                         ],
 
@@ -136,7 +156,10 @@ class EventDetailScreen extends StatelessWidget {
                         if (authorName != null) ...[
                           const SizedBox(height: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 13,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF5F7FF),
                               borderRadius: BorderRadius.circular(14),
@@ -146,7 +169,8 @@ class EventDetailScreen extends StatelessWidget {
                               children: [
                                 CircleAvatar(
                                   radius: 20,
-                                  backgroundColor: AppColors.accentIndigo.withValues(alpha: 0.12),
+                                  backgroundColor: AppColors.accentIndigo
+                                      .withValues(alpha: 0.12),
                                   child: Text(
                                     authorInitial,
                                     style: const TextStyle(
@@ -162,12 +186,20 @@ class EventDetailScreen extends StatelessWidget {
                                   children: [
                                     const Text(
                                       'Organized by',
-                                      style: TextStyle(color: AppColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w500),
+                                      style: TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       authorName,
-                                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, fontWeight: FontWeight.w800),
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -254,30 +286,49 @@ class EventDetailScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           ...event.attendees
                               .where((a) => a.status == 'REGISTERED')
-                              .map((a) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 16,
-                                          backgroundColor: AppColors.accentAmber.withValues(alpha: 0.12),
-                                          child: Text(
-                                            (a.userName?.isNotEmpty == true) ? a.userName![0].toUpperCase() : '?',
-                                            style: const TextStyle(color: AppColors.accentAmber, fontSize: 12, fontWeight: FontWeight.w800),
+                              .map(
+                                (a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: AppColors.accentAmber
+                                            .withValues(alpha: 0.12),
+                                        child: Text(
+                                          (a.userName?.isNotEmpty == true)
+                                              ? a.userName![0].toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                            color: AppColors.accentAmber,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            a.userName ?? 'Unknown',
-                                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.5, fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          a.userName ?? 'Unknown',
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        if (a.userMobile != null)
-                                          Text(a.userMobile!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                      ],
-                                    ),
-                                  )),
+                                      ),
+                                      if (a.userMobile != null)
+                                        Text(
+                                          a.userMobile!,
+                                          style: const TextStyle(
+                                            color: AppColors.textMuted,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                         ],
                       ),
                     ),
@@ -314,9 +365,23 @@ class EventDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: color.withValues(alpha: 0.75), fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.75),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
         ),
@@ -324,7 +389,11 @@ class EventDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _card({required Widget child, EdgeInsets? padding, Color? borderColor}) {
+  Widget _card({
+    required Widget child,
+    EdgeInsets? padding,
+    Color? borderColor,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding,

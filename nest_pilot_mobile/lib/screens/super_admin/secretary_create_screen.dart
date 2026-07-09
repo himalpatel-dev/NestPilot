@@ -145,13 +145,9 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: Icon(
-              widget.isEditing
-                  ? Icons.edit_outlined
-                  : Icons.person_add_alt_1_outlined,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: widget.isEditing
+                ? Icons.edit_outlined
+                : Icons.person_add_alt_1_outlined,
             title: widget.isEditing ? 'Edit Secretary' : 'Add Secretary',
             accentColor: ModuleColors.roles,
             subtitle: widget.isEditing

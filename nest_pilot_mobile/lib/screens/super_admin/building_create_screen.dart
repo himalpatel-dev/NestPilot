@@ -167,11 +167,7 @@ class _BuildingCreateScreenState extends State<BuildingCreateScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.business_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.business_rounded,
             title: widget.isEditing
                 ? (_isRowHouse ? 'Edit Sector / Lane' : 'Edit Building')
                 : 'Add Building / Sector',

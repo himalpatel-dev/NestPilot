@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/app_field_card.dart';
+import '../../widgets/glare_button.dart';
 import 'event_detail_screen.dart';
 
 class EventManageScreen extends StatefulWidget {
@@ -30,12 +31,23 @@ class _EventManageScreenState extends State<EventManageScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final events = await _service.getEvents();
-      if (mounted) setState(() { _events = events; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _events = events;
+          _isLoading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
     }
   }
 
@@ -65,7 +77,13 @@ class _EventManageScreenState extends State<EventManageScreen> {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 20, offset: const Offset(0, 8))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -77,9 +95,20 @@ class _EventManageScreenState extends State<EventManageScreen> {
                 color: AppColors.accentRed,
                 child: const Row(
                   children: [
-                    Icon(Icons.cancel_outlined, color: AppColors.white, size: 22),
+                    Icon(
+                      Icons.cancel_outlined,
+                      color: AppColors.white,
+                      size: 22,
+                    ),
                     SizedBox(width: 10),
-                    Text('Cancel Event', style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Cancel Event',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -87,7 +116,11 @@ class _EventManageScreenState extends State<EventManageScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Text(
                   'Cancel "${event.title}"? This cannot be undone.',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
               ),
               Padding(
@@ -99,9 +132,18 @@ class _EventManageScreenState extends State<EventManageScreen> {
                         onPressed: () => Navigator.pop(ctx, false),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
                         ),
-                        child: const Text('Keep', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Keep',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -112,10 +154,15 @@ class _EventManageScreenState extends State<EventManageScreen> {
                           backgroundColor: AppColors.accentRed,
                           foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 0,
                         ),
-                        child: const Text('Cancel Event', style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Cancel Event',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   ],
@@ -131,7 +178,10 @@ class _EventManageScreenState extends State<EventManageScreen> {
       await _service.deleteEvent(event.id.toString());
       _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -185,11 +235,11 @@ class _EventManageScreenState extends State<EventManageScreen> {
   Widget _buildHeader() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final upcoming =
-        _events.where((e) => !e.eventDate.isBefore(today)).length;
+    final upcoming = _events.where((e) => !e.eventDate.isBefore(today)).length;
     final thisMonth = _events
-        .where((e) =>
-            e.eventDate.year == now.year && e.eventDate.month == now.month)
+        .where(
+          (e) => e.eventDate.year == now.year && e.eventDate.month == now.month,
+        )
         .length;
 
     return ModulePageHeader(
@@ -270,14 +320,21 @@ class _EventManageScreenState extends State<EventManageScreen> {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: typeColor.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             event.eventType,
-                            style: TextStyle(color: typeColor, fontSize: 10.5, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: typeColor,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -285,24 +342,54 @@ class _EventManageScreenState extends State<EventManageScreen> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined, size: 11, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 11,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 4),
-                        Text(date, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                        Text(
+                          date,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11.5,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 11, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 11,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 4),
-                        Text(timeStr, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-                        const Text('  ·  ', style: TextStyle(color: AppColors.textMuted)),
-                        const Icon(Icons.location_on_outlined, size: 11, color: AppColors.textMuted),
+                        Text(
+                          timeStr,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        const Text(
+                          '  ·  ',
+                          style: TextStyle(color: AppColors.textMuted),
+                        ),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 11,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 3),
                         Flexible(
                           child: Text(
                             event.location,
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 11.5,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -314,12 +401,20 @@ class _EventManageScreenState extends State<EventManageScreen> {
               const SizedBox(width: 4),
               Column(
                 children: [
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textHint, size: 20),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textHint,
+                    size: 20,
+                  ),
                   if (canDelete) ...[
                     const SizedBox(height: 6),
                     GestureDetector(
                       onTap: () => _deleteEvent(event),
-                      child: const Icon(Icons.cancel_outlined, color: AppColors.accentRed, size: 18),
+                      child: const Icon(
+                        Icons.cancel_outlined,
+                        color: AppColors.accentRed,
+                        size: 18,
+                      ),
                     ),
                   ],
                 ],
@@ -333,12 +428,18 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
   Color _typeColor(String type) {
     switch (type) {
-      case 'MEETING':     return AppColors.accentBlue;
-      case 'SOCIAL':      return AppColors.accentPurple;
-      case 'CULTURAL':    return AppColors.accentPink;
-      case 'SPORTS':      return AppColors.accentGreen;
-      case 'MAINTENANCE': return AppColors.accentAmber;
-      default:            return AppColors.primary;
+      case 'MEETING':
+        return AppColors.accentBlue;
+      case 'SOCIAL':
+        return AppColors.accentPurple;
+      case 'CULTURAL':
+        return AppColors.accentPink;
+      case 'SPORTS':
+        return AppColors.accentGreen;
+      case 'MAINTENANCE':
+        return AppColors.accentAmber;
+      default:
+        return AppColors.primary;
     }
   }
 
@@ -349,16 +450,39 @@ class _EventManageScreenState extends State<EventManageScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded, color: AppColors.accentRed, size: 48),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.accentRed,
+              size: 48,
+            ),
             const SizedBox(height: 12),
-            Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: _load,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-                child: const Text('Retry', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ],
@@ -374,17 +498,40 @@ class _EventManageScreenState extends State<EventManageScreen> {
         children: [
           const Icon(Icons.event_outlined, color: AppColors.border, size: 56),
           const SizedBox(height: 12),
-          const Text('No events yet', style: TextStyle(color: AppColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w600)),
+          const Text(
+            'No events yet',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 4),
-          const Text('Pull down to refresh', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const Text(
+            'Pull down to refresh',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
           if (canCreate) ...[
             const SizedBox(height: 20),
             GestureDetector(
               onTap: _openCreateSheet,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(14)),
-                child: const Text('+ Create Event', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  '+ Create Event',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
               ),
             ),
           ],
@@ -417,10 +564,69 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   String _eventType = 'MEETING';
   bool _isLoading = false;
 
-  final _types = ['MEETING', 'SOCIAL', 'CULTURAL', 'SPORTS', 'MAINTENANCE', 'OTHER'];
+  // Inline validation / error state — modal sheets hide snackbars behind them,
+  // so date/time and API errors are surfaced in the sheet instead.
+  bool _dateErr = false;
+  bool _timeErr = false;
+  String? _apiError;
+
+  final _types = [
+    'MEETING',
+    'SOCIAL',
+    'CULTURAL',
+    'SPORTS',
+    'MAINTENANCE',
+    'OTHER',
+  ];
 
   String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  /// Themes the date/time picker dialogs with the app's primary colour so the
+  /// header, selected day/time and buttons match the rest of the app.
+  Widget _pickerTheme(BuildContext context, Widget? child) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: const ColorScheme.light(
+          primary: AppColors.primary,
+          onPrimary: AppColors.white,
+          onSurface: AppColors.textPrimary,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+        ),
+        timePickerTheme: TimePickerThemeData(
+          backgroundColor: AppColors.white,
+          dialHandColor: AppColors.primary,
+          dialBackgroundColor: AppColors.cardBackground,
+          hourMinuteColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppColors.primary.withValues(alpha: 0.15)
+                : AppColors.cardBackground,
+          ),
+          hourMinuteTextColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.textPrimary,
+          ),
+          // AM / PM selector — solid primary when selected, white text.
+          dayPeriodColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.transparent,
+          ),
+          dayPeriodTextColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppColors.white
+                : AppColors.textSecondary,
+          ),
+          dayPeriodBorderSide: const BorderSide(color: AppColors.border),
+          entryModeIconColor: AppColors.primary,
+        ),
+      ),
+      child: child!,
+    );
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -428,25 +634,30 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
       initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: _pickerTheme,
     );
     if (picked != null) setState(() => _eventDate = picked);
   }
 
   Future<void> _pickTime(bool isStart) async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-    if (picked != null) setState(() => isStart ? _startTime = picked : _endTime = picked);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: _pickerTheme,
+    );
+    if (picked != null)
+      setState(() => isStart ? _startTime = picked : _endTime = picked);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_eventDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select event date')));
-      return;
-    }
-    if (_startTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select start time')));
-      return;
-    }
+    final formOk = _formKey.currentState!.validate();
+    setState(() {
+      _dateErr = _eventDate == null;
+      _timeErr = _startTime == null;
+      _apiError = null;
+    });
+    if (!formOk || _eventDate == null || _startTime == null) return;
+
     setState(() => _isLoading = true);
     try {
       await EventService().createEvent(
@@ -457,11 +668,17 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
         endTime: _endTime != null ? _fmt(_endTime!) : null,
         location: _locationCtrl.text.trim(),
         eventType: _eventType,
-        maxAttendees: _maxCtrl.text.trim().isNotEmpty ? int.tryParse(_maxCtrl.text.trim()) : null,
+        maxAttendees: _maxCtrl.text.trim().isNotEmpty
+            ? int.tryParse(_maxCtrl.text.trim())
+            : null,
       );
       widget.onCreated();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        setState(
+          () => _apiError = e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -476,135 +693,333 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
     super.dispose();
   }
 
+  String _typeLabel(String t) =>
+      t.isEmpty ? t : '${t[0]}${t.substring(1).toLowerCase()}';
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 24),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+    final maxH = MediaQuery.of(context).size.height * 0.9;
+    const accent = ModuleColors.events;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 10),
+          // Drag handle
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Header row: accent icon chip · title/subtitle · close
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.event_rounded,
+                    color: Color.lerp(accent, AppColors.black, 0.25),
+                    size: 24,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text('New Event', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _titleCtrl,
-                decoration: _dec('Title', Icons.title_rounded),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descCtrl,
-                decoration: _dec('Description (optional)', Icons.description_outlined),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _locationCtrl,
-                decoration: _dec('Location', Icons.location_on_outlined),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                child: Row(
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'New Event',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Schedule a community event',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentRed,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.category_outlined, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppCardDropdown<String>(
+                    const AppSectionHeader('Event Details'),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.title_rounded,
+                      label: 'Title',
+                      field: AppBorderlessField(
+                        controller: _titleCtrl,
+                        hint: 'e.g. Annual General Meeting',
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Title is required'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppFieldCard(
+                      icon: Icons.description_outlined,
+                      label: 'Description',
+                      iconAlignment: CrossAxisAlignment.start,
+                      field: AppBorderlessField(
+                        controller: _descCtrl,
+                        hint: 'Optional details about the event…',
+                        maxLines: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppFieldCard(
+                      icon: Icons.category_outlined,
+                      label: 'Event Type',
+                      field: AppCardDropdown<String>(
                         value: _eventType,
-                        hintText: 'Event Type',
                         items: _types,
-                        itemLabel: (t) => t,
+                        itemLabel: _typeLabel,
                         onChanged: (v) => setState(() => _eventType = v!),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppFieldCard(
+                      icon: Icons.location_on_outlined,
+                      label: 'Location',
+                      field: AppBorderlessField(
+                        controller: _locationCtrl,
+                        hint: 'e.g. Community Hall',
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Location is required'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const AppSectionHeader('Schedule'),
+                    const SizedBox(height: 14),
+                    _pickerCard(
+                      icon: Icons.calendar_month_rounded,
+                      label: 'Date',
+                      value: _eventDate != null
+                          ? DateFormat('EEE, d MMM yyyy').format(_eventDate!)
+                          : null,
+                      hint: 'Select event date',
+                      error: _dateErr,
+                      onTap: _pickDate,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _pickerCard(
+                            icon: Icons.access_time_rounded,
+                            label: 'Start',
+                            value: _startTime != null
+                                ? _startTime!.format(context)
+                                : null,
+                            hint: 'Start time',
+                            error: _timeErr,
+                            onTap: () => _pickTime(true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _pickerCard(
+                            icon: Icons.access_time_outlined,
+                            label: 'End',
+                            value: _endTime?.format(context),
+                            hint: 'Optional',
+                            onTap: () => _pickTime(false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    AppFieldCard(
+                      icon: Icons.people_outline_rounded,
+                      label: 'Max Attendees',
+                      field: AppBorderlessField(
+                        controller: _maxCtrl,
+                        hint: 'Optional — blank for unlimited',
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    if (_apiError != null) ...[
+                      const SizedBox(height: 18),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentRed.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.accentRed.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: AppColors.accentRed,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _apiError!,
+                                style: const TextStyle(
+                                  color: AppColors.accentRed,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 26),
+                    GlarePrimaryButton(
+                      text: 'Create Event',
+                      isLoading: _isLoading,
+                      onPressed: _submit,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _PickerTile(icon: Icons.calendar_today_rounded, label: _eventDate != null ? DateFormat('d MMM yyyy').format(_eventDate!) : 'Event Date', onTap: _pickDate)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _PickerTile(icon: Icons.access_time_rounded, label: _startTime != null ? _fmt(_startTime!) : 'Start Time', onTap: () => _pickTime(true))),
-                  const SizedBox(width: 10),
-                  Expanded(child: _PickerTile(icon: Icons.access_time_outlined, label: _endTime != null ? _fmt(_endTime!) : 'End Time', onTap: () => _pickTime(false))),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _maxCtrl,
-                decoration: _dec('Max Attendees (optional)', Icons.people_outlined),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.white))
-                      : const Text('Create Event', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  InputDecoration _dec(String label, IconData icon) => InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
-        filled: true,
-        fillColor: AppColors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      );
-}
-
-class _PickerTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _PickerTile({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
+  /// Tap-to-pick card matching [AppFieldCard] — icon chip, uppercase label,
+  /// and the selected value (or a hint) with a chevron.
+  Widget _pickerCard({
+    required IconData icon,
+    required String label,
+    required String? value,
+    required String hint,
+    required VoidCallback onTap,
+    bool error = false,
+  }) {
+    final hasValue = value != null;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: error
+              ? Border.all(color: AppColors.accentRed, width: 1.4)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: AppColors.primary),
-            const SizedBox(width: 5),
-            Expanded(child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11), overflow: TextOverflow.ellipsis)),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: AppColors.cardBackground,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 18, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    hasValue ? value : hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
+                      color: hasValue
+                          ? AppColors.textPrimary
+                          : AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppColors.textSecondary,
+              size: 22,
+            ),
           ],
         ),
       ),

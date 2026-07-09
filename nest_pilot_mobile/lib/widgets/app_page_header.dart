@@ -7,12 +7,21 @@ import 'module_page_header.dart';
 /// circular back button, page title with the society · role context line,
 /// notification bell, and the white module card (icon chip + description).
 ///
-/// Callers historically pass white icons (from the old dark hero); they are
-/// recolored to a darker shade of [accentColor] so they read correctly on
-/// the light pastel hero. Pass a module accent via [accentColor] to set the
-/// hero tint.
+/// Callers historically pass an `Icon(...)` with a baked-in size. To keep the
+/// header icon size universal, a plain [Icon] is unwrapped to its [IconData]
+/// and rendered through [ModulePageHeader]'s central `icon` path (so the size
+/// comes from [ModulePageHeader.iconSize], not the caller). Custom painted
+/// icons (e.g. SocietyIcon) fall back to the widget path, recolored to a
+/// darker shade of [accentColor]. Pass a module accent via [accentColor].
 class AppPageHeader extends StatelessWidget {
-  final Widget icon;
+  /// The module icon. Pass an [IconData] only — its size and colour come from
+  /// [ModulePageHeader] (universal), never from the calling screen.
+  final IconData? icon;
+
+  /// Custom painted icon (e.g. SocietyIcon) for the rare case where an
+  /// [IconData] won't do. Scaled to [ModulePageHeader.iconSize] automatically.
+  final Widget? iconWidget;
+
   final String title;
   final String? subtitle;
   final VoidCallback? onBack;
@@ -23,7 +32,8 @@ class AppPageHeader extends StatelessWidget {
 
   const AppPageHeader({
     super.key,
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.title,
     this.subtitle,
     this.onBack,
@@ -31,20 +41,35 @@ class AppPageHeader extends StatelessWidget {
     this.trailing,
     this.bottom,
     this.accentColor = AppColors.primary,
-  });
+  }) : assert(
+         icon != null || iconWidget != null,
+         'Provide either icon or iconWidget',
+       );
 
   @override
   Widget build(BuildContext context) {
     return ModulePageHeader(
       title: title,
       description: subtitle,
-      iconWidget: ColorFiltered(
-        colorFilter: ColorFilter.mode(
-          Color.lerp(accentColor, AppColors.black, 0.25)!,
-          BlendMode.srcIn,
-        ),
-        child: icon,
-      ),
+      icon: icon,
+      iconWidget: icon != null
+          ? null
+          // Custom painted icon — scale it to the universal
+          // ModulePageHeader.iconSize so it follows the central size too.
+          : SizedBox(
+              width: ModulePageHeader.iconSize,
+              height: ModulePageHeader.iconSize,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                    Color.lerp(accentColor, AppColors.black, 0.25)!,
+                    BlendMode.srcIn,
+                  ),
+                  child: iconWidget!,
+                ),
+              ),
+            ),
       iconColor: accentColor,
       showBack: showBack,
       onBack: onBack,

@@ -138,7 +138,7 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const SocietyIcon(size: 28, color: AppColors.white),
+            iconWidget: const SocietyIcon(size: 28, color: AppColors.white),
             title: widget.isEditing ? 'Edit Society' : 'Add New Society',
             accentColor: ModuleColors.buildings,
             subtitle: widget.isEditing

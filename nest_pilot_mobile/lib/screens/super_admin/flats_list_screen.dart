@@ -191,11 +191,7 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
       body: Column(
         children: [
           const AppPageHeader(
-            icon: Icon(
-              Icons.door_front_door_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.door_front_door_rounded,
             title: 'Society Units Directory',
             accentColor: ModuleColors.buildings,
             subtitle: 'Browse flats, houses, shops and offices',

@@ -210,11 +210,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.door_front_door_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.door_front_door_rounded,
             title: widget.isEditing ? 'Edit Flat / Unit' : 'Add Flat / Unit',
             accentColor: ModuleColors.buildings,
             subtitle: widget.isEditing

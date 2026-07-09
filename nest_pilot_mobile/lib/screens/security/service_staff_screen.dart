@@ -68,7 +68,7 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(Icons.badge_outlined, color: AppColors.white, size: 28),
+                icon: Icons.badge_outlined,
                 title: 'Service Staff',
                 accentColor: ModuleColors.staff,
                 subtitle: _isLoading

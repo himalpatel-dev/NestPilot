@@ -86,11 +86,7 @@ class _SecretaryAssignScreenState extends State<SecretaryAssignScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.apartment_outlined,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.apartment_outlined,
             title: 'Assign Buildings',
             accentColor: ModuleColors.roles,
             subtitle: widget.admin.fullName,

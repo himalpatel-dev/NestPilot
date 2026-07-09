@@ -122,11 +122,7 @@ class _SocietiesListScreenState extends State<SocietiesListScreen> {
       body: Column(
         children: [
           const AppPageHeader(
-            icon: Icon(
-              Icons.domain_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.domain_rounded,
             title: 'All Societies',
             accentColor: ModuleColors.buildings,
             subtitle: 'Browse and manage onboarded societies',

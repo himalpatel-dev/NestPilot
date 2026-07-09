@@ -90,11 +90,7 @@ class _SecretaryBuildingsScreenState extends State<SecretaryBuildingsScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: AppPageHeader(
-                icon: const Icon(
-                  Icons.supervisor_account_rounded,
-                  color: AppColors.white,
-                  size: 28,
-                ),
+                icon: Icons.supervisor_account_rounded,
                 title: 'Secretary Buildings',
                 accentColor: ModuleColors.roles,
                 subtitle: 'Add secretaries and assign their buildings',

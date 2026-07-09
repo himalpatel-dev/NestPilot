@@ -115,11 +115,7 @@ class _VerifyPasscodeScreenState extends State<VerifyPasscodeScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.vpn_key_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.vpn_key_rounded,
             title: 'Verify Pass Code',
             accentColor: ModuleColors.verifyCode,
             subtitle: 'Check a resident\'s pre-approved invite',

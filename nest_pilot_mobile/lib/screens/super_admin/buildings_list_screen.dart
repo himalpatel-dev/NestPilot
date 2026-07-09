@@ -135,11 +135,7 @@ class _BuildingsListScreenState extends State<BuildingsListScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: const Icon(
-              Icons.business_rounded,
-              color: AppColors.white,
-              size: 28,
-            ),
+            icon: Icons.business_rounded,
             title: widget.society != null
                 ? '${widget.society!.name} Buildings'
                 : 'All Buildings',
