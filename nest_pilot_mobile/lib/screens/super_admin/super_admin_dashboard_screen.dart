@@ -250,7 +250,7 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   }
 
   Widget _horizontalCard(_SaTile tile) {
-    final iconColor = Color.lerp(tile.color, AppColors.black, 0.15)!;
+    final iconColor = Color.lerp(tile.color, AppColors.black, 0.12)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -258,9 +258,9 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.045),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -271,81 +271,60 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
           onTap: tile.onTap,
           splashColor: tile.color.withValues(alpha: 0.08),
           highlightColor: tile.color.withValues(alpha: 0.04),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
+          child: IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Left accent strip
+                // Full-height tinted left panel with the icon
                 Container(
-                  width: 4,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: tile.color,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+                  width: 76,
+                  color: tile.color.withValues(alpha: 0.13),
+                  alignment: Alignment.center,
+                  child: Icon(tile.icon, color: iconColor, size: 27),
                 ),
-                const SizedBox(width: 14),
-                // Gradient icon chip
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        tile.color.withValues(alpha: 0.22),
-                        tile.color.withValues(alpha: 0.10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                tile.label,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                tile.subtitle,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textHint,
+                          size: 24,
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(tile.icon, color: iconColor, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tile.label,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        tile.subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12.5,
-                          height: 1.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: tile.color.withValues(alpha: 0.10),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: iconColor,
-                    size: 12,
                   ),
                 ),
               ],

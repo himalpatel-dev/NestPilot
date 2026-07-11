@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
 import '../../services/permission_service.dart';
@@ -216,7 +216,7 @@ class _BuildingCreateScreenState extends State<BuildingCreateScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Society selector — only in Add mode
+                              // Society selector â€” only in Add mode
                               if (!widget.isEditing) ...[
                                 const AppSectionHeader('Select Target Society'),
                                 const SizedBox(height: 12),
@@ -361,7 +361,7 @@ class _BuildingCreateScreenState extends State<BuildingCreateScreen> {
                                     trailingIcon: Icons.arrow_forward_rounded,
                                     isLoading: _isSaving,
                                     onPressed: _save,
-                                    showGlare: false,
+                                    showGlare: true,
                                   )
                                 else
                                   NoPermissionNotice(

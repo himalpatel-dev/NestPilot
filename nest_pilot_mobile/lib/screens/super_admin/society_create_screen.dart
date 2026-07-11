@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../services/society_service.dart';
 import '../../services/permission_service.dart';
@@ -251,7 +251,7 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                         trailingIcon: Icons.arrow_forward_rounded,
                         isLoading: _isLoading,
                         onPressed: _save,
-                        showGlare: false,
+                        showGlare: true,
                       )
                     else
                       NoPermissionNotice(

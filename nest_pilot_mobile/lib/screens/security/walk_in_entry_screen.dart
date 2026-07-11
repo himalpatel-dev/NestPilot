@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../services/community_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
@@ -316,7 +316,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
                                 trailingIcon: Icons.login_rounded,
                                 isLoading: _logging,
                                 onPressed: _logWalkIn,
-                                showGlare: false,
+                                showGlare: true,
                               ),
                             ],
                           ),
@@ -332,7 +332,7 @@ class _WalkInEntryScreenState extends State<WalkInEntryScreen> {
   }
 }
 
-// ─── Walk-in confirm card ─────────────────────────────────────────────────────
+// â”€â”€â”€ Walk-in confirm card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _WalkInCard extends StatelessWidget {
   final String name;
@@ -368,7 +368,7 @@ class _WalkInCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Header ────────────────────────────────────────────────────────
+          // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -449,7 +449,7 @@ class _WalkInCard extends StatelessWidget {
             ),
           ),
 
-          // ── Detail rows ───────────────────────────────────────────────────
+          // â”€â”€ Detail rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Column(
@@ -496,7 +496,7 @@ class _WalkInCard extends StatelessWidget {
             ),
           ),
 
-          // ── Confirm button ────────────────────────────────────────────────
+          // â”€â”€ Confirm button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(

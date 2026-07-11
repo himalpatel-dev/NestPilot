@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../models/society_structure.dart';
 import '../../services/secretary_building_service.dart';
@@ -184,7 +184,7 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
                               icon: Icons.phone_outlined,
                               label: 'Mobile (read-only)',
                               field: Text(
-                                widget.admin?.mobile ?? '—',
+                                widget.admin?.mobile ?? 'â€”',
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -263,7 +263,7 @@ class _SecretaryCreateScreenState extends State<SecretaryCreateScreen> {
                             trailingIcon: Icons.arrow_forward_rounded,
                             isLoading: _isSaving,
                             onPressed: _save,
-                            showGlare: false,
+                            showGlare: true,
                           ),
                         ],
                       ),

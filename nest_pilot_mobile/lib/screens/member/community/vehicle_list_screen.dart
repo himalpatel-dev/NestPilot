@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
@@ -339,7 +339,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   text: 'Add Vehicle',
                   trailingIcon: Icons.check_rounded,
                   isLoading: saving,
-                  showGlare: false,
+                  showGlare: true,
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
                     setSheet(() => saving = true);
@@ -391,7 +391,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                 title: 'Vehicles',
                 accentColor: ModuleColors.vehicles,
                 subtitle: _isLoading
-                    ? 'Loading vehicles…'
+                    ? 'Loading vehiclesâ€¦'
                     : '${_vehicles.length} vehicle${_vehicles.length == 1 ? '' : 's'} registered',
               ),
             ),
@@ -412,7 +412,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
           ],
         ),
       ),
-      // Adding a vehicle is a manage-only action — the list itself is
+      // Adding a vehicle is a manage-only action â€” the list itself is
       // shared with view-only roles.
       floatingActionButton: canCreate
           ? FloatingActionButton(
@@ -431,7 +431,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     final displayName = [
       v.model,
       v.brand,
-    ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    ].where((s) => s != null && s.isNotEmpty).join(' Â· ');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -536,7 +536,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                         ),
                         if (v.userName != null && v.userName!.isNotEmpty) ...[
                           const Text(
-                            '  ·  ',
+                            '  Â·  ',
                             style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12,

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../services/community_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
@@ -47,9 +47,9 @@ class _VerifyPasscodeScreenState extends State<VerifyPasscodeScreen> {
       final purpose = (data['purpose'] as String?)?.trim() ?? '';
 
       final result = await _showConfirmDialog(
-        name: visitor['name'] ?? '—',
-        mobile: visitor['mobile'] ?? '—',
-        visiting: house?['house_no'] ?? '—',
+        name: visitor['name'] ?? 'â€”',
+        mobile: visitor['mobile'] ?? 'â€”',
+        visiting: house?['house_no'] ?? 'â€”',
         purpose: purpose.isNotEmpty ? purpose : null,
       );
 
@@ -193,7 +193,7 @@ class _VerifyPasscodeScreenState extends State<VerifyPasscodeScreen> {
                           trailingIcon: Icons.check_circle_outline_rounded,
                           isLoading: _verifying,
                           onPressed: _verifyEntry,
-                          showGlare: false,
+                          showGlare: true,
                         ),
                       ],
                     ),
@@ -208,7 +208,7 @@ class _VerifyPasscodeScreenState extends State<VerifyPasscodeScreen> {
   }
 }
 
-// ─── Visiting-card guest sheet ────────────────────────────────────────────────
+// â”€â”€â”€ Visiting-card guest sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _GuestCard extends StatelessWidget {
   final String name;
@@ -242,7 +242,7 @@ class _GuestCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Card header ──────────────────────────────────────────────────
+          // â”€â”€ Card header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -323,7 +323,7 @@ class _GuestCard extends StatelessWidget {
             ),
           ),
 
-          // ── Detail rows ──────────────────────────────────────────────────
+          // â”€â”€ Detail rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Column(
@@ -360,7 +360,7 @@ class _GuestCard extends StatelessWidget {
             ),
           ),
 
-          // ── Prompt text ──────────────────────────────────────────────────
+          // â”€â”€ Prompt text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Container(
@@ -382,7 +382,7 @@ class _GuestCard extends StatelessWidget {
             ),
           ),
 
-          // ── Action buttons ───────────────────────────────────────────────
+          // â”€â”€ Action buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Row(

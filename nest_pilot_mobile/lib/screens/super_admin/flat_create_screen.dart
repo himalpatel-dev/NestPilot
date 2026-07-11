@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../theme/nest_loader.dart';
 import '../../services/society_service.dart';
@@ -257,7 +257,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Society + Building selectors — only in Add mode
+                              // Society + Building selectors â€” only in Add mode
                               if (!widget.isEditing) ...[
                                 const AppSectionHeader(
                                   'Select Society & Building',
@@ -486,7 +486,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                                     trailingIcon: Icons.arrow_forward_rounded,
                                     isLoading: _isSaving,
                                     onPressed: _save,
-                                    showGlare: false,
+                                    showGlare: true,
                                   )
                                 else
                                   NoPermissionNotice(

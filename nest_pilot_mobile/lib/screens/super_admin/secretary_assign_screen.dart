@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/society_structure.dart';
 import '../../services/secretary_building_service.dart';
 import '../../services/society_service.dart';
@@ -237,7 +237,7 @@ class _SecretaryAssignScreenState extends State<SecretaryAssignScreen> {
             trailingIcon: Icons.check_rounded,
             isLoading: _isSaving,
             onPressed: _save,
-            showGlare: false,
+            showGlare: true,
           ),
         ],
       ),
