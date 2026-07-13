@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import '../../services/society_service.dart';
+import '../../services/location_service.dart';
 import '../../services/permission_service.dart';
 import '../../config/modules.dart';
 import '../../models/society_structure.dart';
+import '../../models/location_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/glare_button.dart';
 import '../../widgets/no_permission_notice.dart';
@@ -30,10 +32,18 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _addressController;
   late final TextEditingController _cityController;
-  late final TextEditingController _stateController;
   late final TextEditingController _pincodeController;
 
   late String _selectedSocietyType;
+
+  final LocationService _locationService = LocationService();
+  List<StateModel> _states = [];
+  StateModel? _selectedState;
+  bool _isLoadingStates = true;
+
+  List<DistrictModel> _districts = [];
+  DistrictModel? _selectedDistrict;
+  bool _isLoadingDistricts = false;
 
   final List<String> _societyTypes = [
     'APARTMENT',
@@ -53,12 +63,87 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
     _nameController = TextEditingController(text: s?.name ?? '');
     _addressController = TextEditingController(text: s?.address ?? '');
     _cityController = TextEditingController(text: s?.city ?? '');
-    _stateController = TextEditingController(text: s?.state ?? '');
     _pincodeController = TextEditingController(text: s?.pincode ?? '');
     _selectedSocietyType =
         (s != null && _societyTypes.contains(s.societyType))
             ? s.societyType
             : 'APARTMENT';
+
+    _loadStates();
+  }
+
+  /// Loads all states; in edit mode preselects the society's saved state and
+  /// then loads + preselects its saved district.
+  Future<void> _loadStates() async {
+    try {
+      final states = await _locationService.getStates();
+      if (!mounted) return;
+
+      StateModel? preselect;
+      final existing = widget.society?.state?.trim();
+      if (existing != null && existing.isNotEmpty) {
+        for (final st in states) {
+          if (st.name.toLowerCase() == existing.toLowerCase()) {
+            preselect = st;
+            break;
+          }
+        }
+      }
+
+      setState(() {
+        _states = states;
+        _selectedState = preselect;
+        _isLoadingStates = false;
+      });
+
+      if (preselect != null) {
+        await _loadDistricts(
+          preselect.id,
+          preselectName: widget.society?.district,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingStates = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load states: $e')),
+      );
+    }
+  }
+
+  /// Loads districts for [stateId]; optionally preselects one by name.
+  Future<void> _loadDistricts(int stateId, {String? preselectName}) async {
+    setState(() {
+      _isLoadingDistricts = true;
+      _districts = [];
+    });
+    try {
+      final districts = await _locationService.getDistricts(stateId);
+      if (!mounted) return;
+
+      DistrictModel? preselect;
+      final target = preselectName?.trim();
+      if (target != null && target.isNotEmpty) {
+        for (final d in districts) {
+          if (d.name.toLowerCase() == target.toLowerCase()) {
+            preselect = d;
+            break;
+          }
+        }
+      }
+
+      setState(() {
+        _districts = districts;
+        _selectedDistrict = preselect;
+        _isLoadingDistricts = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingDistricts = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load districts: $e')),
+      );
+    }
   }
 
   @override
@@ -66,7 +151,6 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
     _nameController.dispose();
     _addressController.dispose();
     _cityController.dispose();
-    _stateController.dispose();
     _pincodeController.dispose();
     super.dispose();
   }
@@ -82,7 +166,8 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
           city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
+          state: _selectedState!.name,
+          district: _selectedDistrict?.name,
           pincode: _pincodeController.text.trim(),
           societyType: _selectedSocietyType,
         );
@@ -91,7 +176,8 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
           city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
+          state: _selectedState!.name,
+          district: _selectedDistrict?.name,
           pincode: _pincodeController.text.trim(),
           societyType: _selectedSocietyType,
         );
@@ -194,6 +280,49 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.public_rounded,
+                      label: 'State',
+                      field: AppCardDropdown<StateModel>(
+                        value: _selectedState,
+                        items: _states,
+                        enabled: !_isLoadingStates,
+                        hintText:
+                            _isLoadingStates ? 'Loading states…' : 'Select state',
+                        itemLabel: (st) => st.name,
+                        onChanged: (StateModel? val) {
+                          if (val == null || val == _selectedState) return;
+                          setState(() {
+                            _selectedState = val;
+                            _selectedDistrict = null;
+                            _districts = [];
+                          });
+                          _loadDistricts(val.id);
+                        },
+                        validator: (v) => v == null ? 'Required' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    AppFieldCard(
+                      icon: Icons.map_outlined,
+                      label: 'District',
+                      field: AppCardDropdown<DistrictModel>(
+                        value: _selectedDistrict,
+                        items: _districts,
+                        enabled: _selectedState != null && !_isLoadingDistricts,
+                        hintText: _selectedState == null
+                            ? 'Select a state first'
+                            : (_isLoadingDistricts
+                                ? 'Loading districts…'
+                                : 'Select district'),
+                        itemLabel: (d) => d.name,
+                        onChanged: (DistrictModel? val) {
+                          setState(() => _selectedDistrict = val);
+                        },
+                        validator: (v) => v == null ? 'Required' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -231,16 +360,6 @@ class _SocietyCreateScreenState extends State<SocietyCreateScreen> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    AppFieldCard(
-                      icon: Icons.public_rounded,
-                      label: 'State',
-                      field: AppBorderlessField(
-                        controller: _stateController,
-                        hint: 'State',
-                        validator: (v) => v!.isEmpty ? 'Required' : null,
-                      ),
                     ),
                     const SizedBox(height: 28),
                     if (PermissionService().canManage(ModuleCodes.buildings))

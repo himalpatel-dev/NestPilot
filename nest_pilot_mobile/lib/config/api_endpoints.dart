@@ -23,6 +23,11 @@ class ApiEndpoints {
   static String societyFlats(String id) => '/api/societies/$id/flats';
   static String flatById(String buildingId, String flatId) => '/api/buildings/$buildingId/flats/$flatId';
 
+  // Location Masters (State -> District)
+  static const String states = '/api/locations/states';
+  static String stateDistricts(int stateId) =>
+      '/api/locations/states/$stateId/districts';
+
   // Notices
   static const String notices = '/api/notices';
   static String noticeDetail(String id) => '/api/notices/$id';

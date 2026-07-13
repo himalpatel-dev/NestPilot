@@ -42,6 +42,7 @@ class SocietyService {
     required String address,
     required String city,
     required String state,
+    String? district,
     required String pincode,
     String societyType = 'APARTMENT',
   }) async {
@@ -50,6 +51,7 @@ class SocietyService {
       'address': address,
       'city': city,
       'state': state,
+      'district': district,
       'pincode': pincode,
       'society_type': societyType,
     });
@@ -81,6 +83,7 @@ class SocietyService {
     required String address,
     required String city,
     required String state,
+    String? district,
     required String pincode,
     String societyType = 'APARTMENT',
   }) async {
@@ -89,6 +92,7 @@ class SocietyService {
       'address': address,
       'city': city,
       'state': state,
+      'district': district,
       'pincode': pincode,
       'society_type': societyType,
     });

@@ -33,6 +33,7 @@ class Society {
   final String societyType;
   final String? city;
   final String? state;
+  final String? district;
   final String? pincode;
   final String? status;
 
@@ -44,6 +45,7 @@ class Society {
     required this.societyType,
     this.city,
     this.state,
+    this.district,
     this.pincode,
     this.status,
   });
@@ -57,6 +59,7 @@ class Society {
       societyType: json['society_type'] ?? json['societyType'] ?? 'APARTMENT',
       city: json['city']?.toString(),
       state: json['state']?.toString(),
+      district: json['district']?.toString(),
       pincode: json['pincode']?.toString(),
       status: json['status']?.toString(),
     );

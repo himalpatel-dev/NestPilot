@@ -42,12 +42,13 @@ const createSociety = async (req, res, next) => {
 
 const updateSociety = async (req, res, next) => {
     try {
-        const { name, address, city, state, pincode, society_type, status } = req.body;
+        const { name, address, city, state, district, pincode, society_type, status } = req.body;
         const data = await societyService.updateSociety(req.params.id, {
             ...(name !== undefined && { name }),
             ...(address !== undefined && { address }),
             ...(city !== undefined && { city }),
             ...(state !== undefined && { state }),
+            ...(district !== undefined && { district }),
             ...(pincode !== undefined && { pincode }),
             ...(society_type !== undefined && { society_type }),
             ...(status !== undefined && { status }),
