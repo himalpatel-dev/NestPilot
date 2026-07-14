@@ -87,9 +87,9 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load societies: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load societies: $e')));
       }
       setState(() => _isLoadingSocieties = false);
     }
@@ -185,9 +185,9 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -210,7 +210,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
       body: Column(
         children: [
           AppPageHeader(
-            icon: Icons.door_front_door_rounded,
+            icon: Icons.add_home_sharp,
             title: widget.isEditing ? 'Edit Flat / Unit' : 'Add Flat / Unit',
             accentColor: ModuleColors.buildings,
             subtitle: widget.isEditing
@@ -221,300 +221,296 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
             child: _isLoadingSocieties
                 ? const Center(child: NestLoader())
                 : (!widget.isEditing && _societies.isEmpty)
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.door_front_door_outlined,
-                                size: 64,
-                                color: AppColors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'No Societies Available',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Please onboard a society and create buildings first.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.grey),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.door_front_door_outlined,
+                            size: 64,
+                            color: AppColors.grey,
                           ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Society + Building selectors â€” only in Add mode
-                              if (!widget.isEditing) ...[
-                                const AppSectionHeader(
-                                  'Select Society & Building',
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No Societies Available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Please onboard a society and create buildings first.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Society + Building selectors â€” only in Add mode
+                          if (!widget.isEditing) ...[
+                            const AppSectionHeader('Select Society & Building'),
+                            const SizedBox(height: 12),
+                            AppFieldCard(
+                              icon: Icons.apartment_rounded,
+                              label: 'Society',
+                              field: AppCardDropdown<Society>(
+                                value: _selectedSociety,
+                                hint: const Text(
+                                  'Choose Society',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textHint,
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
+                                items: _societies,
+                                itemLabel: (soc) => soc.name,
+                                onChanged: (Society? value) {
+                                  setState(() {
+                                    _selectedSociety = value;
+                                    _selectedBuilding = null;
+                                    if (value != null) {
+                                      _loadBuildings(value.id);
+                                      if (value.societyType == 'ROW_HOUSE') {
+                                        _selectedUnitType = 'ROW_HOUSE';
+                                      } else if (value.societyType ==
+                                          'TENEMENT') {
+                                        _selectedUnitType = 'ROW_HOUSE';
+                                      } else if (value.societyType ==
+                                          'COMMERCIAL') {
+                                        _selectedUnitType = 'SHOP';
+                                      } else {
+                                        _selectedUnitType = 'FLAT';
+                                      }
+                                      _wingController.clear();
+                                      _floorController.text = '0';
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                            if (_selectedSociety != null) ...[
+                              const SizedBox(height: 14),
+                              if (_isLoadingBuildings)
+                                const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
+                                    child: NestLoader(
+                                      size: 32,
+                                      showDots: false,
+                                    ),
+                                  ),
+                                )
+                              else if (_buildings.isEmpty)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12.0,
+                                    ),
+                                    child: Text(
+                                      isRowHouse
+                                          ? 'No sectors/lanes created for this society yet.'
+                                          : 'No buildings/blocks created for this society yet.',
+                                      style: const TextStyle(
+                                        color: AppColors.accentRed,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
                                 AppFieldCard(
-                                  icon: Icons.apartment_rounded,
-                                  label: 'Society',
-                                  field: AppCardDropdown<Society>(
-                                    value: _selectedSociety,
-                                    hint: const Text(
-                                      'Choose Society',
-                                      style: TextStyle(
+                                  icon: Icons.business_rounded,
+                                  label: isRowHouse
+                                      ? 'Sector / Lane'
+                                      : 'Building / Block',
+                                  field: AppCardDropdown<Building>(
+                                    value: _selectedBuilding,
+                                    hint: Text(
+                                      isRowHouse
+                                          ? 'Choose Sector / Lane'
+                                          : 'Choose Building / Block',
+                                      style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w500,
                                         color: AppColors.textHint,
                                       ),
                                     ),
-                                    items: _societies,
-                                    itemLabel: (soc) => soc.name,
-                                    onChanged: (Society? value) {
-                                      setState(() {
-                                        _selectedSociety = value;
-                                        _selectedBuilding = null;
-                                        if (value != null) {
-                                          _loadBuildings(value.id);
-                                          if (value.societyType ==
-                                              'ROW_HOUSE') {
-                                            _selectedUnitType = 'ROW_HOUSE';
-                                          } else if (value.societyType ==
-                                              'TENEMENT') {
-                                            _selectedUnitType = 'ROW_HOUSE';
-                                          } else if (value.societyType ==
-                                              'COMMERCIAL') {
-                                            _selectedUnitType = 'SHOP';
-                                          } else {
-                                            _selectedUnitType = 'FLAT';
-                                          }
-                                          _wingController.clear();
-                                          _floorController.text = '0';
-                                        }
-                                      });
+                                    items: _buildings,
+                                    itemLabel: (bld) => bld.name,
+                                    onChanged: (Building? value) {
+                                      setState(() => _selectedBuilding = value);
                                     },
                                   ),
                                 ),
-                                if (_selectedSociety != null) ...[
-                                  const SizedBox(height: 14),
-                                  if (_isLoadingBuildings)
-                                    const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 8.0,
-                                        ),
-                                        child: NestLoader(
-                                          size: 32,
-                                          showDots: false,
-                                        ),
-                                      ),
-                                    )
-                                  else if (_buildings.isEmpty)
-                                    Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12.0,
-                                        ),
-                                        child: Text(
-                                          isRowHouse
-                                              ? 'No sectors/lanes created for this society yet.'
-                                              : 'No buildings/blocks created for this society yet.',
-                                          style: const TextStyle(
-                                            color: AppColors.accentRed,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    AppFieldCard(
-                                      icon: Icons.business_rounded,
-                                      label: isRowHouse
-                                          ? 'Sector / Lane'
-                                          : 'Building / Block',
-                                      field: AppCardDropdown<Building>(
-                                        value: _selectedBuilding,
-                                        hint: Text(
-                                          isRowHouse
-                                              ? 'Choose Sector / Lane'
-                                              : 'Choose Building / Block',
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                            color: AppColors.textHint,
-                                          ),
-                                        ),
-                                        items: _buildings,
-                                        itemLabel: (bld) => bld.name,
-                                        onChanged: (Building? value) {
-                                          setState(
-                                            () => _selectedBuilding = value,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                ],
-                                const SizedBox(height: 24),
-                              ],
-
-                              if (_selectedSociety != null &&
-                                  (_selectedBuilding != null ||
-                                      widget.isEditing)) ...[
-                                const AppSectionHeader('Unit Configuration'),
-                                const SizedBox(height: 12),
-                                AppFieldCard(
-                                  icon: Icons.tag,
-                                  label: unitLabel,
-                                  field: AppBorderlessField(
-                                    controller: _numberController,
-                                    hint: 'e.g. 101, A-10',
-                                    validator: (v) =>
-                                        (v == null || v.trim().isEmpty)
-                                            ? 'Required'
-                                            : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                AppFieldCard(
-                                  icon: Icons.home_work_rounded,
-                                  label: 'Unit Type',
-                                  field: AppCardDropdown<String>(
-                                    value: _selectedUnitType,
-                                    items: [
-                                      if (!isCommercial && !isRowHouse) 'FLAT',
-                                      if (isRowHouse) ...['ROW_HOUSE', 'VILLA'],
-                                      if (isCommercial ||
-                                          societyType == 'MIXED')
-                                        ...['SHOP', 'OFFICE'],
-                                    ],
-                                    itemLabel: (type) {
-                                      switch (type) {
-                                        case 'FLAT':
-                                          return 'Flat / Apartment';
-                                        case 'ROW_HOUSE':
-                                          return 'Row House';
-                                        case 'VILLA':
-                                          return 'Villa';
-                                        case 'SHOP':
-                                          return 'Shop';
-                                        case 'OFFICE':
-                                          return 'Office';
-                                        default:
-                                          return type;
-                                      }
-                                    },
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(
-                                          () => _selectedUnitType = val,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                if (!isRowHouse) ...[
-                                  const SizedBox(height: 14),
-                                  AppFieldCard(
-                                    icon: Icons.layers_outlined,
-                                    label: 'Floor Number',
-                                    field: AppBorderlessField(
-                                      controller: _floorController,
-                                      hint: '0',
-                                      keyboardType: TextInputType.number,
-                                      validator: (v) {
-                                        if (v == null || v.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        if (int.tryParse(v.trim()) == null) {
-                                          return 'Enter a valid number';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                                if (societyType == 'APARTMENT' ||
-                                    societyType == 'MIXED') ...[
-                                  const SizedBox(height: 14),
-                                  AppFieldCard(
-                                    icon: Icons.grid_view_outlined,
-                                    label: 'Wing / Block (optional)',
-                                    field: AppBorderlessField(
-                                      controller: _wingController,
-                                      hint: 'e.g. A, B',
-                                      validator: (_) => null,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 14),
-                                AppFieldCard(
-                                  icon: Icons.square_foot_outlined,
-                                  label: 'Area in Sq. Ft. (optional)',
-                                  field: AppBorderlessField(
-                                    controller: _areaController,
-                                    hint: 'e.g. 1200',
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                    validator: (v) {
-                                      if (v != null && v.trim().isNotEmpty) {
-                                        final val = int.tryParse(v.trim());
-                                        if (val == null || val <= 0) {
-                                          return 'Enter a valid area';
-                                        }
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-                                if (PermissionService()
-                                    .canManage(ModuleCodes.buildings))
-                                  GlarePrimaryButton(
-                                    text: widget.isEditing
-                                        ? 'Save Flat / Unit'
-                                        : 'Add Flat / Unit',
-                                    trailingIcon: Icons.arrow_forward_rounded,
-                                    isLoading: _isSaving,
-                                    onPressed: _save,
-                                    showGlare: true,
-                                  )
-                                else
-                                  NoPermissionNotice(
-                                    action: widget.isEditing
-                                        ? 'update flats / units'
-                                        : 'create flats / units',
-                                  ),
-                              ] else if (!widget.isEditing) ...[
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 40,
-                                    ),
-                                    child: Text(
-                                      'Select society and building/sector above to configure unit details.',
-                                      style: TextStyle(
-                                        color: AppColors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
-                        ),
+                            const SizedBox(height: 24),
+                          ],
+
+                          if (_selectedSociety != null &&
+                              (_selectedBuilding != null ||
+                                  widget.isEditing)) ...[
+                            const AppSectionHeader('Unit Configuration'),
+                            const SizedBox(height: 12),
+                            AppFieldCard(
+                              icon: Icons.tag,
+                              label: unitLabel,
+                              field: AppBorderlessField(
+                                controller: _numberController,
+                                hint: 'e.g. 101, A-10',
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                    ? 'Required'
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            AppFieldCard(
+                              icon: Icons.home_work_rounded,
+                              label: 'Unit Type',
+                              field: AppCardDropdown<String>(
+                                value: _selectedUnitType,
+                                items: [
+                                  if (!isCommercial && !isRowHouse) 'FLAT',
+                                  if (isRowHouse) ...['ROW_HOUSE', 'VILLA'],
+                                  if (isCommercial ||
+                                      societyType == 'MIXED') ...[
+                                    'SHOP',
+                                    'OFFICE',
+                                  ],
+                                ],
+                                itemLabel: (type) {
+                                  switch (type) {
+                                    case 'FLAT':
+                                      return 'Flat / Apartment';
+                                    case 'ROW_HOUSE':
+                                      return 'Row House';
+                                    case 'VILLA':
+                                      return 'Villa';
+                                    case 'SHOP':
+                                      return 'Shop';
+                                    case 'OFFICE':
+                                      return 'Office';
+                                    default:
+                                      return type;
+                                  }
+                                },
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedUnitType = val);
+                                  }
+                                },
+                              ),
+                            ),
+                            if (!isRowHouse) ...[
+                              const SizedBox(height: 14),
+                              AppFieldCard(
+                                icon: Icons.layers_outlined,
+                                label: 'Floor Number',
+                                field: AppBorderlessField(
+                                  controller: _floorController,
+                                  hint: '0',
+                                  keyboardType: TextInputType.number,
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    if (int.tryParse(v.trim()) == null) {
+                                      return 'Enter a valid number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                            if (societyType == 'APARTMENT' ||
+                                societyType == 'MIXED') ...[
+                              const SizedBox(height: 14),
+                              AppFieldCard(
+                                icon: Icons.grid_view_outlined,
+                                label: 'Wing / Block (optional)',
+                                field: AppBorderlessField(
+                                  controller: _wingController,
+                                  hint: 'e.g. A, B',
+                                  validator: (_) => null,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+                            AppFieldCard(
+                              icon: Icons.square_foot_outlined,
+                              label: 'Area in Sq. Ft. (optional)',
+                              field: AppBorderlessField(
+                                controller: _areaController,
+                                hint: 'e.g. 1200',
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (v) {
+                                  if (v != null && v.trim().isNotEmpty) {
+                                    final val = int.tryParse(v.trim());
+                                    if (val == null || val <= 0) {
+                                      return 'Enter a valid area';
+                                    }
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            if (PermissionService().canManage(
+                              ModuleCodes.buildings,
+                            ))
+                              GlarePrimaryButton(
+                                text: widget.isEditing
+                                    ? 'Save Flat / Unit'
+                                    : 'Add Flat / Unit',
+                                trailingIcon: Icons.arrow_forward_rounded,
+                                isLoading: _isSaving,
+                                onPressed: _save,
+                                showGlare: true,
+                              )
+                            else
+                              NoPermissionNotice(
+                                action: widget.isEditing
+                                    ? 'update flats / units'
+                                    : 'create flats / units',
+                              ),
+                          ] else if (!widget.isEditing) ...[
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 40,
+                                ),
+                                child: Text(
+                                  'Select society and building/sector above to configure unit details.',
+                                  style: TextStyle(
+                                    color: AppColors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
+                    ),
+                  ),
           ),
         ],
       ),

@@ -83,41 +83,67 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   // ─── Management sections ────────────────────────────────────────────────────
 
   List<_SaSection> _sections() => [
-        _SaSection('Societies & Structure', [
-          _SaTile(Icons.add_business_rounded, 'Add Society',
-              'Onboard a new society', AppColors.accentOrange,
-              () => _go(const SocietyCreateScreen())),
-          _SaTile(Icons.location_city_outlined, 'All Societies',
-              'Browse & edit societies', AppColors.accentOrange,
-              () => _go(const SocietiesListScreen())),
-          _SaTile(Icons.apartment_rounded, 'Add Building',
-              'Add a building or sector', AppColors.accentBlue,
-              () => _go(const BuildingCreateScreen())),
-          _SaTile(Icons.domain_outlined, 'All Buildings',
-              'Browse all buildings', AppColors.accentBlue,
-              () => _go(const BuildingsListScreen())),
-          _SaTile(Icons.door_front_door_rounded, 'Add Flat',
-              'Add a flat, shop or unit', AppColors.accentPurple,
-              () => _go(const FlatCreateScreen())),
-          _SaTile(Icons.list_alt_outlined, 'All Flats', 'Browse all units',
-              AppColors.accentTeal, () => _go(const FlatsListScreen())),
-        ]),
-        _SaSection('People & Access', [
-          _SaTile(Icons.shield_outlined, 'Roles',
-              'Configure role permissions', AppColors.accentIndigo,
-              () => _go(const RoleManagementScreen())),
-          _SaTile(Icons.assignment_ind_outlined, 'Secretaries',
-              'Assign society admins', AppColors.accentGreen,
-              () => _go(const SecretaryBuildingsScreen())),
-        ]),
-        _SaSection('Account', [
-          _SaTile(Icons.notifications_outlined, 'Alerts',
-              'View your notifications', AppColors.accentRed,
-              _showNotifications),
-          _SaTile(Icons.person_outline, 'Profile', 'Account & logout',
-              AppColors.accentPurple, _showProfileSheet),
-        ]),
-      ];
+    _SaSection('Societies & Structure', [
+      _SaTile(
+        Icons.add_business_rounded,
+        'Add Society',
+        'Onboard a new society',
+        AppColors.accentOrange,
+        () => _go(const SocietyCreateScreen()),
+      ),
+      _SaTile(
+        Icons.location_city_outlined,
+        'All Societies',
+        'Browse & edit societies',
+        AppColors.accentOrange,
+        () => _go(const SocietiesListScreen()),
+      ),
+      _SaTile(
+        Icons.apartment_rounded,
+        'Add Building',
+        'Add a building or sector',
+        AppColors.accentBlue,
+        () => _go(const BuildingCreateScreen()),
+      ),
+      _SaTile(
+        Icons.domain_outlined,
+        'All Buildings',
+        'Browse all buildings',
+        AppColors.accentBlue,
+        () => _go(const BuildingsListScreen()),
+      ),
+      _SaTile(
+        Icons.add_home_sharp,
+        'Add Flat',
+        'Add a flat, shop or unit',
+        AppColors.accentPurple,
+        () => _go(const FlatCreateScreen()),
+      ),
+      _SaTile(
+        Icons.list_alt_outlined,
+        'All Flats',
+        'Browse all units',
+        AppColors.accentTeal,
+        () => _go(const FlatsListScreen()),
+      ),
+    ]),
+    _SaSection('People & Access', [
+      _SaTile(
+        Icons.shield_outlined,
+        'Roles',
+        'Configure role permissions',
+        AppColors.accentIndigo,
+        () => _go(const RoleManagementScreen()),
+      ),
+      _SaTile(
+        Icons.assignment_ind_outlined,
+        'Secretaries',
+        'Assign society admins',
+        AppColors.accentGreen,
+        () => _go(const SecretaryBuildingsScreen()),
+      ),
+    ]),
+  ];
 
   // ─── Build ──────────────────────────────────────────────────────────────────
 
@@ -160,12 +186,59 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
                           _grid(section.tiles),
                           const SizedBox(height: 24),
                         ],
+                        // Logout — sits right after the last module tiles.
+                        _buildLogoutButton(),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        color: AppColors.accentRed.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentRed.withValues(alpha: 0.55),
+            blurRadius: 14,
+            spreadRadius: 1,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.transparent,
+        child: InkWell(
+          onTap: _logout,
+          borderRadius: BorderRadius.circular(14),
+          splashColor: AppColors.white.withValues(alpha: 0.15),
+          highlightColor: AppColors.white.withValues(alpha: 0.08),
+          child: const Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.logout_rounded, size: 18, color: AppColors.white),
+                SizedBox(width: 8),
+                Text(
+                  'Logout',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -244,9 +317,7 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   }
 
   Widget _grid(List<_SaTile> tiles) {
-    return Column(
-      children: [for (final t in tiles) _horizontalCard(t)],
-    );
+    return Column(children: [for (final t in tiles) _horizontalCard(t)]);
   }
 
   Widget _horizontalCard(_SaTile tile) {
@@ -335,126 +406,17 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     );
   }
 
-  // ─── Profile sheet ──────────────────────────────────────────────────────────
+  // ─── Logout ─────────────────────────────────────────────────────────────────
 
-  void _showProfileSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  widget.user.fullName.isNotEmpty
-                      ? widget.user.fullName[0].toUpperCase()
-                      : 'S',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                widget.user.fullName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Super Administrator',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                widget.user.mobile,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    size: 18,
-                    color: AppColors.white,
-                  ),
-                  label: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    await AuthService().logout();
-                    if (mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _logout() async {
+    await AuthService().logout();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 }
 
@@ -472,11 +434,5 @@ class _SaTile {
   final String subtitle;
   final Color color;
   final VoidCallback onTap;
-  const _SaTile(
-    this.icon,
-    this.label,
-    this.subtitle,
-    this.color,
-    this.onTap,
-  );
+  const _SaTile(this.icon, this.label, this.subtitle, this.color, this.onTap);
 }

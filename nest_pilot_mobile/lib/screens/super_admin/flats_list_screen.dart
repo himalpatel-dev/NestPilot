@@ -123,8 +123,7 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
     final lower = query.toLowerCase();
     return list.where((f) {
       final numberMatch = f.number.toLowerCase().contains(lower);
-      final wingMatch =
-          f.wing != null && f.wing!.toLowerCase().contains(lower);
+      final wingMatch = f.wing != null && f.wing!.toLowerCase().contains(lower);
       final floorMatch =
           f.floor != null && f.floor!.toLowerCase().contains(lower);
       final typeMatch = f.unitType.toLowerCase().contains(lower);
@@ -182,7 +181,8 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isRowHouse = _selectedSociety != null &&
+    final bool isRowHouse =
+        _selectedSociety != null &&
         (_selectedSociety!.societyType == 'ROW_HOUSE' ||
             _selectedSociety!.societyType == 'TENEMENT');
 
@@ -191,8 +191,8 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
       body: Column(
         children: [
           const AppPageHeader(
-            icon: Icons.door_front_door_rounded,
-            title: 'Society Units Directory',
+            icon: Icons.add_home_sharp,
+            title: 'All Flats',
             accentColor: ModuleColors.buildings,
             subtitle: 'Browse flats, houses, shops and offices',
           ),
@@ -244,8 +244,9 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
                           else if (_buildings.isEmpty)
                             Center(
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12.0,
+                                ),
                                 child: Text(
                                   isRowHouse
                                       ? 'No sectors/lanes created yet.'
@@ -312,56 +313,52 @@ class _FlatsListScreenState extends State<FlatsListScreen> {
                                   'Select society and building/sector above.',
                                 )
                               : _isLoadingFlats
-                                  ? const Center(child: NestLoader())
-                                  : _filteredFlats.isEmpty
-                                      ? AppListEmpty(
-                                          icon: Icons.door_sliding_outlined,
-                                          message: _searchQuery.isNotEmpty
-                                              ? 'No search matches'
-                                              : 'No units created yet',
-                                        )
-                                      : ListView.builder(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 24,
-                                          ),
-                                          itemCount: _filteredFlats.length,
-                                          physics:
-                                              const BouncingScrollPhysics(),
-                                          itemBuilder: (context, index) {
-                                            final flat = _filteredFlats[index];
-                                            final Color typeColor =
-                                                _getUnitColor(flat.unitType);
+                              ? const Center(child: NestLoader())
+                              : _filteredFlats.isEmpty
+                              ? AppListEmpty(
+                                  icon: Icons.add_home_sharp,
+                                  message: _searchQuery.isNotEmpty
+                                      ? 'No search matches'
+                                      : 'No units created yet',
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.only(bottom: 24),
+                                  itemCount: _filteredFlats.length,
+                                  physics: const BouncingScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    final flat = _filteredFlats[index];
+                                    final Color typeColor = _getUnitColor(
+                                      flat.unitType,
+                                    );
 
-                                            return AppListCard(
-                                              accentColor: typeColor,
-                                              icon: _getUnitIcon(flat.unitType),
-                                              title: flat.number,
-                                              badgeText: flat.unitType,
-                                              subtitleChips: [
-                                                if (flat.wing != null &&
-                                                    flat.wing!.isNotEmpty)
-                                                  'Wing ${flat.wing}',
-                                                if (flat.floor != null &&
-                                                    flat.floor != '0')
-                                                  'Floor ${flat.floor}',
-                                                if (flat.areaSqft != null &&
-                                                    flat.areaSqft != '0.00' &&
-                                                    flat.areaSqft != '0')
-                                                  '${flat.areaSqft} sqft',
-                                              ],
-                                              trailing: IconButton(
-                                                icon: const Icon(
-                                                  Icons.edit_outlined,
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                                tooltip: 'Edit unit',
-                                                onPressed: () =>
-                                                    _openEditPage(flat),
-                                              ),
-                                            );
-                                          },
+                                    return AppListCard(
+                                      accentColor: typeColor,
+                                      icon: _getUnitIcon(flat.unitType),
+                                      title: flat.number,
+                                      badgeText: flat.unitType,
+                                      subtitleChips: [
+                                        if (flat.wing != null &&
+                                            flat.wing!.isNotEmpty)
+                                          'Wing ${flat.wing}',
+                                        if (flat.floor != null &&
+                                            flat.floor != '0')
+                                          'Floor ${flat.floor}',
+                                        if (flat.areaSqft != null &&
+                                            flat.areaSqft != '0.00' &&
+                                            flat.areaSqft != '0')
+                                          '${flat.areaSqft} sqft',
+                                      ],
+                                      trailing: IconButton(
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          color: AppColors.textSecondary,
                                         ),
+                                        tooltip: 'Edit unit',
+                                        onPressed: () => _openEditPage(flat),
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
