@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
 import '../../widgets/glare_button.dart';
 import 'event_detail_screen.dart';
 
@@ -52,13 +53,8 @@ class _EventManageScreenState extends State<EventManageScreen> {
   }
 
   void _openCreateSheet() {
-    showModalBottomSheet(
+    showAppFormSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (ctx) => _CreateEventSheet(
         onCreated: () {
           Navigator.pop(ctx);
@@ -582,59 +578,13 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  /// Themes the date/time picker dialogs with the app's primary colour so the
-  /// header, selected day/time and buttons match the rest of the app.
-  Widget _pickerTheme(BuildContext context, Widget? child) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-          onPrimary: AppColors.white,
-          onSurface: AppColors.textPrimary,
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-        ),
-        timePickerTheme: TimePickerThemeData(
-          backgroundColor: AppColors.white,
-          dialHandColor: AppColors.primary,
-          dialBackgroundColor: AppColors.cardBackground,
-          hourMinuteColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.primary.withValues(alpha: 0.15)
-                : AppColors.cardBackground,
-          ),
-          hourMinuteTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.textPrimary,
-          ),
-          // AM / PM selector — solid primary when selected, white text.
-          dayPeriodColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.transparent,
-          ),
-          dayPeriodTextColor: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? AppColors.white
-                : AppColors.textSecondary,
-          ),
-          dayPeriodBorderSide: const BorderSide(color: AppColors.border),
-          entryModeIconColor: AppColors.primary,
-        ),
-      ),
-      child: child!,
-    );
-  }
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: _pickerTheme,
+      builder: appPickerTheme,
     );
     if (picked != null) setState(() => _eventDate = picked);
   }
@@ -643,7 +593,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
-      builder: _pickerTheme,
+      builder: appPickerTheme,
     );
     if (picked != null)
       setState(() => isStart ? _startTime = picked : _endTime = picked);
@@ -698,327 +648,120 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    final maxH = MediaQuery.of(context).size.height * 0.9;
-    const accent = ModuleColors.events;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxH),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 10),
-          // Drag handle
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(3),
+    return AppFormSheet(
+      accentColor: ModuleColors.events,
+      icon: Icons.event_rounded,
+      title: 'New Event',
+      subtitle: 'Schedule a community event',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppSectionHeader('Event Details'),
+            const SizedBox(height: 14),
+            AppFieldCard(
+              icon: Icons.title_rounded,
+              label: 'Title',
+              field: AppBorderlessField(
+                controller: _titleCtrl,
+                hint: 'e.g. Annual General Meeting',
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Title is required' : null,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Header row: accent icon chip · title/subtitle · close
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.description_outlined,
+              label: 'Description',
+              iconAlignment: CrossAxisAlignment.start,
+              field: AppBorderlessField(
+                controller: _descCtrl,
+                hint: 'Optional details about the event…',
+                maxLines: 3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.category_outlined,
+              label: 'Event Type',
+              field: AppCardDropdown<String>(
+                value: _eventType,
+                items: _types,
+                itemLabel: _typeLabel,
+                onChanged: (v) => setState(() => _eventType = v!),
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.location_on_outlined,
+              label: 'Location',
+              field: AppBorderlessField(
+                controller: _locationCtrl,
+                hint: 'e.g. Community Hall',
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Location is required'
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const AppSectionHeader('Schedule'),
+            const SizedBox(height: 14),
+            AppPickerCard(
+              icon: Icons.calendar_month_rounded,
+              label: 'Date',
+              value: _eventDate != null
+                  ? DateFormat('EEE, d MMM yyyy').format(_eventDate!)
+                  : null,
+              hint: 'Select event date',
+              error: _dateErr,
+              onTap: _pickDate,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.event_rounded,
-                    color: Color.lerp(accent, AppColors.black, 0.25),
-                    size: 24,
+                Expanded(
+                  child: AppPickerCard(
+                    icon: Icons.access_time_rounded,
+                    label: 'Start',
+                    value: _startTime?.format(context),
+                    hint: 'Start time',
+                    error: _timeErr,
+                    onTap: () => _pickTime(true),
                   ),
                 ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'New Event',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Schedule a community event',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentRed,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: AppColors.white,
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppPickerCard(
+                    icon: Icons.access_time_outlined,
+                    label: 'End',
+                    value: _endTime?.format(context),
+                    hint: 'Optional',
+                    onTap: () => _pickTime(false),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const AppSectionHeader('Event Details'),
-                    const SizedBox(height: 14),
-                    AppFieldCard(
-                      icon: Icons.title_rounded,
-                      label: 'Title',
-                      field: AppBorderlessField(
-                        controller: _titleCtrl,
-                        hint: 'e.g. Annual General Meeting',
-                        validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Title is required'
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    AppFieldCard(
-                      icon: Icons.description_outlined,
-                      label: 'Description',
-                      iconAlignment: CrossAxisAlignment.start,
-                      field: AppBorderlessField(
-                        controller: _descCtrl,
-                        hint: 'Optional details about the event…',
-                        maxLines: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    AppFieldCard(
-                      icon: Icons.category_outlined,
-                      label: 'Event Type',
-                      field: AppCardDropdown<String>(
-                        value: _eventType,
-                        items: _types,
-                        itemLabel: _typeLabel,
-                        onChanged: (v) => setState(() => _eventType = v!),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    AppFieldCard(
-                      icon: Icons.location_on_outlined,
-                      label: 'Location',
-                      field: AppBorderlessField(
-                        controller: _locationCtrl,
-                        hint: 'e.g. Community Hall',
-                        validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Location is required'
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const AppSectionHeader('Schedule'),
-                    const SizedBox(height: 14),
-                    _pickerCard(
-                      icon: Icons.calendar_month_rounded,
-                      label: 'Date',
-                      value: _eventDate != null
-                          ? DateFormat('EEE, d MMM yyyy').format(_eventDate!)
-                          : null,
-                      hint: 'Select event date',
-                      error: _dateErr,
-                      onTap: _pickDate,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _pickerCard(
-                            icon: Icons.access_time_rounded,
-                            label: 'Start',
-                            value: _startTime != null
-                                ? _startTime!.format(context)
-                                : null,
-                            hint: 'Start time',
-                            error: _timeErr,
-                            onTap: () => _pickTime(true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _pickerCard(
-                            icon: Icons.access_time_outlined,
-                            label: 'End',
-                            value: _endTime?.format(context),
-                            hint: 'Optional',
-                            onTap: () => _pickTime(false),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    AppFieldCard(
-                      icon: Icons.people_outline_rounded,
-                      label: 'Max Attendees',
-                      field: AppBorderlessField(
-                        controller: _maxCtrl,
-                        hint: 'Optional — blank for unlimited',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    if (_apiError != null) ...[
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentRed.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.accentRed.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline_rounded,
-                              color: AppColors.accentRed,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _apiError!,
-                                style: const TextStyle(
-                                  color: AppColors.accentRed,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 26),
-                    GlarePrimaryButton(
-                      text: 'Create Event',
-                      isLoading: _isLoading,
-                      onPressed: _submit,
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.people_outline_rounded,
+              label: 'Max Attendees',
+              field: AppBorderlessField(
+                controller: _maxCtrl,
+                hint: 'Optional — blank for unlimited',
+                keyboardType: TextInputType.number,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Tap-to-pick card matching [AppFieldCard] — icon chip, uppercase label,
-  /// and the selected value (or a hint) with a chevron.
-  Widget _pickerCard({
-    required IconData icon,
-    required String label,
-    required String? value,
-    required String hint,
-    required VoidCallback onTap,
-    bool error = false,
-  }) {
-    final hasValue = value != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: error
-              ? Border.all(color: AppColors.accentRed, width: 1.4)
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: AppColors.cardBackground,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 18, color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    hasValue ? value : hint,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
-                      color: hasValue
-                          ? AppColors.textPrimary
-                          : AppColors.textHint,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.textSecondary,
-              size: 22,
+            if (_apiError != null) ...[
+              const SizedBox(height: 18),
+              AppSheetErrorBanner(_apiError!),
+            ],
+            const SizedBox(height: 26),
+            GlarePrimaryButton(
+              text: 'Create Event',
+              isLoading: _isLoading,
+              onPressed: _submit,
             ),
           ],
         ),

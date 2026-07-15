@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import '../../config/modules.dart';
 import '../../models/notice_complaint.dart';
@@ -6,8 +7,10 @@ import '../../services/notice_complaint_service.dart';
 import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
+import '../../widgets/glare_button.dart';
 import '../../widgets/module_page_header.dart';
-import '../secretary/notice_create_screen.dart';
 import 'notice_detail_screen.dart';
 
 class NoticeListScreen extends StatefulWidget {
@@ -97,6 +100,18 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   bool _isNew(Notice n) =>
       DateTime.now().difference(n.createdAt) < const Duration(hours: 48);
 
+  void _openCreateSheet() {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _CreateNoticeSheet(
+        onCreated: () {
+          Navigator.pop(ctx);
+          _fetch();
+        },
+      ),
+    );
+  }
+
   // ─── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -146,10 +161,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       // shared with view-only roles.
       floatingActionButton: canManage
           ? FloatingActionButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NoticeCreateScreen()),
-              ).then((_) => _fetch()),
+              onPressed: _openCreateSheet,
               backgroundColor: AppColors.primaryDark,
               foregroundColor: AppColors.white,
               child: const Icon(Icons.add),
@@ -567,6 +579,244 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Create notice bottom sheet ───────────────────────────────────────────────
+
+class _CreateNoticeSheet extends StatefulWidget {
+  final VoidCallback onCreated;
+  const _CreateNoticeSheet({required this.onCreated});
+
+  @override
+  State<_CreateNoticeSheet> createState() => _CreateNoticeSheetState();
+}
+
+class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+
+  final NoticeService _noticeService = NoticeService();
+  String? _selectedFilePath;
+  bool _isLoading = false;
+
+  // Inline error state — modal sheets hide snackbars behind them, so API
+  // failures are surfaced in the sheet instead.
+  String? _apiError;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  String get _selectedFileName =>
+      _selectedFilePath!.split(RegExp(r'[\\/]')).last;
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      setState(() => _selectedFilePath = result.files.single.path);
+    }
+  }
+
+  Future<void> _createNotice() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _apiError = null;
+    });
+    try {
+      final success = await _noticeService.createNotice(
+        _titleController.text,
+        _contentController.text,
+        filePath: _selectedFilePath,
+      );
+      if (!mounted) return;
+      if (success) {
+        widget.onCreated();
+      } else {
+        setState(
+          () => _apiError = 'Could not publish the notice. Please try again.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _apiError = e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormSheet(
+      accentColor: ModuleColors.notices,
+      icon: Icons.campaign_rounded,
+      title: 'New Notice',
+      subtitle: 'Publish an announcement to your society',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppSectionHeader('Notice Details'),
+            const SizedBox(height: 14),
+            AppFieldCard(
+              icon: Icons.title_rounded,
+              label: 'Title',
+              field: AppBorderlessField(
+                controller: _titleController,
+                hint: 'e.g. Water supply maintenance',
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Title is required'
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.notes_rounded,
+              label: 'Content',
+              iconAlignment: CrossAxisAlignment.start,
+              field: AppBorderlessField(
+                controller: _contentController,
+                hint: 'Write the full announcement here…',
+                maxLines: 6,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Content is required'
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const AppSectionHeader('Attachment'),
+            const SizedBox(height: 4),
+            const Padding(
+              padding: EdgeInsets.only(left: 12),
+              child: Text(
+                'Optional — attach a PDF, image or document',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildAttachmentCard(),
+            if (_apiError != null) ...[
+              const SizedBox(height: 18),
+              AppSheetErrorBanner(_apiError!),
+            ],
+            const SizedBox(height: 26),
+            GlarePrimaryButton(
+              text: 'Publish Notice',
+              trailingIcon: Icons.campaign_rounded,
+              isLoading: _isLoading,
+              onPressed: _createNotice,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentCard() {
+    final hasFile = _selectedFilePath != null;
+
+    return GestureDetector(
+      onTap: _pickFile,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: hasFile
+                ? AppColors.accentIndigo.withValues(alpha: 0.35)
+                : AppColors.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: hasFile
+                    ? AppColors.accentIndigo.withValues(alpha: 0.12)
+                    : AppColors.cardBackground,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                hasFile ? Icons.description_rounded : Icons.attach_file_rounded,
+                size: 18,
+                color: hasFile ? AppColors.accentIndigo : AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasFile ? _selectedFileName : 'Attach a file',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    hasFile ? 'Tap to replace' : 'Tap to browse files',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (hasFile)
+              GestureDetector(
+                onTap: () => setState(() => _selectedFilePath = null),
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentRed.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: AppColors.accentRed,
+                  ),
+                ),
+              )
+            else
+              const Icon(
+                Icons.upload_rounded,
+                color: AppColors.textHint,
+                size: 20,
+              ),
+          ],
+        ),
       ),
     );
   }
