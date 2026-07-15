@@ -19,15 +19,35 @@ class RoleManagementScreen extends StatefulWidget {
 
 class _RoleManagementScreenState extends State<RoleManagementScreen> {
   final RoleService _roleService = RoleService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<RoleModel> _roles = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
+
+  List<RoleModel> get _filteredRoles {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _roles;
+    return _roles
+        .where(
+          (r) =>
+              r.name.toLowerCase().contains(q) ||
+              r.code.toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchRoles();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchRoles() async {
@@ -243,6 +263,10 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                 title: 'Roles & Permissions',
                 accentColor: ModuleColors.roles,
                 subtitle: 'Manage access control across modules',
+                showSearch: true,
+                searchHint: 'Search roles...',
+                searchController: _searchController,
+                onSearchChanged: (v) => setState(() => _query = v),
               ),
             ),
             SliverPadding(
@@ -251,12 +275,12 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                   ? const SliverFillRemaining(child: NestLoader())
                   : _error != null
                       ? SliverFillRemaining(child: _buildError())
-                      : _roles.isEmpty
+                      : _filteredRoles.isEmpty
                           ? SliverFillRemaining(child: _buildEmpty())
                           : SliverList(
                               delegate: SliverChildBuilderDelegate(
-                                (ctx, i) => _buildRoleCard(_roles[i]),
-                                childCount: _roles.length,
+                                (ctx, i) => _buildRoleCard(_filteredRoles[i]),
+                                childCount: _filteredRoles.length,
                               ),
                             ),
             ),

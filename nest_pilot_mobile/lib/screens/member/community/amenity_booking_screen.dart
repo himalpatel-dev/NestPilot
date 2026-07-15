@@ -17,17 +17,39 @@ class AmenityBookingScreen extends StatefulWidget {
 
 class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
   List<Amenity> _amenities = [];
   List<Booking> _myBookings = [];
   bool _isLoading = true;
+  String _query = '';
 
   /// 0 = Facilities, 1 = My Bookings
   int _section = 0;
+
+  List<Amenity> get _filteredAmenities {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _amenities;
+    return _amenities.where((a) => a.name.toLowerCase().contains(q)).toList();
+  }
+
+  List<Booking> get _filteredBookings {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _myBookings;
+    return _myBookings
+        .where((b) => (b.amenity?.name ?? '').toLowerCase().contains(q))
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
@@ -99,6 +121,10 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
             description: 'Book facilities & view your bookings',
             icon: Icons.calendar_today_outlined,
             iconColor: ModuleColors.amenities,
+            showSearch: true,
+            searchHint: 'Search amenities...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -149,10 +175,11 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   }
 
   Widget _buildAmenitiesList() {
+    final amenities = _filteredAmenities;
     return ListView.builder(
-      itemCount: _amenities.length,
+      itemCount: amenities.length,
       itemBuilder: (context, index) {
-        final a = _amenities[index];
+        final a = amenities[index];
         return Card(
           margin: const EdgeInsets.all(8),
           child: Column(
@@ -185,10 +212,11 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   }
 
   Widget _buildBookingsList() {
+    final bookings = _filteredBookings;
     return ListView.builder(
-      itemCount: _myBookings.length,
+      itemCount: bookings.length,
       itemBuilder: (context, index) {
-        final b = _myBookings[index];
+        final b = bookings[index];
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: ListTile(

@@ -14,11 +14,15 @@ class NoticeDetailScreen extends StatelessWidget {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final date = DateFormat('dd MMM yyyy').format(notice.createdAt);
     final time = DateFormat('hh:mm a').format(notice.createdAt);
-    final hasAttachment = notice.attachmentUrl != null && notice.attachmentUrl!.isNotEmpty;
-    final authorName = (notice.createdBy != null && notice.createdBy!.isNotEmpty)
+    final hasAttachment =
+        notice.attachmentUrl != null && notice.attachmentUrl!.isNotEmpty;
+    final authorName =
+        (notice.createdBy != null && notice.createdBy!.isNotEmpty)
         ? notice.createdBy!
         : null;
-    final authorInitial = authorName != null ? authorName[0].toUpperCase() : 'N';
+    final authorInitial = authorName != null
+        ? authorName[0].toUpperCase()
+        : 'N';
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -39,7 +43,6 @@ class NoticeDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // ── Title + meta card ──────────────────────────────────
                   _card(
                     padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
@@ -80,7 +83,10 @@ class NoticeDetailScreen extends StatelessWidget {
                         if (authorName != null) ...[
                           const SizedBox(height: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 13,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF5F7FF),
                               borderRadius: BorderRadius.circular(14),
@@ -90,7 +96,8 @@ class NoticeDetailScreen extends StatelessWidget {
                               children: [
                                 CircleAvatar(
                                   radius: 20,
-                                  backgroundColor: AppColors.accentIndigo.withValues(alpha: 0.12),
+                                  backgroundColor: AppColors.accentIndigo
+                                      .withValues(alpha: 0.12),
                                   child: Text(
                                     authorInitial,
                                     style: const TextStyle(
@@ -106,12 +113,20 @@ class NoticeDetailScreen extends StatelessWidget {
                                   children: [
                                     const Text(
                                       'Posted by',
-                                      style: TextStyle(color: AppColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w500),
+                                      style: TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       authorName,
-                                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, fontWeight: FontWeight.w800),
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -171,31 +186,59 @@ class NoticeDetailScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () async {
                         final uri = Uri.tryParse(notice.attachmentUrl!);
-                        if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        if (uri != null)
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
                       },
                       child: _card(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                        borderColor: AppColors.accentBlue.withValues(alpha: 0.30),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                        borderColor: AppColors.accentBlue.withValues(
+                          alpha: 0.30,
+                        ),
                         child: Row(
                           children: [
                             Container(
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: AppColors.accentBlue.withValues(alpha: 0.10),
+                                color: AppColors.accentBlue.withValues(
+                                  alpha: 0.10,
+                                ),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(Icons.attach_file_rounded, color: AppColors.accentBlue, size: 24),
+                              child: const Icon(
+                                Icons.attach_file_rounded,
+                                color: AppColors.accentBlue,
+                                size: 24,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Attachment', style: TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
+                                  Text(
+                                    'Attachment',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                   SizedBox(height: 4),
-                                  Text('Tap to open or download', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                                  Text(
+                                    'Tap to open or download',
+                                    style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -203,11 +246,17 @@ class NoticeDetailScreen extends StatelessWidget {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: AppColors.accentBlue.withValues(alpha: 0.10),
+                                color: AppColors.accentBlue.withValues(
+                                  alpha: 0.10,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(Icons.download_rounded, color: AppColors.accentBlue, size: 20),
+                              child: const Icon(
+                                Icons.download_rounded,
+                                color: AppColors.accentBlue,
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
@@ -245,16 +294,34 @@ class NoticeDetailScreen extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: color.withValues(alpha: 0.75), fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                color: color.withValues(alpha: 0.75),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _card({required Widget child, EdgeInsets? padding, Color? borderColor}) {
+  Widget _card({
+    required Widget child,
+    EdgeInsets? padding,
+    Color? borderColor,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding,

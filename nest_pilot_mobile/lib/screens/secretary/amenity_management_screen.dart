@@ -18,18 +18,44 @@ class AmenityManagementScreen extends StatefulWidget {
 
 class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Amenity> _amenities = [];
   List<Booking> _bookings = [];
   bool _isLoading = true;
+  String _query = '';
 
   /// 0 = Facilities, 1 = Bookings
   int _section = 0;
+
+  List<Amenity> get _filteredAmenities {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _amenities;
+    return _amenities.where((a) => a.name.toLowerCase().contains(q)).toList();
+  }
+
+  List<Booking> get _filteredBookings {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _bookings;
+    return _bookings
+        .where(
+          (b) =>
+              (b.amenity?.name ?? '').toLowerCase().contains(q) ||
+              (b.userName ?? '').toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
@@ -120,6 +146,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
               description: 'Manage facilities & approve bookings',
               icon: Icons.calendar_today_outlined,
               iconColor: ModuleColors.amenities,
+              showSearch: true,
+              searchHint: 'Search amenities...',
+              searchController: _searchController,
+              onSearchChanged: (v) => setState(() => _query = v),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -164,7 +194,8 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   // ─── Facilities Tab ────────────────────────────────────────────────────────
 
   Widget _buildFacilitiesTab() {
-    if (_amenities.isEmpty) {
+    final amenities = _filteredAmenities;
+    if (amenities.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -188,10 +219,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
       );
     }
     return ListView.builder(
-      itemCount: _amenities.length,
+      itemCount: amenities.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemBuilder: (context, index) {
-        final amenity = _amenities[index];
+        final amenity = amenities[index];
         final isPaid = amenity.isPaid;
 
         return Container(
@@ -325,7 +356,8 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   // ─── Bookings Tab ──────────────────────────────────────────────────────────
 
   Widget _buildBookingsTab() {
-    if (_bookings.isEmpty) {
+    final bookings = _filteredBookings;
+    if (bookings.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -349,10 +381,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
       );
     }
     return ListView.builder(
-      itemCount: _bookings.length,
+      itemCount: bookings.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemBuilder: (context, index) {
-        final booking = _bookings[index];
+        final booking = bookings[index];
         final isPending = booking.status == 'PENDING';
 
         return Container(

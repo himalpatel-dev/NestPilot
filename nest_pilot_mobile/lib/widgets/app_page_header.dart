@@ -30,6 +30,13 @@ class AppPageHeader extends StatelessWidget {
   final Widget? bottom;
   final Color accentColor;
 
+  /// Set false to hide the search field on this page while keeping the rest
+  /// of the header unchanged.
+  final bool showSearch;
+  final String searchHint;
+  final TextEditingController? searchController;
+  final ValueChanged<String>? onSearchChanged;
+
   const AppPageHeader({
     super.key,
     this.icon,
@@ -41,6 +48,10 @@ class AppPageHeader extends StatelessWidget {
     this.trailing,
     this.bottom,
     this.accentColor = AppColors.primary,
+    this.showSearch = false,
+    this.searchHint = 'Search...',
+    this.searchController,
+    this.onSearchChanged,
   }) : assert(
          icon != null || iconWidget != null,
          'Provide either icon or iconWidget',
@@ -75,6 +86,10 @@ class AppPageHeader extends StatelessWidget {
       onBack: onBack,
       trailing: trailing,
       bottom: bottom,
+      showSearch: showSearch,
+      searchHint: searchHint,
+      searchController: searchController,
+      onSearchChanged: onSearchChanged,
     );
   }
 }

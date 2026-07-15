@@ -16,14 +16,35 @@ class PendingMembersScreen extends StatefulWidget {
 
 class _PendingMembersScreenState extends State<PendingMembersScreen> {
   final AdminService _adminService = AdminService();
+  final TextEditingController _searchController = TextEditingController();
   List<UserModel> _pendingUsers = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
+
+  List<UserModel> get _filteredUsers {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _pendingUsers;
+    return _pendingUsers
+        .where(
+          (u) =>
+              u.fullName.toLowerCase().contains(q) ||
+              u.mobile.toLowerCase().contains(q) ||
+              (u.flatNumber ?? '').toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchPendingUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchPendingUsers() async {
@@ -80,6 +101,10 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
             stats: [
               ModuleHeaderStat('${_pendingUsers.length}', 'PENDING'),
             ],
+            showSearch: true,
+            searchHint: 'Search pending members...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
@@ -89,7 +114,7 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
                     message: _error!,
                     onRetry: _fetchPendingUsers,
                   )
-                : _pendingUsers.isEmpty
+                : _filteredUsers.isEmpty
                 ? const EmptyWidget(
                     message: 'No pending approvals',
                     icon: Icons.group_outlined,
@@ -98,9 +123,9 @@ class _PendingMembersScreenState extends State<PendingMembersScreen> {
                     onRefresh: _fetchPendingUsers,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _pendingUsers.length,
+                      itemCount: _filteredUsers.length,
                       itemBuilder: (context, index) {
-                        final user = _pendingUsers[index];
+                        final user = _filteredUsers[index];
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(

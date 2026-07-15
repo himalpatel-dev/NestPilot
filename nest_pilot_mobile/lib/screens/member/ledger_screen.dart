@@ -17,14 +17,34 @@ class LedgerScreen extends StatefulWidget {
 class _LedgerScreenState extends State<LedgerScreen> {
   final PaymentService _paymentService = PaymentService();
   final FileService _fileService = FileService();
+  final TextEditingController _searchController = TextEditingController();
   List<Payment> _payments = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
+
+  List<Payment> get _filteredPayments {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _payments;
+    return _payments
+        .where(
+          (p) =>
+              p.paymentMode.toLowerCase().contains(q) ||
+              p.amount.toString().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchPayments();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchPayments() async {
@@ -73,6 +93,10 @@ class _LedgerScreenState extends State<LedgerScreen> {
             icon: Icons.account_balance_outlined,
             iconColor: ModuleColors.bills,
             stats: [ModuleHeaderStat('${_payments.length}', 'TOTAL')],
+            showSearch: true,
+            searchHint: 'Search payments...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
@@ -90,13 +114,13 @@ class _LedgerScreenState extends State<LedgerScreen> {
                   ),
                 ),
                 Expanded(
-                  child: _payments.isEmpty
+                  child: _filteredPayments.isEmpty
                       ? const EmptyWidget(message: 'No payments recorded yet')
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _payments.length,
+                          itemCount: _filteredPayments.length,
                           itemBuilder: (context, index) {
-                            final payment = _payments[index];
+                            final payment = _filteredPayments[index];
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(

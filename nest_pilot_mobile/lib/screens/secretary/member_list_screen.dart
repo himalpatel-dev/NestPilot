@@ -188,14 +188,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
                       'OCCUPIED',
                     ),
                   ],
+                  showSearch: true,
+                  searchHint: 'Search by name, flat or mobile',
+                  searchController: _searchCtrl,
+                  onSearchChanged: (v) => setState(() => _query = v.trim()),
                 ),
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    _buildSearchBar(),
-                    const SizedBox(height: 16),
                     _buildListHeader(),
                     const SizedBox(height: 12),
                     _buildList(),
@@ -267,85 +269,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
     } catch (_) {
       return null;
     }
-  }
-
-
-  // ─── Search bar ────────────────────────────────────────────────────────────
-
-  Widget _buildSearchBar() {
-    final hasQuery = _query.isNotEmpty;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: hasQuery ? AppColors.primary : AppColors.border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          Icon(
-            Icons.search_rounded,
-            color: hasQuery ? AppColors.primary : AppColors.textHint,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (v) => setState(() => _query = v.trim()),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.25,
-              ),
-              cursorColor: AppColors.primary,
-              cursorHeight: 18,
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: AppColors.transparent,
-                hintText: 'Search by name, flat or mobile',
-                hintStyle: TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w400,
-                  height: 1.25,
-                ),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-              ),
-            ),
-          ),
-          if (hasQuery)
-            GestureDetector(
-              onTap: () {
-                _searchCtrl.clear();
-                setState(() => _query = '');
-              },
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.close_rounded, color: AppColors.textHint, size: 18),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 
 

@@ -18,14 +18,28 @@ class BillsManageScreen extends StatefulWidget {
 
 class _BillsManageScreenState extends State<BillsManageScreen> {
   final BillService _billService = BillService();
+  final TextEditingController _searchController = TextEditingController();
   List<Bill> _bills = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
+
+  List<Bill> get _filteredBills {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _bills;
+    return _bills.where((b) => b.title.toLowerCase().contains(q)).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchBills();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchBills() async {
@@ -84,13 +98,17 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
               ModuleHeaderStat('$published', 'PUBLISHED'),
               ModuleHeaderStat('${_bills.length}', 'TOTAL'),
             ],
+            showSearch: true,
+            searchHint: 'Search bills...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
                 ? const LoadingWidget()
                 : _error != null
                 ? ErrorWidgetView(message: _error!, onRetry: _fetchBills)
-                : _bills.isEmpty
+                : _filteredBills.isEmpty
                 ? const EmptyWidget(
                     message: 'No bills created yet',
                     icon: Icons.receipt_long_outlined,
@@ -99,9 +117,9 @@ class _BillsManageScreenState extends State<BillsManageScreen> {
                     onRefresh: _fetchBills,
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _bills.length,
+                      itemCount: _filteredBills.length,
                       itemBuilder: (context, index) {
-                        final bill = _bills[index];
+                        final bill = _filteredBills[index];
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(

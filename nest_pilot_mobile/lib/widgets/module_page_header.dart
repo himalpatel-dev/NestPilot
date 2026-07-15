@@ -50,6 +50,19 @@ class ModulePageHeader extends StatelessWidget {
   /// Optional widget rendered below the header (e.g. section chips).
   final Widget? bottom;
 
+  /// Set false to hide the search field on this page while keeping the rest
+  /// of the header unchanged.
+  final bool showSearch;
+
+  /// Placeholder text for the built-in search field.
+  final String searchHint;
+
+  /// Controller for the built-in search field, so callers can read/clear it.
+  final TextEditingController? searchController;
+
+  /// Called on every keystroke in the built-in search field.
+  final ValueChanged<String>? onSearchChanged;
+
   const ModulePageHeader({
     super.key,
     required this.title,
@@ -62,6 +75,10 @@ class ModulePageHeader extends StatelessWidget {
     this.onBack,
     this.trailing,
     this.bottom,
+    this.showSearch = true,
+    this.searchHint = 'Search...',
+    this.searchController,
+    this.onSearchChanged,
   }) : assert(
          icon != null || iconWidget != null,
          'Provide either icon or iconWidget',
@@ -192,7 +209,75 @@ class ModulePageHeader extends StatelessWidget {
                 ),
               ),
             ),
+          if (showSearch) ...[
+            SizedBox(height: stats.isNotEmpty ? 2 : 14),
+            _searchField(),
+          ],
           if (bottom != null) ...[const SizedBox(height: 14), bottom!],
+        ],
+      ),
+    );
+  }
+
+  Widget _searchField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.search_rounded,
+            color: AppColors.textHint,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              decoration: InputDecoration(
+                hintText: searchHint,
+                hintStyle: const TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 13.5,
+                ),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13.5,
+              ),
+            ),
+          ),
+          if (searchController != null)
+            ListenableBuilder(
+              listenable: searchController!,
+              builder: (context, _) {
+                if (searchController!.text.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return GestureDetector(
+                  onTap: () {
+                    searchController!.clear();
+                    onSearchChanged?.call('');
+                  },
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textHint,
+                    size: 18,
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

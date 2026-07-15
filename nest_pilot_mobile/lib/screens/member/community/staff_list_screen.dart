@@ -19,13 +19,33 @@ class StaffListScreen extends StatefulWidget {
 
 class _StaffListScreenState extends State<StaffListScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
   List<ServiceStaff> _staff = [];
   bool _isLoading = true;
+  String _query = '';
+
+  List<ServiceStaff> get _filteredStaff {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _staff;
+    return _staff
+        .where(
+          (s) =>
+              s.name.toLowerCase().contains(q) ||
+              s.role.toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchStaff();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchStaff() async {
@@ -69,16 +89,20 @@ class _StaffListScreenState extends State<StaffListScreen> {
             icon: Icons.cleaning_services_outlined,
             iconColor: ModuleColors.staff,
             stats: [ModuleHeaderStat('${_staff.length}', 'TOTAL')],
+            showSearch: true,
+            searchHint: 'Search daily help...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: NestLoader())
-                : _staff.isEmpty
+                : _filteredStaff.isEmpty
                 ? const Center(child: Text('No daily help added yet'))
                 : ListView.builder(
-                    itemCount: _staff.length,
+                    itemCount: _filteredStaff.length,
                     itemBuilder: (context, index) {
-                      final s = _staff[index];
+                      final s = _filteredStaff[index];
                       return Card(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,

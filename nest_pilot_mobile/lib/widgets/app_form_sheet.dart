@@ -32,7 +32,7 @@ Future<T?> showAppFormSheet<T>({
 }
 
 /// The shell every create/edit bottom sheet sits inside — drag handle, an
-/// accent icon chip with title/subtitle, a red close button, and a scrolling
+/// accent icon chip with title, a red close button, and a scrolling
 /// body that lifts clear of the keyboard.
 ///
 /// Extracted verbatim from the Events "New Event" sheet so every module's add
@@ -43,7 +43,6 @@ class AppFormSheet extends StatelessWidget {
   final Color accentColor;
   final IconData icon;
   final String title;
-  final String subtitle;
   final Widget child;
 
   const AppFormSheet({
@@ -51,7 +50,6 @@ class AppFormSheet extends StatelessWidget {
     required this.accentColor,
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.child,
   });
 
@@ -99,27 +97,14 @@ class AppFormSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
                 GestureDetector(

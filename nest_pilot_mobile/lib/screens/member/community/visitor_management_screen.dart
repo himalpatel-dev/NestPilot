@@ -20,8 +20,10 @@ class VisitorManagementScreen extends StatefulWidget {
 
 class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
   List<VisitorLog> _logs = [];
   bool _isLoading = true;
+  String _query = '';
 
   // Form Controllers
   final _formKey = GlobalKey<FormState>();
@@ -29,6 +31,18 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
   final _mobileController = TextEditingController();
   final _purposeController = TextEditingController();
   String _selectedType = 'GUEST';
+
+  List<VisitorLog> get _filteredLogs {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _logs;
+    return _logs
+        .where(
+          (l) =>
+              (l.visitor?.name ?? '').toLowerCase().contains(q) ||
+              (l.visitor?.type ?? '').toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
@@ -40,6 +54,7 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
   @override
   void dispose() {
     SocketService().off('visitor_update');
+    _searchController.dispose();
     _nameController.dispose();
     _mobileController.dispose();
     _purposeController.dispose();
@@ -190,6 +205,10 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
               ModuleHeaderStat('$waiting', 'WAITING'),
               ModuleHeaderStat('${_logs.length}', 'TOTAL'),
             ],
+            showSearch: true,
+            searchHint: 'Search visitors...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(child: _buildHistoryList(canManage: canManage)),
         ],
@@ -207,13 +226,14 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
 
   Widget _buildHistoryList({required bool canManage}) {
     if (_isLoading) return const Center(child: NestLoader());
-    if (_logs.isEmpty)
+    final logs = _filteredLogs;
+    if (logs.isEmpty)
       return const Center(child: Text('No visitor history found'));
 
     return ListView.builder(
-      itemCount: _logs.length,
+      itemCount: logs.length,
       itemBuilder: (context, index) {
-        final log = _logs[index];
+        final log = logs[index];
         final isWaiting = log.status == 'WAITING_APPROVAL';
 
         return Card(

@@ -21,14 +21,34 @@ class EventManageScreen extends StatefulWidget {
 
 class _EventManageScreenState extends State<EventManageScreen> {
   final EventService _service = EventService();
+  final TextEditingController _searchController = TextEditingController();
   List<EventModel> _events = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
+
+  List<EventModel> get _filteredEvents {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _events;
+    return _events
+        .where(
+          (e) =>
+              e.title.toLowerCase().contains(q) ||
+              e.location.toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -200,15 +220,15 @@ class _EventManageScreenState extends State<EventManageScreen> {
               const SliverFillRemaining(child: NestLoader())
             else if (_error != null)
               SliverFillRemaining(child: _buildError())
-            else if (_events.isEmpty)
+            else if (_filteredEvents.isEmpty)
               SliverFillRemaining(child: _buildEmpty(canCreate: canManage))
             else
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _buildCard(_events[i], canManage),
-                    childCount: _events.length,
+                    (ctx, i) => _buildCard(_filteredEvents[i], canManage),
+                    childCount: _filteredEvents.length,
                   ),
                 ),
               ),
@@ -248,6 +268,10 @@ class _EventManageScreenState extends State<EventManageScreen> {
         ModuleHeaderStat('$thisMonth', 'THIS MONTH'),
         ModuleHeaderStat('${_events.length}', 'TOTAL'),
       ],
+      showSearch: true,
+      searchHint: 'Search events...',
+      searchController: _searchController,
+      onSearchChanged: (v) => setState(() => _query = v),
     );
   }
 
@@ -652,7 +676,6 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
       accentColor: ModuleColors.events,
       icon: Icons.event_rounded,
       title: 'New Event',
-      subtitle: 'Schedule a community event',
       child: Form(
         key: _formKey,
         child: Column(

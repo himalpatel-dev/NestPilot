@@ -19,13 +19,33 @@ class DocumentListScreen extends StatefulWidget {
 
 class _DocumentListScreenState extends State<DocumentListScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
   List<Document> _documents = [];
   bool _isLoading = true;
+  String _query = '';
+
+  List<Document> get _filteredDocuments {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _documents;
+    return _documents
+        .where(
+          (d) =>
+              d.title.toLowerCase().contains(q) ||
+              d.category.toLowerCase().contains(q),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchDocuments();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDocuments() async {
@@ -143,17 +163,21 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
             icon: Icons.folder_open_outlined,
             iconColor: ModuleColors.documents,
             stats: [ModuleHeaderStat('${_documents.length}', 'TOTAL')],
+            showSearch: true,
+            searchHint: 'Search documents...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: NestLoader())
-                : _documents.isEmpty
+                : _filteredDocuments.isEmpty
                 ? const Center(child: Text('No documents found'))
                 : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _documents.length,
+              itemCount: _filteredDocuments.length,
               itemBuilder: (context, index) {
-                final doc = _documents[index];
+                final doc = _filteredDocuments[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 2,

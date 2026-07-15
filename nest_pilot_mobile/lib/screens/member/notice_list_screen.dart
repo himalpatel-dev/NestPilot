@@ -191,6 +191,10 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
         ModuleHeaderStat('$thisWeek', 'THIS WEEK'),
         ModuleHeaderStat('$withFiles', 'WITH FILES'),
       ],
+      showSearch: true,
+      searchHint: 'Search notices...',
+      searchController: _searchController,
+      onSearchChanged: (v) => setState(() => _query = v),
     );
   }
 
@@ -198,64 +202,10 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
 
   Widget _buildSearchAndFilters() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textHint,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() => _query = v),
-                    decoration: const InputDecoration(
-                      hintText: 'Search notices...',
-                      hintStyle: TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 13.5,
-                      ),
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                ),
-                if (_query.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() => _query = '');
-                    },
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textHint,
-                      size: 18,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -662,7 +612,6 @@ class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
       accentColor: ModuleColors.notices,
       icon: Icons.campaign_rounded,
       title: 'New Notice',
-      subtitle: 'Publish an announcement to your society',
       child: Form(
         key: _formKey,
         child: Column(

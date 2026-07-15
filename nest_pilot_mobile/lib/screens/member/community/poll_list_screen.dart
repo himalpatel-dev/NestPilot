@@ -17,14 +17,28 @@ class PollListScreen extends StatefulWidget {
 
 class _PollListScreenState extends State<PollListScreen> {
   final CommunityService _service = CommunityService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Poll> _polls = [];
   bool _isLoading = true;
+  String _query = '';
+
+  List<Poll> get _filteredPolls {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _polls;
+    return _polls.where((p) => p.question.toLowerCase().contains(q)).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchPolls();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchPolls() async {
@@ -289,16 +303,20 @@ class _PollListScreenState extends State<PollListScreen> {
             icon: Icons.how_to_vote_outlined,
             iconColor: ModuleColors.polls,
             stats: [ModuleHeaderStat('${_polls.length}', 'ACTIVE')],
+            showSearch: true,
+            searchHint: 'Search polls...',
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: NestLoader())
-                : _polls.isEmpty
+                : _filteredPolls.isEmpty
                 ? const Center(child: Text('No active polls'))
                 : ListView.builder(
-              itemCount: _polls.length,
+              itemCount: _filteredPolls.length,
               itemBuilder: (context, index) {
-                final poll = _polls[index];
+                final poll = _filteredPolls[index];
                 final hasVoted = poll.votes != null && poll.votes!.isNotEmpty;
 
                 return Card(
