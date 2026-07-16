@@ -35,6 +35,32 @@ const getAllAmenities = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// Soft delete — existing bookings are left intact.
+const deleteAmenity = async (req, res, next) => {
+    try {
+        const amenity = await db.Amenity.findOne({
+            where: { id: req.params.id, society_id: req.user.society_id, is_active: true }
+        });
+        if (!amenity) throw new ApiError(404, 'Amenity not found');
+
+        amenity.is_active = false;
+        await amenity.save();
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'DELETED',
+                'AMENITY',
+                String(amenity.id),
+                { ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, null, 'Amenity deleted'));
+    } catch (e) { next(e); }
+};
+
 // --- Booking Management (Resident) ---
 
 const createBooking = async (req, res, next) => {
@@ -141,6 +167,7 @@ const updateBookingStatus = async (req, res, next) => {
 module.exports = {
     createAmenity,
     getAllAmenities,
+    deleteAmenity,
     createBooking,
     getMyBookings,
     getAllBookings,

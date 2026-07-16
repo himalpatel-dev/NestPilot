@@ -1,5 +1,6 @@
 const db = require('../models');
 const { Op } = require('sequelize');
+const ApiError = require('../utils/ApiError');
 
 
 const createNoticeSingle = async (data, files, externalTransaction) => {
@@ -153,7 +154,40 @@ const getNotices = async (societyId, userScope) => {
     });
 };
 
+/**
+ * A scoped caller may only act on notices belonging to one of their assigned
+ * buildings. Society-wide notices (building_id null) are visible to everyone
+ * but only an unscoped caller may delete one — this mirrors createNotice,
+ * which never lets a scoped caller post society-wide in the first place.
+ */
+const assertNoticeInScope = (notice, userScope) => {
+    if (!userScope || userScope.unscoped) return;
+
+    if (notice.building_id === null) {
+        throw new ApiError(403, 'Only an administrator can delete a society-wide notice');
+    }
+    if (!userScope.building_ids.includes(Number(notice.building_id))) {
+        throw new ApiError(403, 'Notice outside your assigned buildings');
+    }
+};
+
+// ── Soft-delete (deactivate) notice ───────────────────────────────────────────
+// getNotices filters on is_active, so flipping the flag is what removes it from
+// every list — the row and its attachments are kept for audit.
+const deleteNotice = async (noticeId, societyId, userScope) => {
+    const notice = await db.Notice.findOne({
+        where: { id: noticeId, society_id: societyId, is_active: true }
+    });
+    if (!notice) throw new ApiError(404, 'Notice not found');
+
+    assertNoticeInScope(notice, userScope);
+
+    await notice.update({ is_active: false });
+    return { message: 'Notice deleted' };
+};
+
 module.exports = {
     createNotice,
-    getNotices
+    getNotices,
+    deleteNotice
 };

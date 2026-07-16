@@ -121,41 +121,49 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      body: RefreshIndicator(
-        onRefresh: _fetch,
-        color: AppColors.white,
-        backgroundColor: AppColors.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            if (_isLoading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: NestLoader(),
-              )
-            else if (_error != null)
-              SliverFillRemaining(hasScrollBody: false, child: _buildError())
-            else ...[
-              SliverToBoxAdapter(child: _buildSearchAndFilters()),
-              if (_filtered.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyState(),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _buildCard(_filtered[i]),
-                      childCount: _filtered.length,
+      // Header and filter chips stay pinned; only the notice cards scroll.
+      body: Column(
+        children: [
+          _buildHeader(),
+          if (!_isLoading && _error == null) _buildSearchAndFilters(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetch,
+              color: AppColors.white,
+              backgroundColor: AppColors.primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (_isLoading)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: NestLoader(),
+                    )
+                  else if (_error != null)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildError(),
+                    )
+                  else if (_filtered.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyState(),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (ctx, i) => _buildCard(_filtered[i]),
+                          childCount: _filtered.length,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       // Publishing a notice is a manage-only action — the list itself is
       // shared with view-only roles.
@@ -259,10 +267,15 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     final isNew = _isNew(notice);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => NoticeDetailScreen(notice: notice)),
-      ),
+      onTap: () async {
+        // Detail pops `true` when it deleted the notice — refetch so the row
+        // it just removed doesn't linger in the list.
+        final deleted = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(builder: (_) => NoticeDetailScreen(notice: notice)),
+        );
+        if (deleted == true) _fetch();
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),

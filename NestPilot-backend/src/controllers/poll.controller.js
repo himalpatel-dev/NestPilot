@@ -229,9 +229,40 @@ const getPollResults = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const deletePoll = async (req, res, next) => {
+    try {
+        const poll = await db.Poll.findByPk(req.params.id);
+        if (!poll || !poll.is_active || poll.society_id !== req.user.society_id) {
+            throw new ApiError(404, 'Poll not found');
+        }
+
+        const visibleIds = await visiblePollIds(poll.society_id, req.userScope);
+        if (visibleIds !== null && !visibleIds.includes(poll.id)) {
+            throw new ApiError(403, 'Poll outside your assigned buildings');
+        }
+
+        poll.is_active = false;
+        await poll.save();
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'DELETED',
+                'POLL',
+                String(poll.id),
+                { ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, null, 'Poll deleted'));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     createPoll,
     getActivePolls,
     votePoll,
-    getPollResults
+    getPollResults,
+    deletePoll
 };

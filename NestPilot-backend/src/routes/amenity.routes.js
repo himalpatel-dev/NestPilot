@@ -9,6 +9,7 @@ router.use(auth);
 // Amenities
 router.get('/', hasPermission('AMENITIES', 'view'), controller.getAllAmenities);
 router.post('/', hasPermission('AMENITIES', 'manage'), controller.createAmenity);
+router.delete('/:id', hasPermission('AMENITIES', 'manage'), controller.deleteAmenity);
 
 // Bookings — creating a booking is `create` on the AMENITIES module
 router.post('/book', hasPermission('AMENITIES', 'manage'), controller.createBooking);

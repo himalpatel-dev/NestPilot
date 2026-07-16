@@ -83,10 +83,24 @@ const updateStaff = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// Soft delete — attendance rows are kept for history.
+const deleteStaff = async (req, res, next) => {
+    try {
+        const staff = await db.ServiceStaff.findOne({
+            where: { id: req.params.id, society_id: req.user.society_id, is_active: true }
+        });
+        if (!staff) throw new ApiError(404, 'Staff not found');
+        staff.is_active = false;
+        await staff.save();
+        res.status(200).json(new ApiResponse(200, null, 'Staff removed'));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     addStaff,
     getAllStaff,
     updateStaff,
+    deleteStaff,
     logAttendance,
     getStaffAttendance
 };

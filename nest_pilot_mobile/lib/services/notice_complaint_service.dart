@@ -34,6 +34,11 @@ class NoticeService {
     );
     return response['success'] ?? false;
   }
+
+  Future<bool> deleteNotice(String id) async {
+    final response = await _apiService.delete(ApiEndpoints.noticeDetail(id));
+    return response['success'] ?? false;
+  }
 }
 
 class ComplaintService {

@@ -33,7 +33,27 @@ const getAll = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const remove = async (req, res, next) => {
+    try {
+        const result = await api.deleteNotice(req.params.id, req.user.society_id, req.userScope);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'DELETED',
+                'NOTICE',
+                String(req.params.id),
+                { ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     create,
-    getAll
+    getAll,
+    remove
 };

@@ -147,6 +147,36 @@ const getHouseOccupancyStats = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const deleteSociety = async (req, res, next) => {
+    try {
+        const data = await societyService.deleteSociety(req.params.id);
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Society not found'));
+        }
+        res.status(200).json(new ApiResponse(200, null, 'Society deleted'));
+    } catch (e) { next(e); }
+};
+
+const deleteBuilding = async (req, res, next) => {
+    try {
+        const data = await societyService.deleteBuilding(req.params.id);
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Building not found'));
+        }
+        res.status(200).json(new ApiResponse(200, null, 'Building deleted'));
+    } catch (e) { next(e); }
+};
+
+const deleteFlatForBuilding = async (req, res, next) => {
+    try {
+        const data = await societyService.deleteHouse(req.params.flatId);
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Flat not found'));
+        }
+        res.status(200).json(new ApiResponse(200, null, 'Flat deleted'));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getSociety,
     createSociety,
@@ -161,6 +191,9 @@ module.exports = {
     createFlatForBuilding,
     updateFlatForBuilding,
     getFlatsBySociety,
-    getHouseOccupancyStats
+    getHouseOccupancyStats,
+    deleteSociety,
+    deleteBuilding,
+    deleteFlatForBuilding
 };
 

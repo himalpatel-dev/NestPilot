@@ -13,5 +13,6 @@ router.post('/', hasPermission('STAFF', 'manage'), controller.addStaff);
 router.patch('/:id', hasPermission('STAFF', 'manage'), controller.updateStaff);
 router.post('/attendance', hasPermission('STAFF', 'manage'), controller.logAttendance);
 router.get('/:staff_id/attendance', hasPermission('STAFF', 'view'), controller.getStaffAttendance);
+router.delete('/:id', hasPermission('STAFF', 'manage'), controller.deleteStaff);
 
 module.exports = router;

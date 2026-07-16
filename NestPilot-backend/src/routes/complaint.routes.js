@@ -11,5 +11,6 @@ router.post('/', hasPermission('COMPLAINTS', 'manage'), upload.single('image'), 
 router.get('/', hasPermission('COMPLAINTS', 'view'), controller.getAll);
 router.patch('/:id/status', hasPermission('COMPLAINTS', 'manage'), controller.updateStatus);
 router.post('/:id/comments', hasPermission('COMPLAINTS', 'view'), controller.addComment);
+router.delete('/:id', hasPermission('COMPLAINTS', 'manage'), controller.remove);
 
 module.exports = router;

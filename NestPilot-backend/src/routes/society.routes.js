@@ -15,6 +15,7 @@ router.get('/houses', auth, hasPermission('BUILDINGS', 'view'), societyControlle
 router.get('/house-stats', auth, hasPermission('BUILDINGS', 'view'), societyController.getHouseOccupancyStats);
 
 router.put('/:id', auth, hasPermission('BUILDINGS', 'manage'), societyController.updateSociety);
+router.delete('/:id', auth, hasPermission('BUILDINGS', 'manage'), societyController.deleteSociety);
 
 // Nested society routes — discovery endpoints used during registration. Stay open.
 router.get('/:id/buildings', societyController.getBuildingsBySociety);

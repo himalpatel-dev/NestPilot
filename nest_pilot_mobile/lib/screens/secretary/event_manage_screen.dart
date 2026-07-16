@@ -531,30 +531,6 @@ class _EventManageScreenState extends State<EventManageScreen> {
             'Pull down to refresh',
             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
-          if (canCreate) ...[
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: _openCreateSheet,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  '+ Create Event',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

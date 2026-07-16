@@ -8,6 +8,8 @@ const { hasPermission } = require('../middlewares/permission.middleware');
 router.get('/:id/flats', societyController.getFlatsByBuilding);
 router.post('/:id/flats', auth, hasPermission('BUILDINGS', 'manage'), societyController.createFlatForBuilding);
 router.put('/:id/flats/:flatId', auth, hasPermission('BUILDINGS', 'manage'), societyController.updateFlatForBuilding);
+router.delete('/:id/flats/:flatId', auth, hasPermission('BUILDINGS', 'manage'), societyController.deleteFlatForBuilding);
 router.put('/:id', auth, hasPermission('BUILDINGS', 'manage'), societyController.updateBuilding);
+router.delete('/:id', auth, hasPermission('BUILDINGS', 'manage'), societyController.deleteBuilding);
 
 module.exports = router;

@@ -73,6 +73,43 @@ const getFlatsBySocietyId = async (societyId) => {
     });
 };
 
+// Soft delete via status — a society has no is_active flag, and hard-deleting
+// one would cascade across its entire tenant (buildings, flats, users, notices,
+// bills). Setting status keeps it reversible. Note: the list endpoints do not
+// yet filter on status, so an inactive society still appears until that's added.
+const deleteSociety = async (id) => {
+    const society = await db.Society.findByPk(id);
+    if (!society) return null;
+    return society.update({ status: 'inactive' });
+};
+
+// Hard delete, guarded. Buildings have no is_active flag and no ON DELETE
+// cascade, so removing one that still has flats would either orphan rows or be
+// rejected by the FK. Require the flats to be gone first.
+const deleteBuilding = async (id) => {
+    const building = await db.Building.findByPk(id);
+    if (!building) return null;
+
+    const activeHouses = await db.House.count({
+        where: { building_id: id, is_active: true }
+    });
+    if (activeHouses > 0) {
+        const err = new Error('Remove the flats in this building before deleting it');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    await building.destroy();
+    return { message: 'Building deleted' };
+};
+
+// Soft delete — houses carry an is_active flag.
+const deleteHouse = async (id) => {
+    const house = await db.House.findByPk(id);
+    if (!house) return null;
+    return house.update({ is_active: false });
+};
+
 const getHouseOccupancyStats = async (societyId) => {
     const [totalHouses, occupiedHouses, ownerCount, tenantCount] = await Promise.all([
         db.House.count({
@@ -128,6 +165,9 @@ module.exports = {
     getBuildingsBySocietyId,
     getFlatsByBuildingId,
     getFlatsBySocietyId,
-    getHouseOccupancyStats
+    getHouseOccupancyStats,
+    deleteSociety,
+    deleteBuilding,
+    deleteHouse
 };
 

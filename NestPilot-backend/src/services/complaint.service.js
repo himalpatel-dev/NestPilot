@@ -259,9 +259,40 @@ const addComment = async (complaintId, userId, message) => {
     return fullComment;
 };
 
+// Hard delete — the complaint table has no is_active flag. Comments are removed
+// first because no ON DELETE CASCADE is configured, so the FK would otherwise
+// block the delete. Scope check mirrors updateStatus (house → building).
+const deleteComplaint = async (id, societyId, userScope) => {
+    const complaint = await db.Complaint.findOne({
+        where: { id, society_id: societyId },
+        include: [{ model: db.House, attributes: ['building_id'] }]
+    });
+    if (!complaint) throw new Error('Complaint not found');
+
+    if (userScope && !userScope.unscoped && complaint.House) {
+        if (!userScope.building_ids.includes(complaint.House.building_id)) {
+            const err = new Error('Complaint is outside your assigned buildings');
+            err.statusCode = 403;
+            throw err;
+        }
+    }
+
+    const t = await db.sequelize.transaction();
+    try {
+        await db.ComplaintComment.destroy({ where: { complaint_id: id }, transaction: t });
+        await complaint.destroy({ transaction: t });
+        await t.commit();
+        return { message: 'Complaint deleted' };
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+};
+
 module.exports = {
     createComplaint,
     getComplaints,
     updateStatus,
-    addComment
+    addComment,
+    deleteComplaint
 };
