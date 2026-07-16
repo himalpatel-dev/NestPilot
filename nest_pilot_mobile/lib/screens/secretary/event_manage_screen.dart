@@ -84,123 +84,6 @@ class _EventManageScreenState extends State<EventManageScreen> {
     );
   }
 
-  Future<void> _deleteEvent(EventModel event) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                color: AppColors.accentRed,
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.cancel_outlined,
-                      color: AppColors.white,
-                      size: 22,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Cancel Event',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Text(
-                  'Cancel "${event.title}"? This cannot be undone.',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: AppColors.border),
-                          ),
-                        ),
-                        child: const Text(
-                          'Keep',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentRed,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Cancel Event',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (confirm != true) return;
-    try {
-      await _service.deleteEvent(event.id.toString());
-      _load();
-    } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final canManage = PermissionService().canManage(ModuleCodes.events);
@@ -227,7 +110,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
                 padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _buildCard(_filteredEvents[i], canManage),
+                    (ctx, i) => _buildCard(_filteredEvents[i]),
                     childCount: _filteredEvents.length,
                   ),
                 ),
@@ -250,8 +133,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
   Widget _buildHeader() {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final upcoming = _events.where((e) => !e.eventDate.isBefore(today)).length;
+    final upcoming = _events.where((e) => e.isUpcoming(now)).length;
     final thisMonth = _events
         .where(
           (e) => e.eventDate.year == now.year && e.eventDate.month == now.month,
@@ -275,7 +157,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
     );
   }
 
-  Widget _buildCard(EventModel event, bool canDelete) {
+  Widget _buildCard(EventModel event) {
     final date = DateFormat('EEE, dd MMM yyyy').format(event.eventDate);
     final timeStr = event.endTime != null
         ? '${event.startTime} – ${event.endTime}'
@@ -283,10 +165,15 @@ class _EventManageScreenState extends State<EventManageScreen> {
     final typeColor = _typeColor(event.eventType);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
-      ),
+      onTap: () async {
+        // Detail pops `true` when it deleted the event — reload so the row it
+        // just removed doesn't linger in the list.
+        final deleted = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+        );
+        if (deleted == true) _load();
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -426,17 +313,6 @@ class _EventManageScreenState extends State<EventManageScreen> {
                     color: AppColors.textHint,
                     size: 20,
                   ),
-                  if (canDelete) ...[
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: () => _deleteEvent(event),
-                      child: const Icon(
-                        Icons.cancel_outlined,
-                        color: AppColors.accentRed,
-                        size: 18,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ],

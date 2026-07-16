@@ -67,6 +67,43 @@ class EventModel {
   bool get isFull =>
       maxAttendees != null && attendeeCount >= maxAttendees!;
 
+  // start_time / end_time are free-form strings on the backend. The app writes
+  // 'HH:mm', so tolerate a stray 'HH:mm:ss' and give up on anything else.
+  DateTime? _momentOf(String? time) {
+    if (time == null) return null;
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return DateTime(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day,
+      hour,
+      minute,
+    );
+  }
+
+  DateTime? get startsAt => _momentOf(startTime);
+
+  DateTime? get endsAt => _momentOf(endTime);
+
+  /// True until the event is over — past [endTime] when one was set, otherwise
+  /// past [startTime]. An event whose time won't parse counts as upcoming for
+  /// the rest of its day rather than vanishing from the count.
+  bool isUpcoming([DateTime? asOf]) {
+    final now = asOf ?? DateTime.now();
+    final until = endsAt ?? startsAt;
+    if (until != null) return until.isAfter(now);
+    final endOfDay = DateTime(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day + 1,
+    );
+    return endOfDay.isAfter(now);
+  }
+
   bool isRegistered(int userId) =>
       attendees.any((a) => a.userId == userId && a.status == 'REGISTERED');
 }

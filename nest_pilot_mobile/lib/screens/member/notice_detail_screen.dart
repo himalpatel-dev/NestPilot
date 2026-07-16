@@ -172,24 +172,26 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
       backgroundColor: AppColors.cardBackground,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: AppPageHeader(
-                  icon: Icons.campaign_outlined,
-                  title: 'Notice',
-                  accentColor: ModuleColors.notices,
-                  subtitle: 'Posted $date',
-                ),
+          Column(
+            children: [
+              AppPageHeader(
+                icon: Icons.campaign_outlined,
+                title: 'Notice',
+                accentColor: ModuleColors.notices,
+                subtitle: 'Posted $date',
               ),
 
-              SliverToBoxAdapter(
-                child: Padding(
+              // Sits outside the scroll view so the gap under the fixed header
+              // survives scrolling instead of collapsing with the content.
+              const SizedBox(height: 14),
+
+              Expanded(
+                child: SingleChildScrollView(
                   // Extra bottom room when the floating button is present, so
                   // the last card can still scroll clear of it.
                   padding: EdgeInsets.fromLTRB(
                     16,
-                    22,
+                    8,
                     16,
                     bottomPad + (canDelete ? 116 : 40),
                   ),
