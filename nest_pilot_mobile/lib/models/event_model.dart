@@ -1,3 +1,9 @@
+/// Where an event sits in its lifecycle, derived from the clock. There is no
+/// cancelled phase: the backend has no status column, and `is_active: false`
+/// is a soft delete the list query filters out, so a cancelled event never
+/// reaches the app.
+enum EventPhase { over, live, today, upcoming }
+
 class EventModel {
   final int id;
   final int societyId;
@@ -104,21 +110,62 @@ class EventModel {
     return endOfDay.isAfter(now);
   }
 
+  bool isOn(DateTime day) =>
+      eventDate.year == day.year &&
+      eventDate.month == day.month &&
+      eventDate.day == day.day;
+
+  /// Lifecycle stage as of [asOf], following the same parsing rules as
+  /// [isUpcoming]. An event only reads as [EventPhase.live] once a parsed
+  /// [startTime] has passed while it is still upcoming — which in practice
+  /// means it had an [endTime], since without one it is over at its start.
+  EventPhase phase([DateTime? asOf]) {
+    final now = asOf ?? DateTime.now();
+    if (!isUpcoming(now)) return EventPhase.over;
+    final start = startsAt;
+    if (start != null && !start.isAfter(now)) return EventPhase.live;
+    return isOn(now) ? EventPhase.today : EventPhase.upcoming;
+  }
+
   bool isRegistered(int userId) =>
       attendees.any((a) => a.userId == userId && a.status == 'REGISTERED');
 }
 
+/// Events ordered for a list view: everything still live/today/upcoming first,
+/// soonest first, with finished events sunk to the bottom, most recent first.
+/// The API returns a plain ascending-by-date list, which floats long-finished
+/// events above what is actually coming up.
+List<EventModel> eventsInDisplayOrder(
+  List<EventModel> events, [
+  DateTime? asOf,
+]) {
+  final now = asOf ?? DateTime.now();
+  final active = <EventModel>[];
+  final over = <EventModel>[];
+  for (final e in events) {
+    (e.phase(now) == EventPhase.over ? over : active).add(e);
+  }
+  // Sorted here rather than leaning on the API's ordering, so the grouping
+  // holds even if that ordering changes.
+  active.sort((a, b) => _startKey(a).compareTo(_startKey(b)));
+  over.sort((a, b) => _startKey(b).compareTo(_startKey(a)));
+  return [...active, ...over];
+}
+
+/// Falls back to midnight on the event's day when [startTime] won't parse.
+DateTime _startKey(EventModel e) => e.startsAt ?? e.eventDate;
+
 class EventAttendee {
   final int id;
-  final int eventId;
   final int userId;
   final String status;
   final String? userName;
   final String? userMobile;
 
+  // No event_id: the API's attendee include selects only id/user_id/status,
+  // and attendees only ever arrive nested under the event they belong to.
   EventAttendee({
     required this.id,
-    required this.eventId,
     required this.userId,
     required this.status,
     this.userName,
@@ -128,7 +175,6 @@ class EventAttendee {
   factory EventAttendee.fromJson(Map<String, dynamic> json) {
     return EventAttendee(
       id: (json['id'] as num).toInt(),
-      eventId: (json['event_id'] as num).toInt(),
       userId: (json['user_id'] as num).toInt(),
       status: json['status'] ?? 'REGISTERED',
       userName: json['user'] != null ? json['user']['full_name'] as String? : null,
