@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
+import '../../../widgets/app_field_card.dart';
+import '../../../widgets/app_form_sheet.dart';
+import '../../../widgets/glare_button.dart';
 import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import 'package:nest_pilot_mobile/config/modules.dart';
-import '../../secretary/poll_create_screen.dart';
 
 class PollListScreen extends StatefulWidget {
   const PollListScreen({super.key});
@@ -292,6 +295,11 @@ class _PollListScreenState extends State<PollListScreen> {
     // from voters. Voters fall through to the default vote UI.
     final canManage = PermissionService().canManage(ModuleCodes.polls);
     final canCreate = canManage;
+    final now = DateTime.now();
+    final active = _polls
+        .where((p) => DateTime.parse(p.endDate).isAfter(now))
+        .length;
+    final ended = _polls.length - active;
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -302,25 +310,43 @@ class _PollListScreenState extends State<PollListScreen> {
             description: 'Vote & see community decisions',
             icon: Icons.how_to_vote_outlined,
             iconColor: ModuleColors.polls,
-            stats: [ModuleHeaderStat('${_polls.length}', 'ACTIVE')],
+            stats: [
+              ModuleHeaderStat('$active', 'ACTIVE'),
+              ModuleHeaderStat('$ended', 'ENDED'),
+              ModuleHeaderStat('${_polls.length}', 'TOTAL'),
+            ],
             showSearch: true,
             searchHint: 'Search polls...',
             searchController: _searchController,
             onSearchChanged: (v) => setState(() => _query = v),
           ),
+          const SizedBox(height: 12),
           Expanded(
             child: _isLoading
                 ? const Center(child: NestLoader())
                 : _filteredPolls.isEmpty
                 ? const Center(child: Text('No active polls'))
                 : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               itemCount: _filteredPolls.length,
               itemBuilder: (context, index) {
                 final poll = _filteredPolls[index];
                 final hasVoted = poll.votes != null && poll.votes!.isNotEmpty;
 
-                return Card(
-                  margin: const EdgeInsets.all(16),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -397,18 +423,245 @@ class _PollListScreenState extends State<PollListScreen> {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton(
-              onPressed: () async {
-                final res = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PollCreateScreen(),
-                  ),
-                );
-                if (res == true) _fetchPolls();
-              },
+              onPressed: _openCreateSheet,
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: AppColors.white,
               child: const Icon(Icons.add),
             )
           : null,
+    );
+  }
+
+  void _openCreateSheet() {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _CreatePollSheet(
+        onCreated: () {
+          Navigator.pop(ctx);
+          _fetchPolls();
+        },
+      ),
+    );
+  }
+}
+
+// ─── Create poll sheet ────────────────────────────────────────────────────────
+
+class _CreatePollSheet extends StatefulWidget {
+  final VoidCallback onCreated;
+
+  const _CreatePollSheet({required this.onCreated});
+
+  @override
+  State<_CreatePollSheet> createState() => _CreatePollSheetState();
+}
+
+class _CreatePollSheetState extends State<_CreatePollSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _questionCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final List<TextEditingController> _optionCtrls = [
+    TextEditingController(),
+    TextEditingController(),
+  ];
+
+  DateTime? _endDate;
+  bool _dateErr = false;
+  bool _isLoading = false;
+  String? _apiError;
+
+  void _addOption() => setState(() => _optionCtrls.add(TextEditingController()));
+
+  void _removeOption(int index) {
+    if (_optionCtrls.length <= 2) return;
+    setState(() => _optionCtrls.removeAt(index).dispose());
+  }
+
+  Future<void> _pickEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? DateTime.now().add(const Duration(days: 7)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: appPickerTheme,
+    );
+    if (picked != null) setState(() => _endDate = picked);
+  }
+
+  Future<void> _submit() async {
+    final formOk = _formKey.currentState!.validate();
+    final options = _optionCtrls
+        .map((c) => c.text.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    setState(() {
+      _dateErr = _endDate == null;
+      _apiError = null;
+    });
+    if (!formOk || _endDate == null) return;
+    if (options.length < 2) {
+      setState(() => _apiError = 'At least 2 options are required');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await CommunityService().createPoll({
+        'question': _questionCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'end_date': _endDate!.toIso8601String(),
+        'options': options,
+      });
+      widget.onCreated();
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _apiError = e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _questionCtrl.dispose();
+    _descCtrl.dispose();
+    for (final c in _optionCtrls) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormSheet(
+      accentColor: ModuleColors.polls,
+      icon: Icons.how_to_vote_rounded,
+      title: 'New Poll',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppSectionHeader('Poll Details'),
+            const SizedBox(height: 14),
+            AppFieldCard(
+              icon: Icons.help_outline_rounded,
+              label: 'Question',
+              field: AppBorderlessField(
+                controller: _questionCtrl,
+                hint: 'e.g. Should we install new gym equipment?',
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Question is required' : null,
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.description_outlined,
+              label: 'Description',
+              iconAlignment: CrossAxisAlignment.start,
+              field: AppBorderlessField(
+                controller: _descCtrl,
+                hint: 'Optional details about the poll…',
+                maxLines: 2,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const AppSectionHeader('Options'),
+            const SizedBox(height: 14),
+            ..._optionCtrls.asMap().entries.map((entry) {
+              final index = entry.key;
+              final ctrl = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AppFieldCard(
+                        icon: Icons.circle_outlined,
+                        label: 'Option ${index + 1}',
+                        field: AppBorderlessField(
+                          controller: ctrl,
+                          hint: 'Enter option',
+                          validator: (v) =>
+                              v == null || v.trim().isEmpty ? 'Required' : null,
+                        ),
+                      ),
+                    ),
+                    if (_optionCtrls.length > 2) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _removeOption(index),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentRed.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: AppColors.accentRed,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+            GestureDetector(
+              onTap: _addOption,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: ModuleColors.polls,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Add Option',
+                    style: TextStyle(
+                      color: ModuleColors.polls,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            const AppSectionHeader('Schedule'),
+            const SizedBox(height: 14),
+            AppPickerCard(
+              icon: Icons.event_outlined,
+              label: 'Ends On',
+              value: _endDate != null
+                  ? DateFormat('EEE, d MMM yyyy').format(_endDate!)
+                  : null,
+              hint: 'Select end date',
+              error: _dateErr,
+              onTap: _pickEndDate,
+            ),
+            if (_apiError != null) ...[
+              const SizedBox(height: 18),
+              AppSheetErrorBanner(_apiError!),
+            ],
+            const SizedBox(height: 26),
+            GlarePrimaryButton(
+              text: 'Create Poll',
+              isLoading: _isLoading,
+              onPressed: _submit,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

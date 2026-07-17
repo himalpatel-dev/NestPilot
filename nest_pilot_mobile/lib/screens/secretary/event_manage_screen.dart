@@ -60,7 +60,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
       final events = await _service.getEvents();
       if (mounted)
         setState(() {
-          _events = events;
+          _events = eventsInDisplayOrder(events);
           _isLoading = false;
         });
     } catch (e) {
@@ -91,32 +91,41 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      body: RefreshIndicator(
-        onRefresh: _load,
-        color: AppColors.white,
-        backgroundColor: AppColors.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            if (_isLoading)
-              const SliverFillRemaining(child: NestLoader())
-            else if (_error != null)
-              SliverFillRemaining(child: _buildError())
-            else if (_filteredEvents.isEmpty)
-              SliverFillRemaining(child: _buildEmpty(canCreate: canManage))
-            else
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _buildCard(_filteredEvents[i]),
-                    childCount: _filteredEvents.length,
-                  ),
-                ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 12),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              color: AppColors.white,
+              backgroundColor: AppColors.primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (_isLoading)
+                    const SliverFillRemaining(child: NestLoader())
+                  else if (_error != null)
+                    SliverFillRemaining(child: _buildError())
+                  else if (_filteredEvents.isEmpty)
+                    SliverFillRemaining(
+                      child: _buildEmpty(canCreate: canManage),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (ctx, i) => _buildCard(_filteredEvents[i]),
+                          childCount: _filteredEvents.length,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
       // Creating an event is a manage-only action — the list itself is
       // shared with view-only roles.
@@ -163,14 +172,18 @@ class _EventManageScreenState extends State<EventManageScreen> {
         ? '${event.startTime} – ${event.endTime}'
         : event.startTime;
     final typeColor = _typeColor(event.eventType);
+    final statusChips = _statusChips(event);
 
     return GestureDetector(
       onTap: () async {
         // Detail pops `true` when it deleted the event — reload so the row it
-        // just removed doesn't linger in the list.
+        // just removed doesn't linger in the list. An RSVP reports itself via
+        // onChanged instead, since it leaves the row in place.
         final deleted = await Navigator.push<bool>(
           context,
-          MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+          MaterialPageRoute(
+            builder: (_) => EventDetailScreen(event: event, onChanged: _load),
+          ),
         );
         if (deleted == true) _load();
       },
@@ -248,58 +261,79 @@ class _EventManageScreenState extends State<EventManageScreen> {
                     ),
                     const SizedBox(height: 6),
                     Row(
+                      // Bottom-aligned so the chips line up with the last meta
+                      // line rather than floating against the date.
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 11,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          date,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11.5,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    date,
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.access_time_rounded,
+                                    size: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    timeStr,
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                  const Text(
+                                    '  ·  ',
+                                    style: TextStyle(color: AppColors.textMuted),
+                                  ),
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    size: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: Text(
+                                      event.location,
+                                      style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 11.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.access_time_rounded,
-                          size: 11,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          timeStr,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11.5,
-                          ),
-                        ),
-                        const Text(
-                          '  ·  ',
-                          style: TextStyle(color: AppColors.textMuted),
-                        ),
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 11,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            event.location,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11.5,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        // Bottom-right, under the type badge. Non-flex, so the
+                        // chips keep their intrinsic width and the meta lines
+                        // ellipsize into whatever is left.
+                        if (statusChips.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Wrap(spacing: 6, children: statusChips),
+                        ],
                       ],
                     ),
                   ],
@@ -317,6 +351,50 @@ class _EventManageScreenState extends State<EventManageScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Status chips for a card. A plain future event gets none — the date line
+  /// already says all there is to say, so a chip on every card would be noise.
+  List<Widget> _statusChips(EventModel event) {
+    final phase = event.phase();
+    final chips = <Widget>[];
+
+    switch (phase) {
+      case EventPhase.live:
+        chips.add(_chip('LIVE NOW', AppColors.accentGreen));
+      case EventPhase.over:
+        chips.add(_chip('OVER', AppColors.textMuted));
+      case EventPhase.today:
+        chips.add(_chip('TODAY', AppColors.accentAmber));
+      case EventPhase.upcoming:
+        break;
+    }
+
+    // Capacity stops mattering once the event is done.
+    if (event.isFull && phase != EventPhase.over) {
+      chips.add(_chip('FULL', AppColors.accentRed));
+    }
+
+    return chips;
+  }
+
+  Widget _chip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
         ),
       ),
     );

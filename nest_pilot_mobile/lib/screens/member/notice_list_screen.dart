@@ -185,9 +185,6 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     final weekAgo = now.subtract(const Duration(days: 7));
     final total = _notices.length;
     final thisWeek = _notices.where((n) => n.createdAt.isAfter(weekAgo)).length;
-    final withFiles = _notices
-        .where((n) => n.attachmentUrl != null && n.attachmentUrl!.isNotEmpty)
-        .length;
 
     return ModulePageHeader(
       title: 'Notices',
@@ -195,9 +192,8 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       icon: Icons.campaign_outlined,
       iconColor: ModuleColors.notices,
       stats: [
-        ModuleHeaderStat('$total', 'TOTAL'),
         ModuleHeaderStat('$thisWeek', 'THIS WEEK'),
-        ModuleHeaderStat('$withFiles', 'WITH FILES'),
+        ModuleHeaderStat('$total', 'TOTAL'),
       ],
       showSearch: true,
       searchHint: 'Search notices...',

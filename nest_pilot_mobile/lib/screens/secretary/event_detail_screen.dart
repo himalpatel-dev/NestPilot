@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../config/modules.dart';
+import '../../config/roles.dart';
 import '../../models/event_model.dart';
 import '../../services/event_service.dart';
 import '../../services/permission_service.dart';
+import '../../services/session_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_page_header.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final EventModel event;
-  const EventDetailScreen({super.key, required this.event});
+
+  /// Called after an RSVP so the list can refetch — the attendee count has
+  /// moved and a card's FULL chip may have flipped. Mirrors the `onCreated`
+  /// hook the create sheet uses; delete still reports itself via `pop(true)`.
+  final VoidCallback? onChanged;
+
+  const EventDetailScreen({super.key, required this.event, this.onChanged});
 
   @override
   State<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -17,7 +25,61 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   final EventService _service = EventService();
+
+  /// Starts as the row the list handed over, then gets replaced by a refetch
+  /// after an RSVP so the attendee list and count come from the server rather
+  /// than a local guess.
+  late EventModel _event = widget.event;
   bool _deleting = false;
+  bool _rsvpBusy = false;
+
+  // ── RSVP ───────────────────────────────────────────────────────────────────
+
+  /// The session stores the id as a String; attendees key off an int.
+  int? get _myUserId => int.tryParse(SessionService().currentUser?.id ?? '');
+
+  bool get _isGoing {
+    final id = _myUserId;
+    return id != null && _event.isRegistered(id);
+  }
+
+  /// Members only — secretaries and guards manage events rather than attend
+  /// them. Nothing to answer once the event is over either, and an unknown
+  /// user can't be matched against the attendee list.
+  bool get _canRsvp =>
+      SessionService().currentUser?.role == UserRoles.member &&
+      _myUserId != null &&
+      _event.phase() != EventPhase.over;
+
+  /// Registers or cancels. Tapping the option that's already selected is a
+  /// no-op, which also keeps a never-registered member's "Not going" tap from
+  /// firing a DELETE the backend would 404 on.
+  Future<void> _setGoing(bool going) async {
+    if (_rsvpBusy || going == _isGoing) return;
+
+    setState(() => _rsvpBusy = true);
+    try {
+      final id = _event.id.toString();
+      if (going) {
+        await _service.registerForEvent(id);
+      } else {
+        await _service.cancelRegistration(id);
+      }
+      final fresh = await _service.getEventDetail(id);
+      if (!mounted) return;
+      setState(() => _event = fresh);
+      widget.onChanged?.call();
+    } catch (e) {
+      if (!mounted) return;
+      // Capacity is raced on the server ("Event is fully booked"), so surface
+      // whatever it says rather than assuming the tap succeeded.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _rsvpBusy = false);
+    }
+  }
 
   /// Deletes the event and pops `true` so the list knows to refetch.
   Future<void> _confirmDelete() async {
@@ -67,7 +129,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Text(
-                  'Delete "${widget.event.title}"? This cannot be undone.',
+                  'Delete "${_event.title}"? This cannot be undone.',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -129,7 +191,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     setState(() => _deleting = true);
     try {
-      await _service.deleteEvent(widget.event.id.toString());
+      await _service.deleteEvent(_event.id.toString());
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -142,7 +204,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Color get _typeColor {
-    switch (widget.event.eventType) {
+    switch (_event.eventType) {
       case 'MEETING':
         return AppColors.accentBlue;
       case 'SOCIAL':
@@ -160,7 +222,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final event = widget.event;
+    final event = _event;
     final canDelete = PermissionService().canManage(ModuleCodes.events);
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final date = DateFormat('EEE, dd MMM yyyy').format(event.eventDate);
@@ -349,6 +411,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ],
                         ),
                       ),
+
+                      // ── RSVP ───────────────────────────────────────────────
+                      if (_canRsvp) ...[
+                        const SizedBox(height: 16),
+                        _rsvpCard(),
+                      ],
 
                       // ── Description card ───────────────────────────────────
                       if (hasDescription) ...[
@@ -557,6 +625,123 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _rsvpCard() {
+    final going = _isGoing;
+    // Already-registered members keep their slot; only newcomers are blocked.
+    final full = _event.isFull && !going;
+
+    return _card(
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGreen,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Will you attend?',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              if (_rsvpBusy)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.accentGreen,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _rsvpOption(
+                  label: 'Going',
+                  icon: Icons.check_circle_outline_rounded,
+                  color: AppColors.accentGreen,
+                  selected: going,
+                  onTap: full ? null : () => _setGoing(true),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _rsvpOption(
+                  label: 'Not going',
+                  icon: Icons.cancel_outlined,
+                  color: AppColors.accentRed,
+                  selected: !going,
+                  onTap: () => _setGoing(false),
+                ),
+              ),
+            ],
+          ),
+          if (full) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'This event is fully booked.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _rsvpOption({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool selected,
+    required VoidCallback? onTap,
+  }) {
+    final disabled = onTap == null;
+    return GestureDetector(
+      onTap: _rsvpBusy ? null : onTap,
+      child: Opacity(
+        opacity: disabled ? 0.4 : 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: selected ? color : AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: selected ? color : AppColors.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: selected ? AppColors.white : color),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? AppColors.white : color,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
