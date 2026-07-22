@@ -169,6 +169,18 @@ class CommunityService {
     }
   }
 
+  // Options are locked once a poll is live — only question/description/end
+  // date can be edited, matching what the backend's PUT /polls/:id accepts.
+  Future<void> updatePoll(int pollId, Map<String, dynamic> data) async {
+    final response = await _apiService.put(
+      ApiEndpoints.pollDetail(pollId),
+      data,
+    );
+    if (!response['success']) {
+      throw Exception(response['message']);
+    }
+  }
+
   Future<void> votePoll(int pollId, int optionId) async {
     final response = await _apiService.post(ApiEndpoints.votePoll, {
       'poll_id': pollId,

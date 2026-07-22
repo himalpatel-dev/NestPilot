@@ -21,7 +21,8 @@ class ApiEndpoints {
   static String buildingById(String id) => '/api/buildings/$id';
   static String buildingFlats(String id) => '/api/buildings/$id/flats';
   static String societyFlats(String id) => '/api/societies/$id/flats';
-  static String flatById(String buildingId, String flatId) => '/api/buildings/$buildingId/flats/$flatId';
+  static String flatById(String buildingId, String flatId) =>
+      '/api/buildings/$buildingId/flats/$flatId';
 
   // Location Masters (State -> District)
   static const String states = '/api/locations/states';
@@ -75,6 +76,7 @@ class ApiEndpoints {
   // Polls
   static const String polls = '/api/polls';
   static const String votePoll = '/api/polls/vote';
+  static String pollDetail(int id) => '/api/polls/$id';
 
   // Documents
   static const String documents = '/api/documents';

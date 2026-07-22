@@ -84,6 +84,19 @@ class _EventManageScreenState extends State<EventManageScreen> {
     );
   }
 
+  void _openEditSheet(EventModel event) {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _CreateEventSheet(
+        editing: event,
+        onCreated: () {
+          Navigator.pop(ctx);
+          _load();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canManage = PermissionService().canManage(ModuleCodes.events);
@@ -116,7 +129,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
                       padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (ctx, i) => _buildCard(_filteredEvents[i]),
+                          (ctx, i) => _buildCard(_filteredEvents[i], canManage),
                           childCount: _filteredEvents.length,
                         ),
                       ),
@@ -166,7 +179,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
     );
   }
 
-  Widget _buildCard(EventModel event) {
+  Widget _buildCard(EventModel event, bool canManage) {
     final date = DateFormat('EEE, dd MMM yyyy').format(event.eventDate);
     final timeStr = event.endTime != null
         ? '${event.startTime} – ${event.endTime}'
@@ -203,152 +216,179 @@ class _EventManageScreenState extends State<EventManageScreen> {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              // Icon square
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: typeColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                alignment: Alignment.center,
-                child: Icon(Icons.event_outlined, color: typeColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: typeColor.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            event.eventType,
-                            style: TextStyle(
-                              color: typeColor,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon square
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      // Bottom-aligned so the chips line up with the last meta
-                      // line rather than floating against the date.
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.event_outlined,
+                      color: typeColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Padding(
+                          padding: canManage
+                              ? const EdgeInsets.only(right: 32)
+                              : EdgeInsets.zero,
+                          child: Row(
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today_outlined,
-                                    size: 11,
-                                    color: AppColors.textMuted,
+                              Expanded(
+                                child: Text(
+                                  event.title,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.3,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    date,
-                                    style: const TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11.5,
-                                    ),
-                                  ),
-                                ],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time_rounded,
-                                    size: 11,
-                                    color: AppColors.textMuted,
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: typeColor.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  event.eventType,
+                                  style: TextStyle(
+                                    color: typeColor,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    timeStr,
-                                    style: const TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11.5,
-                                    ),
-                                  ),
-                                  const Text(
-                                    '  ·  ',
-                                    style: TextStyle(color: AppColors.textMuted),
-                                  ),
-                                  const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 11,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Flexible(
-                                    child: Text(
-                                      event.location,
-                                      style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 11.5,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        // Bottom-right, under the type badge. Non-flex, so the
-                        // chips keep their intrinsic width and the meta lines
-                        // ellipsize into whatever is left.
-                        if (statusChips.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Wrap(spacing: 6, children: statusChips),
-                        ],
+                        const SizedBox(height: 6),
+                        Row(
+                          // Bottom-aligned so the chips line up with the last meta
+                          // line rather than floating against the date.
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 11,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        date,
+                                        style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.access_time_rounded,
+                                        size: 11,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        timeStr,
+                                        style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                      const Text(
+                                        '  ·  ',
+                                        style: TextStyle(
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.location_on_outlined,
+                                        size: 11,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Flexible(
+                                        child: Text(
+                                          event.location,
+                                          style: const TextStyle(
+                                            color: AppColors.textMuted,
+                                            fontSize: 11.5,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Bottom-right, under the type badge. Non-flex, so the
+                            // chips keep their intrinsic width and the meta lines
+                            // ellipsize into whatever is left.
+                            if (statusChips.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Wrap(spacing: 6, children: statusChips),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              Column(
-                children: [
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textHint,
-                    size: 20,
                   ),
                 ],
               ),
+              if (canManage)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: () => _openEditSheet(event),
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentIndigo.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        size: 14,
+                        color: AppColors.accentIndigo,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -495,7 +535,8 @@ class _EventManageScreenState extends State<EventManageScreen> {
 
 class _CreateEventSheet extends StatefulWidget {
   final VoidCallback onCreated;
-  const _CreateEventSheet({required this.onCreated});
+  final EventModel? editing;
+  const _CreateEventSheet({required this.onCreated, this.editing});
 
   @override
   State<_CreateEventSheet> createState() => _CreateEventSheetState();
@@ -503,16 +544,35 @@ class _CreateEventSheet extends StatefulWidget {
 
 class _CreateEventSheetState extends State<_CreateEventSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _locationCtrl = TextEditingController();
-  final _maxCtrl = TextEditingController();
+  late final _titleCtrl = TextEditingController(text: widget.editing?.title);
+  late final _descCtrl = TextEditingController(
+    text: widget.editing?.description,
+  );
+  late final _locationCtrl = TextEditingController(
+    text: widget.editing?.location,
+  );
+  late final _maxCtrl = TextEditingController(
+    text: widget.editing?.maxAttendees?.toString(),
+  );
 
-  DateTime? _eventDate;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
-  String _eventType = 'MEETING';
+  late DateTime? _eventDate = widget.editing?.eventDate;
+  late TimeOfDay? _startTime = _parseTime(widget.editing?.startTime);
+  late TimeOfDay? _endTime = _parseTime(widget.editing?.endTime);
+  late String _eventType = widget.editing?.eventType ?? 'MEETING';
   bool _isLoading = false;
+
+  bool get _isEditing => widget.editing != null;
+
+  // start_time / end_time are free-form 'HH:mm' strings on the backend.
+  static TimeOfDay? _parseTime(String? raw) {
+    if (raw == null) return null;
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
 
   // Inline validation / error state — modal sheets hide snackbars behind them,
   // so date/time and API errors are surfaced in the sheet instead.
@@ -535,7 +595,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
+      initialDate: _eventDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: appPickerTheme,
@@ -564,18 +624,32 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
 
     setState(() => _isLoading = true);
     try {
-      await EventService().createEvent(
-        title: _titleCtrl.text.trim(),
-        description: _descCtrl.text.trim(),
-        eventDate: DateFormat('yyyy-MM-dd').format(_eventDate!),
-        startTime: _fmt(_startTime!),
-        endTime: _endTime != null ? _fmt(_endTime!) : null,
-        location: _locationCtrl.text.trim(),
-        eventType: _eventType,
-        maxAttendees: _maxCtrl.text.trim().isNotEmpty
-            ? int.tryParse(_maxCtrl.text.trim())
-            : null,
-      );
+      final maxAttendees = _maxCtrl.text.trim().isNotEmpty
+          ? int.tryParse(_maxCtrl.text.trim())
+          : null;
+      if (_isEditing) {
+        await EventService().updateEvent(widget.editing!.id.toString(), {
+          'title': _titleCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'event_date': DateFormat('yyyy-MM-dd').format(_eventDate!),
+          'start_time': _fmt(_startTime!),
+          'end_time': _endTime != null ? _fmt(_endTime!) : null,
+          'location': _locationCtrl.text.trim(),
+          'event_type': _eventType,
+          'max_attendees': maxAttendees,
+        });
+      } else {
+        await EventService().createEvent(
+          title: _titleCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          eventDate: DateFormat('yyyy-MM-dd').format(_eventDate!),
+          startTime: _fmt(_startTime!),
+          endTime: _endTime != null ? _fmt(_endTime!) : null,
+          location: _locationCtrl.text.trim(),
+          eventType: _eventType,
+          maxAttendees: maxAttendees,
+        );
+      }
       widget.onCreated();
     } catch (e) {
       if (mounted) {
@@ -604,8 +678,8 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   Widget build(BuildContext context) {
     return AppFormSheet(
       accentColor: ModuleColors.events,
-      icon: Icons.event_rounded,
-      title: 'New Event',
+      icon: _isEditing ? Icons.edit_rounded : Icons.event_rounded,
+      title: _isEditing ? 'Edit Event' : 'New Event',
       child: Form(
         key: _formKey,
         child: Column(
@@ -712,7 +786,7 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
             ],
             const SizedBox(height: 26),
             GlarePrimaryButton(
-              text: 'Create Event',
+              text: _isEditing ? 'Update Event' : 'Create Event',
               isLoading: _isLoading,
               onPressed: _submit,
             ),

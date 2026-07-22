@@ -304,50 +304,54 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Calendar date tile
-            Container(
-              width: 48,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.accentIndigo.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    DateFormat('d').format(notice.createdAt),
-                    style: const TextStyle(
-                      color: AppColors.accentIndigo,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Calendar date tile
+                Container(
+                  width: 48,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentIndigo.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  Text(
-                    DateFormat('MMM').format(notice.createdAt).toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.accentIndigo,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('d').format(notice.createdAt),
+                        style: const TextStyle(
+                          color: AppColors.accentIndigo,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        DateFormat(
+                          'MMM',
+                        ).format(notice.createdAt).toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.accentIndigo,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                ),
+                const SizedBox(width: 10),
+                // Details
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
+                      Padding(
+                        padding: canManage
+                            ? const EdgeInsets.only(right: 32)
+                            : EdgeInsets.zero,
                         child: Text(
                           notice.title,
                           style: const TextStyle(
@@ -360,142 +364,111 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isNew) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGreen.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'NEW',
-                            style: TextStyle(
-                              color: AppColors.accentGreen,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (notice.description.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      notice.description,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12.5,
-                        height: 1.45,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      if (notice.createdBy != null &&
-                          notice.createdBy!.isNotEmpty) ...[
-                        const Icon(
-                          Icons.person_outline_rounded,
-                          size: 12,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            notice.createdBy!,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11.5,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ] else ...[
+                      if (notice.description.isNotEmpty) ...[
+                        const SizedBox(height: 8),
                         Text(
-                          DateFormat('hh:mm a').format(notice.createdAt),
+                          notice.description,
                           style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                            fontSize: 12.5,
+                            height: 1.45,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      const Spacer(),
-                      if (hasAttachment)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentBlue.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.attach_file_rounded,
-                                size: 11,
-                                color: AppColors.accentBlue,
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                'File',
-                                style: TextStyle(
-                                  color: AppColors.accentBlue,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          if (notice.createdBy != null &&
+                              notice.createdBy!.isNotEmpty) ...[
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              size: 12,
+                              color: AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                notice.createdBy!,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11.5,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          ] else ...[
+                            Text(
+                              DateFormat('hh:mm a').format(notice.createdAt),
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          if (hasAttachment)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentBlue.withValues(
+                                  alpha: 0.10,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.attach_file_rounded,
+                                    size: 11,
+                                    color: AppColors.accentBlue,
+                                  ),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'File',
+                                    style: TextStyle(
+                                      color: AppColors.accentBlue,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (canManage) ...[
-                  GestureDetector(
-                    onTap: () => _openEditSheet(notice),
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentIndigo.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.edit_outlined,
-                        size: 14,
-                        color: AppColors.accentIndigo,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textHint,
-                  size: 20,
                 ),
               ],
             ),
+            if (canManage)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: () => _openEditSheet(notice),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentIndigo.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 14,
+                      color: AppColors.accentIndigo,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

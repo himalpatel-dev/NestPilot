@@ -327,95 +327,129 @@ class _PollListScreenState extends State<PollListScreen> {
                 : _filteredPolls.isEmpty
                 ? const Center(child: Text('No active polls'))
                 : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              itemCount: _filteredPolls.length,
-              itemBuilder: (context, index) {
-                final poll = _filteredPolls[index];
-                final hasVoted = poll.votes != null && poll.votes!.isNotEmpty;
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                    itemCount: _filteredPolls.length,
+                    itemBuilder: (context, index) {
+                      final poll = _filteredPolls[index];
+                      final hasVoted =
+                          poll.votes != null && poll.votes!.isNotEmpty;
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          poll.question,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Stack(
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: canManage
+                                        ? const EdgeInsets.only(right: 32)
+                                        : EdgeInsets.zero,
+                                    child: Text(
+                                      poll.question,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (poll.description != null) ...[
+                                    const SizedBox(height: 8),
+                                    Text(poll.description!),
+                                  ],
+                                  const SizedBox(height: 16),
+                                  if (canManage) ...[
+                                    const Text(
+                                      'Admin View - Monitor Voting',
+                                      style: TextStyle(
+                                        color: Colors.blueGrey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _showResults(poll.id),
+                                      icon: const Icon(Icons.bar_chart),
+                                      label: const Text('View Live Results'),
+                                    ),
+                                  ] else if (hasVoted) ...[
+                                    const Text(
+                                      'You have voted',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _showResults(poll.id),
+                                      icon: const Icon(Icons.bar_chart),
+                                      label: const Text('View Results'),
+                                    ),
+                                  ] else ...[
+                                    ...poll.options!.map(
+                                      (opt) => RadioListTile<int>(
+                                        title: Text(opt.optionText),
+                                        value: opt.id,
+                                        groupValue: null,
+                                        onChanged: (val) =>
+                                            _vote(poll.id, val!),
+                                      ),
+                                    ),
+                                  ],
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      'Ends on: ${poll.endDate.split('T')[0]}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (canManage)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () => _openEditSheet(poll),
+                                    child: Container(
+                                      width: 26,
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentIndigo
+                                            .withValues(alpha: 0.10),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 14,
+                                        color: AppColors.accentIndigo,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (poll.description != null) ...[
-                          const SizedBox(height: 8),
-                          Text(poll.description!),
-                        ],
-                        const SizedBox(height: 16),
-                        if (canManage) ...[
-                          const Text(
-                            'Admin View - Monitor Voting',
-                            style: TextStyle(
-                              color: Colors.blueGrey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () => _showResults(poll.id),
-                            icon: const Icon(Icons.bar_chart),
-                            label: const Text('View Live Results'),
-                          ),
-                        ] else if (hasVoted) ...[
-                          const Text(
-                            'You have voted',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () => _showResults(poll.id),
-                            icon: const Icon(Icons.bar_chart),
-                            label: const Text('View Results'),
-                          ),
-                        ] else ...[
-                          ...poll.options!.map(
-                            (opt) => RadioListTile<int>(
-                              title: Text(opt.optionText),
-                              value: opt.id,
-                              groupValue: null,
-                              onChanged: (val) => _vote(poll.id, val!),
-                            ),
-                          ),
-                        ],
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Ends on: ${poll.endDate.split('T')[0]}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                      );
                     },
                   ),
           ),
@@ -443,14 +477,28 @@ class _PollListScreenState extends State<PollListScreen> {
       ),
     );
   }
+
+  void _openEditSheet(Poll poll) {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _CreatePollSheet(
+        editing: poll,
+        onCreated: () {
+          Navigator.pop(ctx);
+          _fetchPolls();
+        },
+      ),
+    );
+  }
 }
 
 // ─── Create poll sheet ────────────────────────────────────────────────────────
 
 class _CreatePollSheet extends StatefulWidget {
   final VoidCallback onCreated;
+  final Poll? editing;
 
-  const _CreatePollSheet({required this.onCreated});
+  const _CreatePollSheet({required this.onCreated, this.editing});
 
   @override
   State<_CreatePollSheet> createState() => _CreatePollSheetState();
@@ -458,19 +506,28 @@ class _CreatePollSheet extends StatefulWidget {
 
 class _CreatePollSheetState extends State<_CreatePollSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _questionCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
+  late final _questionCtrl = TextEditingController(
+    text: widget.editing?.question,
+  );
+  late final _descCtrl = TextEditingController(
+    text: widget.editing?.description,
+  );
   final List<TextEditingController> _optionCtrls = [
     TextEditingController(),
     TextEditingController(),
   ];
 
-  DateTime? _endDate;
+  late DateTime? _endDate = widget.editing != null
+      ? DateTime.tryParse(widget.editing!.endDate)
+      : null;
   bool _dateErr = false;
   bool _isLoading = false;
   String? _apiError;
 
-  void _addOption() => setState(() => _optionCtrls.add(TextEditingController()));
+  bool get _isEditing => widget.editing != null;
+
+  void _addOption() =>
+      setState(() => _optionCtrls.add(TextEditingController()));
 
   void _removeOption(int index) {
     if (_optionCtrls.length <= 2) return;
@@ -490,28 +547,42 @@ class _CreatePollSheetState extends State<_CreatePollSheet> {
 
   Future<void> _submit() async {
     final formOk = _formKey.currentState!.validate();
-    final options = _optionCtrls
-        .map((c) => c.text.trim())
-        .where((t) => t.isNotEmpty)
-        .toList();
     setState(() {
       _dateErr = _endDate == null;
       _apiError = null;
     });
     if (!formOk || _endDate == null) return;
-    if (options.length < 2) {
-      setState(() => _apiError = 'At least 2 options are required');
-      return;
+
+    // Options are locked once a poll exists — votes reference option_id, so
+    // editing never touches them, only question/description/end date.
+    List<String> options = const [];
+    if (!_isEditing) {
+      options = _optionCtrls
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
+      if (options.length < 2) {
+        setState(() => _apiError = 'At least 2 options are required');
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
     try {
-      await CommunityService().createPoll({
-        'question': _questionCtrl.text.trim(),
-        'description': _descCtrl.text.trim(),
-        'end_date': _endDate!.toIso8601String(),
-        'options': options,
-      });
+      if (_isEditing) {
+        await CommunityService().updatePoll(widget.editing!.id, {
+          'question': _questionCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'end_date': _endDate!.toIso8601String(),
+        });
+      } else {
+        await CommunityService().createPoll({
+          'question': _questionCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'end_date': _endDate!.toIso8601String(),
+          'options': options,
+        });
+      }
       widget.onCreated();
     } catch (e) {
       if (mounted) {
@@ -538,8 +609,8 @@ class _CreatePollSheetState extends State<_CreatePollSheet> {
   Widget build(BuildContext context) {
     return AppFormSheet(
       accentColor: ModuleColors.polls,
-      icon: Icons.how_to_vote_rounded,
-      title: 'New Poll',
+      icon: _isEditing ? Icons.edit_rounded : Icons.how_to_vote_rounded,
+      title: _isEditing ? 'Edit Poll' : 'New Poll',
       child: Form(
         key: _formKey,
         child: Column(
@@ -553,8 +624,9 @@ class _CreatePollSheetState extends State<_CreatePollSheet> {
               field: AppBorderlessField(
                 controller: _questionCtrl,
                 hint: 'e.g. Should we install new gym equipment?',
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Question is required' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Question is required'
+                    : null,
               ),
             ),
             const SizedBox(height: 12),
@@ -571,71 +643,113 @@ class _CreatePollSheetState extends State<_CreatePollSheet> {
             const SizedBox(height: 24),
             const AppSectionHeader('Options'),
             const SizedBox(height: 14),
-            ..._optionCtrls.asMap().entries.map((entry) {
-              final index = entry.key;
-              final ctrl = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppFieldCard(
-                        icon: Icons.circle_outlined,
-                        label: 'Option ${index + 1}',
-                        field: AppBorderlessField(
-                          controller: ctrl,
-                          hint: 'Enter option',
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null,
+            if (_isEditing) ...[
+              // Locked — votes already cast reference these by option_id, so
+              // editing never touches them, only question/description/date.
+              ...?widget.editing!.options?.map(
+                (opt) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBackground,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 14,
+                          color: AppColors.textHint,
                         ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            opt.optionText,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              ..._optionCtrls.asMap().entries.map((entry) {
+                final index = entry.key;
+                final ctrl = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: AppFieldCard(
+                          icon: Icons.circle_outlined,
+                          label: 'Option ${index + 1}',
+                          field: AppBorderlessField(
+                            controller: ctrl,
+                            hint: 'Enter option',
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Required'
+                                : null,
+                          ),
+                        ),
+                      ),
+                      if (_optionCtrls.length > 2) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _removeOption(index),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentRed.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.accentRed,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+              GestureDetector(
+                onTap: _addOption,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: ModuleColors.polls,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Add Option',
+                      style: TextStyle(
+                        color: ModuleColors.polls,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
-                    if (_optionCtrls.length > 2) ...[
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _removeOption(index),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentRed.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.close_rounded,
-                            color: AppColors.accentRed,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
-              );
-            }),
-            GestureDetector(
-              onTap: _addOption,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: ModuleColors.polls,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Add Option',
-                    style: TextStyle(
-                      color: ModuleColors.polls,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
               ),
-            ),
+            ],
             const SizedBox(height: 24),
             const AppSectionHeader('Schedule'),
             const SizedBox(height: 14),
@@ -655,7 +769,7 @@ class _CreatePollSheetState extends State<_CreatePollSheet> {
             ],
             const SizedBox(height: 26),
             GlarePrimaryButton(
-              text: 'Create Poll',
+              text: _isEditing ? 'Update Poll' : 'Create Poll',
               isLoading: _isLoading,
               onPressed: _submit,
             ),
