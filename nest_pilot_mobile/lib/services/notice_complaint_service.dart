@@ -35,6 +35,21 @@ class NoticeService {
     return response['success'] ?? false;
   }
 
+  Future<bool> updateNotice(
+    String id,
+    String title,
+    String description, {
+    String? filePath,
+  }) async {
+    final response = await _apiService.multipartPut(
+      ApiEndpoints.noticeDetail(id),
+      {'title': title, 'description': description},
+      filePath: filePath,
+      fileKey: 'attachments',
+    );
+    return response['success'] ?? false;
+  }
+
   Future<bool> deleteNotice(String id) async {
     final response = await _apiService.delete(ApiEndpoints.noticeDetail(id));
     return response['success'] ?? false;

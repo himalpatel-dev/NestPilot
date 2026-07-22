@@ -33,6 +33,31 @@ const getAll = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const update = async (req, res, next) => {
+    try {
+        const result = await api.updateNotice(
+            req.params.id,
+            req.user.society_id,
+            req.body,
+            req.files,
+            req.userScope
+        );
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'UPDATED',
+                'NOTICE',
+                String(result.id),
+                { new_value: { title: result.title }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 const remove = async (req, res, next) => {
     try {
         const result = await api.deleteNotice(req.params.id, req.user.society_id, req.userScope);
@@ -55,5 +80,6 @@ const remove = async (req, res, next) => {
 module.exports = {
     create,
     getAll,
+    update,
     remove
 };

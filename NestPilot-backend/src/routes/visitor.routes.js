@@ -8,6 +8,7 @@ router.use(auth);
 
 // Resident Actions
 router.post('/invite', hasPermission('VISITORS', 'manage'), controller.preApproveVisitor);
+router.delete('/invite/:id', hasPermission('VISITORS', 'manage'), controller.cancelInvite);
 router.get('/my', hasPermission('VISITORS', 'view'), controller.getMyVisitors);
 router.post('/respond', hasPermission('VISITORS', 'manage'), controller.respondToVisitor);
 

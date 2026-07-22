@@ -11,6 +11,7 @@ router.post('/', hasPermission('POLLS', 'manage'), controller.createPoll);
 // Vote = ordinary member action; viewing a poll implies the right to vote.
 router.post('/vote', hasPermission('POLLS', 'view'), controller.votePoll);
 router.get('/:id/results', hasPermission('POLLS', 'view'), controller.getPollResults);
+router.put('/:id', hasPermission('POLLS', 'manage'), controller.updatePoll);
 router.delete('/:id', hasPermission('POLLS', 'manage'), controller.deletePoll);
 
 module.exports = router;

@@ -9,6 +9,7 @@ router.use(auth);
 
 router.post('/', hasPermission('NOTICES', 'manage'), upload.array('attachments', 5), controller.create);
 router.get('/', hasPermission('NOTICES', 'view'), controller.getAll);
+router.put('/:id', hasPermission('NOTICES', 'manage'), upload.array('attachments', 5), controller.update);
 router.delete('/:id', hasPermission('NOTICES', 'manage'), controller.remove);
 
 module.exports = router;

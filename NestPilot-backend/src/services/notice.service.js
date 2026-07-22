@@ -171,6 +171,35 @@ const assertNoticeInScope = (notice, userScope) => {
     }
 };
 
+// Only title/description are editable — building_id and attachments already
+// posted are left alone; a newly uploaded file is appended, not swapped in,
+// so editing never silently drops an earlier attachment.
+const updateNotice = async (noticeId, societyId, data, files, userScope) => {
+    const notice = await db.Notice.findOne({
+        where: { id: noticeId, society_id: societyId, is_active: true }
+    });
+    if (!notice) throw new ApiError(404, 'Notice not found');
+
+    assertNoticeInScope(notice, userScope);
+
+    await notice.update({
+        title: data.title ?? notice.title,
+        description: data.description ?? notice.description
+    });
+
+    if (files && files.length > 0) {
+        const attachments = files.map(f => ({
+            notice_id: notice.id,
+            file_type: f.mimetype,
+            file_path: f.path,
+            original_name: f.originalname
+        }));
+        await db.NoticeAttachment.bulkCreate(attachments);
+    }
+
+    return notice;
+};
+
 // ── Soft-delete (deactivate) notice ───────────────────────────────────────────
 // getNotices filters on is_active, so flipping the flag is what removes it from
 // every list — the row and its attachments are kept for audit.
@@ -189,5 +218,6 @@ const deleteNotice = async (noticeId, societyId, userScope) => {
 module.exports = {
     createNotice,
     getNotices,
+    updateNotice,
     deleteNotice
 };

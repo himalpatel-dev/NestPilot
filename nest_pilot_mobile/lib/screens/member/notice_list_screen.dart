@@ -112,6 +112,19 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     );
   }
 
+  void _openEditSheet(Notice notice) {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _CreateNoticeSheet(
+        editing: notice,
+        onCreated: () {
+          Navigator.pop(ctx);
+          _fetch();
+        },
+      ),
+    );
+  }
+
   // ─── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -154,7 +167,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                       padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (ctx, i) => _buildCard(_filtered[i]),
+                          (ctx, i) => _buildCard(_filtered[i], canManage),
                           childCount: _filtered.length,
                         ),
                       ),
@@ -257,7 +270,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
 
   // ─── Notice card ────────────────────────────────────────────────────────────
 
-  Widget _buildCard(Notice notice) {
+  Widget _buildCard(Notice notice, bool canManage) {
     final hasAttachment =
         notice.attachmentUrl != null && notice.attachmentUrl!.isNotEmpty;
     final isNew = _isNew(notice);
@@ -453,10 +466,35 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textHint,
-              size: 20,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canManage) ...[
+                  GestureDetector(
+                    onTap: () => _openEditSheet(notice),
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentIndigo.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        size: 14,
+                        color: AppColors.accentIndigo,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textHint,
+                  size: 20,
+                ),
+              ],
             ),
           ],
         ),
@@ -547,7 +585,8 @@ class _EmptyState extends StatelessWidget {
 
 class _CreateNoticeSheet extends StatefulWidget {
   final VoidCallback onCreated;
-  const _CreateNoticeSheet({required this.onCreated});
+  final Notice? editing;
+  const _CreateNoticeSheet({required this.onCreated, this.editing});
 
   @override
   State<_CreateNoticeSheet> createState() => _CreateNoticeSheetState();
@@ -555,12 +594,18 @@ class _CreateNoticeSheet extends StatefulWidget {
 
 class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
+  late final _titleController = TextEditingController(
+    text: widget.editing?.title,
+  );
+  late final _contentController = TextEditingController(
+    text: widget.editing?.description,
+  );
 
   final NoticeService _noticeService = NoticeService();
   String? _selectedFilePath;
   bool _isLoading = false;
+
+  bool get _isEditing => widget.editing != null;
 
   // Inline error state — modal sheets hide snackbars behind them, so API
   // failures are surfaced in the sheet instead.
@@ -591,17 +636,26 @@ class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
       _apiError = null;
     });
     try {
-      final success = await _noticeService.createNotice(
-        _titleController.text,
-        _contentController.text,
-        filePath: _selectedFilePath,
-      );
+      final success = _isEditing
+          ? await _noticeService.updateNotice(
+              widget.editing!.id,
+              _titleController.text,
+              _contentController.text,
+              filePath: _selectedFilePath,
+            )
+          : await _noticeService.createNotice(
+              _titleController.text,
+              _contentController.text,
+              filePath: _selectedFilePath,
+            );
       if (!mounted) return;
       if (success) {
         widget.onCreated();
       } else {
         setState(
-          () => _apiError = 'Could not publish the notice. Please try again.',
+          () => _apiError = _isEditing
+              ? 'Could not update the notice. Please try again.'
+              : 'Could not publish the notice. Please try again.',
         );
       }
     } catch (e) {
@@ -619,8 +673,8 @@ class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
   Widget build(BuildContext context) {
     return AppFormSheet(
       accentColor: ModuleColors.notices,
-      icon: Icons.campaign_rounded,
-      title: 'New Notice',
+      icon: _isEditing ? Icons.edit_rounded : Icons.campaign_rounded,
+      title: _isEditing ? 'Edit Notice' : 'New Notice',
       child: Form(
         key: _formKey,
         child: Column(
@@ -656,11 +710,16 @@ class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
             const SizedBox(height: 24),
             const AppSectionHeader('Attachment'),
             const SizedBox(height: 4),
-            const Padding(
-              padding: EdgeInsets.only(left: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
               child: Text(
-                'Optional — attach a PDF, image or document',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                _isEditing && widget.editing!.attachmentUrl != null
+                    ? 'Optional — pick a new file to replace the existing attachment'
+                    : 'Optional — attach a PDF, image or document',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -671,8 +730,10 @@ class _CreateNoticeSheetState extends State<_CreateNoticeSheet> {
             ],
             const SizedBox(height: 26),
             GlarePrimaryButton(
-              text: 'Publish Notice',
-              trailingIcon: Icons.campaign_rounded,
+              text: _isEditing ? 'Update Notice' : 'Publish Notice',
+              trailingIcon: _isEditing
+                  ? Icons.check_rounded
+                  : Icons.campaign_rounded,
               isLoading: _isLoading,
               onPressed: _createNotice,
             ),

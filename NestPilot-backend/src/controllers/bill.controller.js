@@ -45,6 +45,25 @@ const publish = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const remove = async (req, res, next) => {
+    try {
+        const result = await api.deleteBill(req.params.id, req.user.society_id, req.userScope);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'DELETED',
+                'BILL',
+                String(req.params.id),
+                { ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 const getMyBills = async (req, res, next) => {
     try {
         const result = await api.getMemberBills(req.user.id, req.user.society_id);
@@ -77,6 +96,7 @@ const getDashboard = async (req, res, next) => {
 module.exports = {
     create,
     publish,
+    remove,
     getMyBills,
     getAll,
     getUserBills,

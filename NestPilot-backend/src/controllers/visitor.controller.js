@@ -42,6 +42,28 @@ const preApproveVisitor = async (req, res, next) => {
     }
 };
 
+// Resident: cancel a pre-approved invite before it's used at the gate.
+// Soft — sets status to CANCELLED rather than destroying the row, consistent
+// with how every other visitor action here just transitions status.
+const cancelInvite = async (req, res, next) => {
+    try {
+        const log = await db.VisitorLog.findOne({
+            where: { id: req.params.id, society_id: req.user.society_id, status: 'PRE_APPROVED' }
+        });
+        if (!log) throw new ApiError(404, 'Pre-approved invite not found');
+
+        const mapping = await db.UserHouseMapping.findOne({
+            where: { user_id: req.user.id, house_id: log.house_id, is_active: true }
+        });
+        if (!mapping) throw new ApiError(403, 'This invite does not belong to your house');
+
+        log.status = 'CANCELLED';
+        await log.save();
+
+        res.status(200).json(new ApiResponse(200, null, 'Invite cancelled'));
+    } catch (e) { next(e); }
+};
+
 // Security: Log Entry
 const logEntry = async (req, res, next) => {
     const transaction = await db.sequelize.transaction();
@@ -432,6 +454,7 @@ const getDashboard = async (req, res, next) => {
 
 module.exports = {
     preApproveVisitor,
+    cancelInvite,
     logEntry,
     logExit,
     getMyVisitors,

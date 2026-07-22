@@ -9,6 +9,7 @@ router.use(auth);
 
 router.post('/', hasPermission('COMPLAINTS', 'manage'), upload.single('image'), controller.create);
 router.get('/', hasPermission('COMPLAINTS', 'view'), controller.getAll);
+router.put('/:id', hasPermission('COMPLAINTS', 'manage'), upload.single('image'), controller.update);
 router.patch('/:id/status', hasPermission('COMPLAINTS', 'manage'), controller.updateStatus);
 router.post('/:id/comments', hasPermission('COMPLAINTS', 'view'), controller.addComment);
 router.delete('/:id', hasPermission('COMPLAINTS', 'manage'), controller.remove);

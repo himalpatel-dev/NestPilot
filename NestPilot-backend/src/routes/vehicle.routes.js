@@ -8,6 +8,7 @@ router.use(auth);
 router.post('/', hasPermission('VEHICLES', 'manage'), controller.addVehicle);
 router.get('/', hasPermission('VEHICLES', 'view'), controller.getMyVehicles);
 router.get('/all', hasPermission('VEHICLES', 'view'), controller.getAllVehicles);
+router.put('/:id', hasPermission('VEHICLES', 'manage'), controller.updateVehicle);
 router.delete('/:id', hasPermission('VEHICLES', 'manage'), controller.deleteVehicle);
 
 module.exports = router;

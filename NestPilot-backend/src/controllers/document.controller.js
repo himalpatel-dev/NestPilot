@@ -31,6 +31,23 @@ const getDocuments = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const updateDocument = async (req, res, next) => {
+    try {
+        const doc = await db.Document.findByPk(req.params.id);
+        if (!doc) throw new ApiError(404, 'Document not found');
+        if (doc.society_id !== req.user.society_id) throw new ApiError(403, 'Unauthorized');
+
+        const { title, category, is_private } = req.body;
+        if (title !== undefined) doc.title = title;
+        if (category !== undefined) doc.category = category;
+        if (is_private !== undefined) doc.is_private = is_private === 'true' || is_private === true;
+        if (req.file) doc.file_url = `/uploads/documents/${req.file.filename}`;
+
+        await doc.save();
+        res.status(200).json(new ApiResponse(200, doc, 'Document updated'));
+    } catch (e) { next(e); }
+};
+
 const deleteDocument = async (req, res, next) => {
     try {
         const doc = await db.Document.findByPk(req.params.id);
@@ -45,5 +62,6 @@ const deleteDocument = async (req, res, next) => {
 module.exports = {
     uploadDocument,
     getDocuments,
+    updateDocument,
     deleteDocument
 };

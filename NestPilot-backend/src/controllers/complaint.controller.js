@@ -33,6 +33,25 @@ const getAll = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const update = async (req, res, next) => {
+    try {
+        const result = await api.updateComplaint(req.params.id, req.body, req.file, req.user.society_id, req.userScope);
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'UPDATED',
+                'COMPLAINT',
+                String(result.id),
+                { new_value: { ref_code: `C-${result.id}` }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, result));
+    } catch (e) { next(e); }
+};
+
 const updateStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
@@ -87,6 +106,7 @@ const remove = async (req, res, next) => {
 module.exports = {
     create,
     getAll,
+    update,
     updateStatus,
     addComment,
     remove

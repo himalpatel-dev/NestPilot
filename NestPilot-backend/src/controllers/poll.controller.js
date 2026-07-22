@@ -229,6 +229,42 @@ const getPollResults = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// Options are locked once a poll goes live — PollVote rows reference
+// option_id, so changing/removing options after votes exist would orphan
+// them. This only ever touches question/description/end_date.
+const updatePoll = async (req, res, next) => {
+    try {
+        const poll = await db.Poll.findByPk(req.params.id);
+        if (!poll || !poll.is_active || poll.society_id !== req.user.society_id) {
+            throw new ApiError(404, 'Poll not found');
+        }
+
+        const visibleIds = await visiblePollIds(poll.society_id, req.userScope);
+        if (visibleIds !== null && !visibleIds.includes(poll.id)) {
+            throw new ApiError(403, 'Poll outside your assigned buildings');
+        }
+
+        const { question, description, end_date } = req.body;
+        if (question !== undefined) poll.question = question;
+        if (description !== undefined) poll.description = description;
+        if (end_date !== undefined) poll.end_date = end_date;
+        await poll.save();
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'UPDATED',
+                'POLL',
+                String(poll.id),
+                { new_value: { title: poll.question }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, poll, 'Poll updated successfully'));
+    } catch (e) { next(e); }
+};
+
 const deletePoll = async (req, res, next) => {
     try {
         const poll = await db.Poll.findByPk(req.params.id);
@@ -264,5 +300,6 @@ module.exports = {
     getActivePolls,
     votePoll,
     getPollResults,
+    updatePoll,
     deletePoll
 };

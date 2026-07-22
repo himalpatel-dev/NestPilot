@@ -28,6 +28,7 @@ router.use(auth);
 
 router.get('/', hasPermission('DOCUMENTS', 'view'), controller.getDocuments);
 router.post('/', hasPermission('DOCUMENTS', 'manage'), uploadMiddleware.single('file'), controller.uploadDocument);
+router.put('/:id', hasPermission('DOCUMENTS', 'manage'), uploadMiddleware.single('file'), controller.updateDocument);
 router.delete('/:id', hasPermission('DOCUMENTS', 'manage'), controller.deleteDocument);
 
 module.exports = router;

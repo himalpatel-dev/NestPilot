@@ -176,6 +176,32 @@ const updateStatus = async (id, status, societyId, currentUserId, userScope) => 
     return complaint;
 };
 
+// Category/description/image only — status has its own endpoint since a
+// status change fans out notifications that a plain edit shouldn't trigger.
+const updateComplaint = async (id, data, file, societyId, userScope) => {
+    const complaint = await db.Complaint.findOne({
+        where: { id, society_id: societyId },
+        include: [{ model: db.House, attributes: ['building_id'] }]
+    });
+    if (!complaint) throw new Error('Complaint not found');
+
+    if (userScope && !userScope.unscoped && complaint.House) {
+        if (!userScope.building_ids.includes(complaint.House.building_id)) {
+            const err = new Error('Complaint is outside your assigned buildings');
+            err.statusCode = 403;
+            throw err;
+        }
+    }
+
+    const { category, description } = data;
+    if (category !== undefined) complaint.category = category;
+    if (description !== undefined) complaint.description = description;
+    if (file) complaint.image_path = file.path;
+
+    await complaint.save();
+    return complaint;
+};
+
 const addComment = async (complaintId, userId, message) => {
     const comment = await db.ComplaintComment.create({
         complaint_id: complaintId,
@@ -292,6 +318,7 @@ const deleteComplaint = async (id, societyId, userScope) => {
 module.exports = {
     createComplaint,
     getComplaints,
+    updateComplaint,
     updateStatus,
     addComment,
     deleteComplaint

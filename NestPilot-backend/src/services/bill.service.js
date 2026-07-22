@@ -150,6 +150,35 @@ const publishBill = async (billId, societyId, currentUserId, userScope) => {
     }
 };
 
+// Soft-cancel only — the model already defines a CANCELLED status for this.
+// A published bill can't be cancelled here since MemberBill rows and payment
+// notifications already went out; unpublishing would leave those dangling.
+const deleteBill = async (billId, societyId, userScope) => {
+    const bill = await db.Bill.findOne({
+        where: { id: billId, society_id: societyId },
+        include: [db.BillTarget]
+    });
+    if (!bill) throw new ApiError(404, 'Bill not found');
+    if (bill.status === 'PUBLISHED') throw new ApiError(400, 'Cannot delete a published bill');
+
+    if (userScope && !userScope.unscoped) {
+        const targetHouseIds = bill.BillTargets ? bill.BillTargets.map(t => t.house_id) : [];
+        if (targetHouseIds.length) {
+            const outOfScope = await db.House.count({
+                where: {
+                    id: { [Op.in]: targetHouseIds },
+                    building_id: { [Op.notIn]: userScope.building_ids }
+                }
+            });
+            if (outOfScope > 0) throw new ApiError(403, 'Bill targets houses outside your assigned buildings');
+        }
+    }
+
+    bill.status = 'CANCELLED';
+    await bill.save();
+    return { message: 'Bill deleted' };
+};
+
 const getBillsBySociety = async (societyId, userScope) => {
     const include = [];
     if (userScope && !userScope.unscoped) {
@@ -279,6 +308,7 @@ const getDashboardData = async (societyId, month = null, userScope = null) => {
 module.exports = {
     createBill,
     publishBill,
+    deleteBill,
     getMemberBills,
     getBillsBySociety,
     getDashboardData

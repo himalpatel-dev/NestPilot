@@ -83,12 +83,31 @@ class ApiService {
     List<int>? fileBytes,
     String? fileName,
     String? fileKey,
+  }) => _multipart('POST', endpoint, fields, filePath: filePath, fileBytes: fileBytes, fileName: fileName, fileKey: fileKey);
+
+  Future<Map<String, dynamic>> multipartPut(
+    String endpoint,
+    Map<String, String> fields, {
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
+    String? fileKey,
+  }) => _multipart('PUT', endpoint, fields, filePath: filePath, fileBytes: fileBytes, fileName: fileName, fileKey: fileKey);
+
+  Future<Map<String, dynamic>> _multipart(
+    String method,
+    String endpoint,
+    Map<String, String> fields, {
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
+    String? fileKey,
   }) async {
     final url = Uri.parse('${AppConfig.baseUrl}$endpoint');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
-    var request = http.MultipartRequest('POST', url);
+    var request = http.MultipartRequest(method, url);
     request.headers.addAll({
       if (token != null) 'Authorization': 'Bearer $token',
     });

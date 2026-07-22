@@ -35,6 +35,38 @@ const getAllAmenities = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const updateAmenity = async (req, res, next) => {
+    try {
+        const amenity = await db.Amenity.findOne({
+            where: { id: req.params.id, society_id: req.user.society_id, is_active: true }
+        });
+        if (!amenity) throw new ApiError(404, 'Amenity not found');
+
+        const { name, description, image_url, is_paid, price_per_hour, start_time, end_time } = req.body;
+        if (name !== undefined) amenity.name = name;
+        if (description !== undefined) amenity.description = description;
+        if (image_url !== undefined) amenity.image_url = image_url;
+        if (is_paid !== undefined) amenity.is_paid = is_paid;
+        if (price_per_hour !== undefined) amenity.price_per_hour = price_per_hour;
+        if (start_time !== undefined) amenity.start_time = start_time;
+        if (end_time !== undefined) amenity.end_time = end_time;
+        await amenity.save();
+
+        try {
+            await auditService.logAction(
+                req.user.id,
+                req.user.society_id,
+                'UPDATED',
+                'AMENITY',
+                String(amenity.id),
+                { new_value: { title: amenity.name }, ip_address: req.ip }
+            );
+        } catch (_) {}
+
+        res.status(200).json(new ApiResponse(200, amenity, 'Amenity updated successfully'));
+    } catch (e) { next(e); }
+};
+
 // Soft delete — existing bookings are left intact.
 const deleteAmenity = async (req, res, next) => {
     try {
@@ -167,6 +199,7 @@ const updateBookingStatus = async (req, res, next) => {
 module.exports = {
     createAmenity,
     getAllAmenities,
+    updateAmenity,
     deleteAmenity,
     createBooking,
     getMyBookings,

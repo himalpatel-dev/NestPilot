@@ -12,6 +12,7 @@ router.get('/', hasPermission('BILLS', 'view'), controller.getAll);
 router.get('/dashboard', hasPermission('BILLS', 'view'), controller.getDashboard);
 router.get('/user/:userId', hasPermission('BILLS', 'view'), controller.getUserBills);
 router.post('/:id/publish', hasPermission('BILLS', 'manage'), controller.publish);
+router.delete('/:id', hasPermission('BILLS', 'manage'), controller.remove);
 
 // Member Bills (always available to the authenticated user for their own bills)
 router.get('/my', controller.getMyBills);
