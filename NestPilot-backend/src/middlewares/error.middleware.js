@@ -11,6 +11,15 @@ const errorHandler = (err, req, res, next) => {
         error = new ApiError(statusCode, message, errors, error.stack);
     }
 
+    // Multer file-upload errors (e.g. LIMIT_FILE_SIZE) — surfaced as a clean
+    // 400 instead of falling through to a generic 500.
+    if (error.name === 'MulterError') {
+        const message = error.code === 'LIMIT_FILE_SIZE'
+            ? 'File is too large'
+            : error.message;
+        error = new ApiError(400, message, [], error.stack);
+    }
+
     if (!(error instanceof ApiError)) {
         const statusCode = error.statusCode || 500;
         const message = error.message || "Internal Server Error";

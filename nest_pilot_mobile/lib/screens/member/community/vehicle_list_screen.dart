@@ -5,6 +5,7 @@ import '../../../theme/nest_loader.dart';
 import '../../../models/community_models.dart';
 import '../../../services/community_service.dart';
 import '../../../services/permission_service.dart';
+import '../../../services/session_service.dart';
 import '../../../config/modules.dart';
 import '../../../widgets/module_page_header.dart';
 import '../../../widgets/app_field_card.dart';
@@ -104,6 +105,19 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     final carCount = _vehicles.where((v) => v.type == 'CAR').length;
     final bikeCount = _vehicles.where((v) => v.type == 'BIKE').length;
 
+    // A manager sees every vehicle in the society (getAllVehicles), which
+    // mixes their own registration in among everyone else's — split it into
+    // "My Vehicles" / "Society Vehicles" so it doesn't read as one pile.
+    // A plain member's list is already scoped to just their own vehicles by
+    // the backend, so there's nothing to split there.
+    final myUserId = int.tryParse(SessionService().currentUser?.id ?? '');
+    final myVehicles = canManage
+        ? _vehicles.where((v) => v.userId == myUserId).toList()
+        : _vehicles;
+    final otherVehicles = canManage
+        ? _vehicles.where((v) => v.userId != myUserId).toList()
+        : const <Vehicle>[];
+
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
       body: RefreshIndicator(
@@ -131,16 +145,44 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
               const SliverFillRemaining(child: NestLoader())
             else if (_vehicles.isEmpty)
               SliverFillRemaining(child: _buildEmpty(canManage))
-            else
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 90),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _buildCard(_vehicles[i], canManage),
-                    childCount: _vehicles.length,
+            else ...[
+              if (myVehicles.isNotEmpty) ...[
+                if (canManage)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    sliver: const SliverToBoxAdapter(
+                      child: AppSectionHeader('My Vehicles'),
+                    ),
+                  ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(16, canManage ? 12 : 20, 16, 0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, i) => _buildCard(myVehicles[i], canManage),
+                      childCount: myVehicles.length,
+                    ),
                   ),
                 ),
-              ),
+              ],
+              if (otherVehicles.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: AppSectionHeader('Society Vehicles'),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, i) => _buildCard(otherVehicles[i], canManage),
+                      childCount: otherVehicles.length,
+                    ),
+                  ),
+                ),
+              ],
+              SliverToBoxAdapter(child: SizedBox(height: bottomPad + 90)),
+            ],
           ],
         ),
       ),
@@ -215,7 +257,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            v.vehicleNumber,
+                            v.displayNumber,
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 15,

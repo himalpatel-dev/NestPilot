@@ -22,7 +22,12 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
-const uploadMiddleware = multer({ storage: storage });
+// 20MB — documents (scanned PDFs, audit reports) tend to run larger than the
+// 5MB cap notices/complaints use, but still bounded rather than unlimited.
+const uploadMiddleware = multer({
+    storage: storage,
+    limits: { fileSize: 20 * 1024 * 1024 }
+});
 
 router.use(auth);
 

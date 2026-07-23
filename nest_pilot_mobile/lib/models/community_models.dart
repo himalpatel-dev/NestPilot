@@ -1,5 +1,6 @@
 class Vehicle {
   final int id;
+  final int userId;
   final String vehicleNumber;
   final String type; // CAR, BIKE, OTHER
   final String? brand;
@@ -14,6 +15,7 @@ class Vehicle {
 
   Vehicle({
     required this.id,
+    required this.userId,
     required this.vehicleNumber,
     required this.type,
     this.brand,
@@ -43,6 +45,7 @@ class Vehicle {
 
     return Vehicle(
       id: json['id'],
+      userId: json['user_id'],
       vehicleNumber: json['vehicle_number'],
       type: json['type'],
       brand: json['brand'],
@@ -63,6 +66,25 @@ class Vehicle {
       'model': model,
       'sticker_number': stickerNumber,
     };
+  }
+
+  /// Dash-separated for display only, e.g. GJ01AB1234 -> GJ-01-AB-1234 — a
+  /// dash is inserted at every letter/digit transition. [vehicleNumber]
+  /// itself (what's stored and sent to the backend) is never touched.
+  String get displayNumber {
+    final clean = vehicleNumber
+        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+        .toUpperCase();
+    if (clean.isEmpty) return clean;
+
+    final buffer = StringBuffer(clean[0]);
+    for (int i = 1; i < clean.length; i++) {
+      final prevIsDigit = int.tryParse(clean[i - 1]) != null;
+      final curIsDigit = int.tryParse(clean[i]) != null;
+      if (prevIsDigit != curIsDigit) buffer.write('-');
+      buffer.write(clean[i]);
+    }
+    return buffer.toString();
   }
 }
 
@@ -373,4 +395,3 @@ class Document {
     );
   }
 }
-

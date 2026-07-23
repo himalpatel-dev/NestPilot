@@ -171,6 +171,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
             searchController: _searchController,
             onSearchChanged: (v) => setState(() => _query = v),
           ),
+          const SizedBox(height: 12),
           Expanded(
             child: _isLoading
                 ? const Center(child: NestLoader())

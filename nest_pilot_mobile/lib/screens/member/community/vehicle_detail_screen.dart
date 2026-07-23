@@ -102,7 +102,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      v.vehicleNumber,
+                      v.displayNumber,
                       style: TextStyle(
                         color: AppColors.white.withValues(alpha: 0.80),
                         fontSize: 13,
@@ -253,7 +253,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    v.vehicleNumber,
+                                    v.displayNumber,
                                     style: const TextStyle(
                                       color: AppColors.textPrimary,
                                       fontSize: 22,
