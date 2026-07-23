@@ -4,7 +4,7 @@ const ApiError = require('../utils/ApiError');
 
 const addVehicle = async (req, res, next) => {
     try {
-        const { vehicle_number, type, brand, model, sticker_number } = req.body;
+        const { vehicle_number, type, brand, model } = req.body;
 
         const existing = await db.Vehicle.findOne({
             where: { vehicle_number, society_id: req.user.society_id }
@@ -17,9 +17,20 @@ const addVehicle = async (req, res, next) => {
             vehicle_number,
             type,
             brand,
-            model,
-            sticker_number
+            model
         });
+
+        // Generated here (not accepted from the client) so it can include the
+        // vehicle's own id — otherwise every vehicle a resident registers
+        // would carry an identical sticker, since flat/society/user alone
+        // don't vary between a resident's own vehicles.
+        const mapping = await db.UserHouseMapping.findOne({
+            where: { user_id: req.user.id, is_active: true },
+            include: [{ model: db.House, attributes: ['house_no'] }]
+        });
+        const flatLabel = mapping?.House?.house_no || 'NA';
+        vehicle.sticker_number = `${flatLabel}-${req.user.society_id}-${req.user.id}-${vehicle.id}`;
+        await vehicle.save();
 
         res.status(201).json(new ApiResponse(201, vehicle, 'Vehicle added successfully'));
     } catch (e) { next(e); }
@@ -82,7 +93,8 @@ const updateVehicle = async (req, res, next) => {
         const vehicle = await findVehicleInScope(req, { is_active: true });
         if (!vehicle) throw new ApiError(404, 'Vehicle not found');
 
-        const { vehicle_number, type, brand, model, sticker_number } = req.body;
+        // sticker_number is system-generated (see addVehicle) and not editable.
+        const { vehicle_number, type, brand, model } = req.body;
 
         if (vehicle_number !== undefined && vehicle_number !== vehicle.vehicle_number) {
             const existing = await db.Vehicle.findOne({
@@ -94,7 +106,6 @@ const updateVehicle = async (req, res, next) => {
         if (type !== undefined) vehicle.type = type;
         if (brand !== undefined) vehicle.brand = brand;
         if (model !== undefined) vehicle.model = model;
-        if (sticker_number !== undefined) vehicle.sticker_number = sticker_number;
 
         await vehicle.save();
         res.status(200).json(new ApiResponse(200, vehicle, 'Vehicle updated successfully'));

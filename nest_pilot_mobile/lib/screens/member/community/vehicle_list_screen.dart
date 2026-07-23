@@ -4,7 +4,6 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/nest_loader.dart';
 import '../../../models/community_models.dart';
 import '../../../services/community_service.dart';
-import '../../../services/auth_service.dart';
 import '../../../services/permission_service.dart';
 import '../../../config/modules.dart';
 import '../../../widgets/module_page_header.dart';
@@ -429,15 +428,12 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
           'type': _selectedType,
         });
       } else {
-        final user = await AuthService().getMe();
-        if (user == null) throw Exception('Could not load your profile');
-        final stickerNumber =
-            '${user.flatNumber ?? 'N/A'}-${user.societyId ?? 'N/A'}-${user.id}';
+        // sticker_number is generated server-side (flat/society/user/vehicle
+        // id) so it's unique per vehicle, not just per resident.
         await CommunityService().addVehicle({
           'vehicle_number': _numberCtrl.text.trim().toUpperCase(),
           'model': _modelCtrl.text.trim(),
           'type': _selectedType,
-          'sticker_number': stickerNumber,
         });
       }
       widget.onSaved();
