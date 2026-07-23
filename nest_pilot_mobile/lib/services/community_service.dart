@@ -24,8 +24,18 @@ class CommunityService {
     }
   }
 
+  Future<void> updateVehicle(int id, Map<String, dynamic> data) async {
+    final response = await _apiService.put(
+      ApiEndpoints.vehicleDetail(id),
+      data,
+    );
+    if (!response['success']) {
+      throw Exception(response['message']);
+    }
+  }
+
   Future<void> deleteVehicle(int id) async {
-    final response = await _apiService.delete(ApiEndpoints.deleteVehicle(id));
+    final response = await _apiService.delete(ApiEndpoints.vehicleDetail(id));
     if (!response['success']) {
       throw Exception(response['message']);
     }
@@ -176,6 +186,13 @@ class CommunityService {
       ApiEndpoints.pollDetail(pollId),
       data,
     );
+    if (!response['success']) {
+      throw Exception(response['message']);
+    }
+  }
+
+  Future<void> deletePoll(int pollId) async {
+    final response = await _apiService.delete(ApiEndpoints.pollDetail(pollId));
     if (!response['success']) {
       throw Exception(response['message']);
     }

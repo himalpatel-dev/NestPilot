@@ -54,7 +54,7 @@ class ApiEndpoints {
   // Vehicles
   static const String vehicles = '/api/vehicles';
   static const String allVehicles = '/api/vehicles/all';
-  static String deleteVehicle(int id) => '/api/vehicles/$id';
+  static String vehicleDetail(int id) => '/api/vehicles/$id';
 
   // Visitors
   static const String visitors = '/api/visitors';

@@ -247,6 +247,7 @@ class _EventManageScreenState extends State<EventManageScreen> {
                               ? const EdgeInsets.only(right: 32)
                               : EdgeInsets.zero,
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 child: Text(
@@ -326,12 +327,11 @@ class _EventManageScreenState extends State<EventManageScreen> {
                                           fontSize: 11.5,
                                         ),
                                       ),
-                                      const Text(
-                                        '  ·  ',
-                                        style: TextStyle(
-                                          color: AppColors.textMuted,
-                                        ),
-                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
                                       const Icon(
                                         Icons.location_on_outlined,
                                         size: 11,

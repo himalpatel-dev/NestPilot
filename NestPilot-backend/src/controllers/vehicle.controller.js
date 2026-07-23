@@ -50,10 +50,15 @@ const getMyVehicles = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
-// Scope mirrors deleteVehicle: a caller may only touch a vehicle belonging
-// to their own household, not any vehicle in the society.
-const updateVehicle = async (req, res, next) => {
-    try {
+// MEMBERs may only touch a vehicle belonging to their own household;
+// everyone else (secretary/admin, per hasPermission('VEHICLES','manage'))
+// can act on any vehicle in the society, mirroring what getAllVehicles
+// already shows them.
+const findVehicleInScope = async (req, extraWhere = {}) => {
+    const isMember = req.user?.Role?.code === 'MEMBER';
+    const where = { id: req.params.id, ...extraWhere };
+
+    if (isMember) {
         const userHouses = await db.UserHouseMapping.findAll({
             where: { user_id: req.user.id, is_active: true },
             attributes: ['house_id']
@@ -64,11 +69,17 @@ const updateVehicle = async (req, res, next) => {
             where: { house_id: houseIds, is_active: true },
             attributes: ['user_id']
         });
-        const userIds = [...new Set(houseMappings.map(hm => hm.user_id))];
+        where.user_id = [...new Set(houseMappings.map(hm => hm.user_id))];
+    } else {
+        where.society_id = req.user.society_id;
+    }
 
-        const vehicle = await db.Vehicle.findOne({
-            where: { id: req.params.id, user_id: userIds, is_active: true }
-        });
+    return db.Vehicle.findOne({ where });
+};
+
+const updateVehicle = async (req, res, next) => {
+    try {
+        const vehicle = await findVehicleInScope(req, { is_active: true });
         if (!vehicle) throw new ApiError(404, 'Vehicle not found');
 
         const { vehicle_number, type, brand, model, sticker_number } = req.body;
@@ -92,21 +103,7 @@ const updateVehicle = async (req, res, next) => {
 
 const deleteVehicle = async (req, res, next) => {
     try {
-        const userHouses = await db.UserHouseMapping.findAll({
-            where: { user_id: req.user.id, is_active: true },
-            attributes: ['house_id']
-        });
-        const houseIds = userHouses.map(uh => uh.house_id);
-
-        const houseMappings = await db.UserHouseMapping.findAll({
-            where: { house_id: houseIds, is_active: true },
-            attributes: ['user_id']
-        });
-        const userIds = [...new Set(houseMappings.map(hm => hm.user_id))];
-
-        const vehicle = await db.Vehicle.findOne({
-            where: { id: req.params.id, user_id: userIds }
-        });
+        const vehicle = await findVehicleInScope(req);
         if (!vehicle) throw new ApiError(404, 'Vehicle not found');
 
         vehicle.is_active = false;
