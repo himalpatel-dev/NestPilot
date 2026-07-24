@@ -158,15 +158,21 @@ class VisitorLog {
   }
 }
 
+/// SLOT = fixed hourly slots within a daily window (gym, yoga, courts).
+/// FULL_DAY = booked for whole date(s) as needed (banquet hall, common plot).
 class Amenity {
   final int id;
   final String name;
   final String? description;
   final String? imageUrl;
   final bool isPaid;
+  final String bookingType;
   final double pricePerHour;
-  final String startTime;
-  final String endTime;
+  final double pricePerDay;
+  final String? startTime;
+  final String? endTime;
+
+  bool get isFullDay => bookingType == 'FULL_DAY';
 
   Amenity({
     required this.id,
@@ -174,9 +180,11 @@ class Amenity {
     this.description,
     this.imageUrl,
     required this.isPaid,
+    this.bookingType = 'SLOT',
     required this.pricePerHour,
-    required this.startTime,
-    required this.endTime,
+    this.pricePerDay = 0.0,
+    this.startTime,
+    this.endTime,
   });
 
   factory Amenity.fromJson(Map<String, dynamic> json) {
@@ -186,8 +194,12 @@ class Amenity {
       description: json['description'],
       imageUrl: json['image_url'],
       isPaid: json['is_paid'] ?? false,
+      bookingType: json['booking_type'] ?? 'SLOT',
       pricePerHour: (json['price_per_hour'] != null)
           ? double.parse(json['price_per_hour'].toString())
+          : 0.0,
+      pricePerDay: (json['price_per_day'] != null)
+          ? double.parse(json['price_per_day'].toString())
           : 0.0,
       startTime: json['start_time'],
       endTime: json['end_time'],
@@ -200,8 +212,9 @@ class Booking {
   final int amenityId;
   final Amenity? amenity;
   final String date;
-  final String startTime;
-  final String endTime;
+  final String? endDate;
+  final String? startTime;
+  final String? endTime;
   final String status;
   final double amount;
 
@@ -209,13 +222,16 @@ class Booking {
   final String? userName;
   final String? userMobile;
 
+  bool get isFullDay => startTime == null;
+
   Booking({
     required this.id,
     required this.amenityId,
     this.amenity,
     required this.date,
-    required this.startTime,
-    required this.endTime,
+    this.endDate,
+    this.startTime,
+    this.endTime,
     required this.status,
     required this.amount,
     this.userName,
@@ -238,6 +254,7 @@ class Booking {
           ? Amenity.fromJson(json['Amenity'])
           : null,
       date: json['date'],
+      endDate: json['end_date'],
       startTime: json['start_time'],
       endTime: json['end_time'],
       status: json['status'],

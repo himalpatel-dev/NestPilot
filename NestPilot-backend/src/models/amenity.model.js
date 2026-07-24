@@ -31,17 +31,28 @@ module.exports = (sequelize) => {
             type: DataTypes.BOOLEAN,
             defaultValue: false
         },
+        // SLOT = fixed hourly slots within a daily window (gym, yoga, courts)
+        // FULL_DAY = booked for whole date(s) as needed (banquet hall, common plot)
+        booking_type: {
+            type: DataTypes.ENUM('SLOT', 'FULL_DAY'),
+            defaultValue: 'SLOT',
+            allowNull: false
+        },
         price_per_hour: {
             type: DataTypes.DECIMAL(10, 2),
             defaultValue: 0.00
         },
+        price_per_day: {
+            type: DataTypes.DECIMAL(10, 2),
+            defaultValue: 0.00
+        },
         start_time: {
-            type: DataTypes.TIME, // '09:00:00'
-            allowNull: false
+            type: DataTypes.TIME, // '09:00:00' — only used when booking_type = SLOT
+            allowNull: true
         },
         end_time: {
-            type: DataTypes.TIME, // '22:00:00'
-            allowNull: false
+            type: DataTypes.TIME, // '22:00:00' — only used when booking_type = SLOT
+            allowNull: true
         },
         is_active: {
             type: DataTypes.BOOLEAN,

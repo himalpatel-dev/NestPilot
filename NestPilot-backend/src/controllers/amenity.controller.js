@@ -42,12 +42,14 @@ const updateAmenity = async (req, res, next) => {
         });
         if (!amenity) throw new ApiError(404, 'Amenity not found');
 
-        const { name, description, image_url, is_paid, price_per_hour, start_time, end_time } = req.body;
+        const { name, description, image_url, is_paid, booking_type, price_per_hour, price_per_day, start_time, end_time } = req.body;
         if (name !== undefined) amenity.name = name;
         if (description !== undefined) amenity.description = description;
         if (image_url !== undefined) amenity.image_url = image_url;
         if (is_paid !== undefined) amenity.is_paid = is_paid;
+        if (booking_type !== undefined) amenity.booking_type = booking_type;
         if (price_per_hour !== undefined) amenity.price_per_hour = price_per_hour;
+        if (price_per_day !== undefined) amenity.price_per_day = price_per_day;
         if (start_time !== undefined) amenity.start_time = start_time;
         if (end_time !== undefined) amenity.end_time = end_time;
         await amenity.save();
@@ -98,53 +100,122 @@ const deleteAmenity = async (req, res, next) => {
 const createBooking = async (req, res, next) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const { amenity_id, date, start_time, end_time } = req.body;
+        const { amenity_id, date, end_date, start_time, end_time } = req.body;
 
         const amenity = await db.Amenity.findByPk(amenity_id);
         if (!amenity) throw new ApiError(404, 'Amenity not found');
 
-        // Check availability (Basic overlap check)
-        const existingBooking = await db.Booking.findOne({
-            where: {
-                amenity_id,
-                date,
-                status: { [Op.notIn]: ['CANCELLED', 'REJECTED'] },
-                [Op.or]: [
-                    {
-                        start_time: { [Op.lt]: end_time },
-                        end_time: { [Op.gt]: start_time }
-                    }
-                ]
-            }
-        });
-
-        if (existingBooking) throw new ApiError(400, 'Slot already booked');
-
-        // Calculate Cost
-        let amount = 0;
-        let payment_status = 'NOT_APPLICABLE';
-
-        if (amenity.is_paid) {
-            // Simple logic: assume hourly blocks for now or flat rate. 
-            // For MVP, let's just take price_per_hour * duration
-            const start = new Date(`1970-01-01T${start_time}Z`);
-            const end = new Date(`1970-01-01T${end_time}Z`);
-            const hours = (end - start) / 36e5;
-            amount = hours * amenity.price_per_hour;
-            payment_status = 'PENDING';
-        }
-
-        const booking = await db.Booking.create({
+        const bookingData = {
             user_id: req.user.id,
             society_id: req.user.society_id,
             amenity_id,
-            date,
-            start_time,
-            end_time,
-            amount,
-            payment_status,
-            status: amenity.is_paid ? 'PENDING' : 'CONFIRMED' // Auto-confirm free bookings
-        }, { transaction });
+            date
+        };
+        let amount = 0;
+
+        if (amenity.booking_type === 'FULL_DAY') {
+            // Hall / plot style — either the whole date(s), or just a few hours on one date.
+            const isHourly = !!(start_time && end_time);
+
+            if (isHourly) {
+                // Block if the date is already covered by a whole-day booking.
+                const wholeDayConflict = await db.Booking.findOne({
+                    where: {
+                        amenity_id,
+                        status: { [Op.notIn]: ['CANCELLED', 'REJECTED'] },
+                        start_time: null,
+                        date: { [Op.lte]: date },
+                        end_date: { [Op.gte]: date }
+                    }
+                });
+                if (wholeDayConflict) throw new ApiError(400, 'Already booked for the whole day on this date');
+
+                // Block if another hourly booking overlaps the requested time on this date.
+                const hourlyConflict = await db.Booking.findOne({
+                    where: {
+                        amenity_id,
+                        date,
+                        status: { [Op.notIn]: ['CANCELLED', 'REJECTED'] },
+                        start_time: { [Op.ne]: null },
+                        [Op.or]: [
+                            {
+                                start_time: { [Op.lt]: end_time },
+                                end_time: { [Op.gt]: start_time }
+                            }
+                        ]
+                    }
+                });
+                if (hourlyConflict) throw new ApiError(400, 'Slot already booked');
+
+                if (amenity.is_paid) {
+                    const start = new Date(`1970-01-01T${start_time}Z`);
+                    const end = new Date(`1970-01-01T${end_time}Z`);
+                    const hours = (end - start) / 36e5;
+                    amount = hours * amenity.price_per_hour;
+                }
+
+                bookingData.start_time = start_time;
+                bookingData.end_time = end_time;
+            } else {
+                const rangeEnd = end_date || date;
+                if (new Date(rangeEnd) < new Date(date)) {
+                    throw new ApiError(400, 'End date cannot be before start date');
+                }
+
+                // Block if any booking (whole-day or hourly) falls within the requested range.
+                const existingBooking = await db.Booking.findOne({
+                    where: {
+                        amenity_id,
+                        status: { [Op.notIn]: ['CANCELLED', 'REJECTED'] },
+                        date: { [Op.lte]: rangeEnd },
+                        [Op.or]: [
+                            { end_date: { [Op.gte]: date } },
+                            { end_date: null, date: { [Op.gte]: date } }
+                        ]
+                    }
+                });
+                if (existingBooking) throw new ApiError(400, 'Already booked for the selected date(s)');
+
+                const days = Math.round((new Date(rangeEnd) - new Date(date)) / 86400000) + 1;
+                if (amenity.is_paid) amount = days * amenity.price_per_day;
+
+                bookingData.end_date = rangeEnd;
+            }
+        } else {
+            // Fixed-slot booking (gym, yoga, courts, etc.)
+            if (!start_time || !end_time) throw new ApiError(400, 'start_time and end_time are required');
+
+            const existingBooking = await db.Booking.findOne({
+                where: {
+                    amenity_id,
+                    date,
+                    status: { [Op.notIn]: ['CANCELLED', 'REJECTED'] },
+                    [Op.or]: [
+                        {
+                            start_time: { [Op.lt]: end_time },
+                            end_time: { [Op.gt]: start_time }
+                        }
+                    ]
+                }
+            });
+            if (existingBooking) throw new ApiError(400, 'Slot already booked');
+
+            if (amenity.is_paid) {
+                const start = new Date(`1970-01-01T${start_time}Z`);
+                const end = new Date(`1970-01-01T${end_time}Z`);
+                const hours = (end - start) / 36e5;
+                amount = hours * amenity.price_per_hour;
+            }
+
+            bookingData.start_time = start_time;
+            bookingData.end_time = end_time;
+        }
+
+        bookingData.amount = amount;
+        bookingData.payment_status = amenity.is_paid ? 'PENDING' : 'NOT_APPLICABLE';
+        bookingData.status = amenity.is_paid ? 'PENDING' : 'CONFIRMED'; // Auto-confirm free bookings
+
+        const booking = await db.Booking.create(bookingData, { transaction });
 
         await transaction.commit();
         res.status(201).json(new ApiResponse(201, booking, 'Booking request created'));

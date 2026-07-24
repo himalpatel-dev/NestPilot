@@ -28,16 +28,21 @@ module.exports = (sequelize) => {
             allowNull: false
         },
         date: {
-            type: DataTypes.DATEONLY, // '2023-10-25'
+            type: DataTypes.DATEONLY, // '2023-10-25' — start date for FULL_DAY bookings
             allowNull: false
+        },
+        // FULL_DAY bookings only: last date covered (inclusive). Equals `date` for a single-day booking.
+        end_date: {
+            type: DataTypes.DATEONLY,
+            allowNull: true
         },
         start_time: {
-            type: DataTypes.TIME,
-            allowNull: false
+            type: DataTypes.TIME, // SLOT bookings only
+            allowNull: true
         },
         end_time: {
-            type: DataTypes.TIME,
-            allowNull: false
+            type: DataTypes.TIME, // SLOT bookings only
+            allowNull: true
         },
         status: {
             type: DataTypes.ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED'),

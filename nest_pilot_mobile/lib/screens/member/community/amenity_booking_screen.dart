@@ -70,6 +70,90 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   }
 
   Future<void> _bookAmenity(Amenity amenity) async {
+    if (amenity.isFullDay) {
+      final mode = await _chooseFullDayBookingMode(amenity);
+      if (mode == null) return;
+      if (mode == 'HOURLY') {
+        // Same request shape as a SLOT booking — the backend tells FULL_DAY
+        // amenities apart by whether start_time/end_time are present.
+        await _bookSlotAmenity(amenity);
+      } else {
+        await _bookFullDayAmenity(amenity);
+      }
+    } else {
+      await _bookSlotAmenity(amenity);
+    }
+  }
+
+  Future<String?> _chooseFullDayBookingMode(Amenity amenity) {
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Book ${amenity.name}'),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.event_available_rounded, color: AppColors.primary),
+              title: const Text('Whole Day / Multiple Days'),
+              subtitle: Text(
+                amenity.isPaid ? '₹${amenity.pricePerDay}/day' : 'Free',
+              ),
+              onTap: () => Navigator.pop(ctx, 'WHOLE_DAY'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.access_time_rounded, color: AppColors.primary),
+              title: const Text('Specific Hours'),
+              subtitle: Text(
+                amenity.isPaid ? '₹${amenity.pricePerHour}/hr' : 'Free',
+              ),
+              onTap: () => Navigator.pop(ctx, 'HOURLY'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Hall / common plot style booking — no fixed time, just the date(s) needed.
+  Future<void> _bookFullDayAmenity(Amenity amenity) async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      initialDateRange: DateTimeRange(start: now, end: now),
+      helpText: 'Select date(s) for ${amenity.name}',
+    );
+    if (picked == null) return;
+
+    try {
+      await _service.bookAmenity({
+        'amenity_id': amenity.id,
+        'date': DateFormat('yyyy-MM-dd').format(picked.start),
+        'end_date': DateFormat('yyyy-MM-dd').format(picked.end),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking requested!')));
+      _fetchData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _bookSlotAmenity(Amenity amenity) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -99,11 +183,13 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
         'end_time':
             '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}:00',
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Booking requested!')));
       _fetchData();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -196,7 +282,13 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
                   a.name,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(a.isPaid ? '₹${a.pricePerHour}/hr' : 'Free'),
+                subtitle: Text(
+                  a.isPaid
+                      ? (a.isFullDay
+                          ? '₹${a.pricePerDay}/day · ₹${a.pricePerHour}/hr'
+                          : '₹${a.pricePerHour}/hr')
+                      : 'Free',
+                ),
                 trailing: PermissionService().canManage(ModuleCodes.amenities)
                     ? ElevatedButton(
                         onPressed: () => _bookAmenity(a),
@@ -221,7 +313,13 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: ListTile(
             title: Text(b.amenity?.name ?? 'Unknown'),
-            subtitle: Text('${b.date} (${b.startTime} - ${b.endTime})'),
+            subtitle: Text(
+              b.isFullDay
+                  ? (b.endDate != null && b.endDate != b.date
+                      ? '${b.date} to ${b.endDate}'
+                      : b.date)
+                  : '${b.date} (${b.startTime} - ${b.endTime})',
+            ),
             trailing: Chip(
               label: Text(b.status),
               backgroundColor: b.status == 'CONFIRMED'

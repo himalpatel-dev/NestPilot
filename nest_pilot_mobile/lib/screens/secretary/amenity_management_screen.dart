@@ -300,7 +300,11 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              isPaid ? "₹${amenity.pricePerHour}/hr" : "Free",
+                              isPaid
+                                  ? (amenity.isFullDay
+                                      ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
+                                      : "₹${amenity.pricePerHour}/hr")
+                                  : "Free",
                               style: TextStyle(
                                 color: isPaid ? AppColors.warning : AppColors.success,
                                 fontSize: 11,
@@ -326,14 +330,18 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.access_time_rounded,
+                          Icon(
+                            amenity.isFullDay
+                                ? Icons.event_available_rounded
+                                : Icons.access_time_rounded,
                             size: 14,
                             color: AppColors.textSecondary,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Timing: ${amenity.startTime} - ${amenity.endTime}',
+                            amenity.isFullDay
+                                ? 'Full-day booking (as per requirement)'
+                                : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -424,7 +432,11 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4.0),
               child: Text(
-                '${booking.date} (${booking.startTime} - ${booking.endTime})',
+                booking.isFullDay
+                    ? (booking.endDate != null && booking.endDate != booking.date
+                        ? '${booking.date} to ${booking.endDate}'
+                        : booking.date)
+                    : '${booking.date} (${booking.startTime} - ${booking.endTime})',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -643,9 +655,11 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _priceController = TextEditingController();
+  final _priceController = TextEditingController(); // price per hour
+  final _dailyPriceController = TextEditingController(); // price per day (FULL_DAY only)
 
   bool _isPaid = false;
+  String _bookingType = 'SLOT';
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 22, minute: 0);
   bool _isLoading = false;
@@ -714,6 +728,40 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
                 ),
               ),
               const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Booking Type',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _bookingTypeOption(
+                      label: 'Hourly Slot',
+                      subtitle: 'Gym, yoga, courts…',
+                      icon: Icons.access_time_rounded,
+                      value: 'SLOT',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _bookingTypeOption(
+                      label: 'Full Day',
+                      subtitle: 'Hall, common plot…',
+                      icon: Icons.event_available_rounded,
+                      value: 'FULL_DAY',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               SwitchListTile(
                 title: const Text(
                   'Paid Amenity?',
@@ -731,12 +779,34 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
                 },
               ),
               if (_isPaid) ...[
+                if (_bookingType == 'FULL_DAY') ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _dailyPriceController,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Price Per Day (whole-day booking)',
+                      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      prefixText: '₹ ',
+                      prefixStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                      filled: true,
+                      fillColor: AppColors.white,
+                      enabledBorder: borderStyle,
+                      focusedBorder: focusBorderStyle,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (val) => val!.isEmpty ? 'Required' : null,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _priceController,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                   decoration: InputDecoration(
-                    labelText: 'Price Per Hour',
+                    labelText: _bookingType == 'FULL_DAY'
+                        ? 'Price Per Hour (for partial-day bookings)'
+                        : 'Price Per Hour',
                     labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                     prefixText: '₹ ',
                     prefixStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
@@ -750,56 +820,68 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
                   validator: (val) => val!.isEmpty ? 'Required' : null,
                 ),
               ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
-                      label: Text(
-                        'Start: ${_startTime.format(context)}',
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+              if (_bookingType == 'SLOT') ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                        label: Text(
+                          'Start: ${_startTime.format(context)}',
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: AppColors.white,
+                        ),
+                        onPressed: () async {
+                          final t = await showTimePicker(
+                            context: context,
+                            initialTime: _startTime,
+                          );
+                          if (t != null) setState(() => _startTime = t);
+                        },
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: AppColors.white,
-                      ),
-                      onPressed: () async {
-                        final t = await showTimePicker(
-                          context: context,
-                          initialTime: _startTime,
-                        );
-                        if (t != null) setState(() => _startTime = t);
-                      },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
-                      label: Text(
-                        'End: ${_endTime.format(context)}',
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                        label: Text(
+                          'End: ${_endTime.format(context)}',
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: AppColors.white,
+                        ),
+                        onPressed: () async {
+                          final t = await showTimePicker(
+                            context: context,
+                            initialTime: _endTime,
+                          );
+                          if (t != null) setState(() => _endTime = t);
+                        },
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: AppColors.white,
-                      ),
-                      onPressed: () async {
-                        final t = await showTimePicker(
-                          context: context,
-                          initialTime: _endTime,
-                        );
-                        if (t != null) setState(() => _endTime = t);
-                      },
                     ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Members can request either the whole day (or several days) or just a few specific hours — no fixed timing needed.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.3,
                   ),
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
@@ -839,26 +921,80 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
     );
   }
 
+  Widget _bookingTypeOption({
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required String value,
+  }) {
+    final selected = _bookingType == value;
+    return GestureDetector(
+      onTap: () => setState(() => _bookingType = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: selected ? AppColors.primary : AppColors.textSecondary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppColors.primaryDark : AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 10.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final startStr =
-          '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00';
-      final endStr =
-          '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}:00';
-
-      await CommunityService().createAmenity({
+      final payload = <String, dynamic>{
         'name': _nameController.text,
         'description': _descController.text,
         'is_paid': _isPaid,
-        'price_per_hour': _isPaid ? double.parse(_priceController.text) : 0,
-        'start_time': startStr,
-        'end_time': endStr,
+        'booking_type': _bookingType,
         'is_active': true,
-      });
+      };
+
+      // price_per_hour applies to SLOT amenities and to partial-day bookings of a
+      // FULL_DAY amenity, so it's sent for both types.
+      payload['price_per_hour'] = _isPaid ? double.parse(_priceController.text) : 0;
+
+      if (_bookingType == 'FULL_DAY') {
+        payload['price_per_day'] = _isPaid ? double.parse(_dailyPriceController.text) : 0;
+      } else {
+        payload['start_time'] =
+            '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00';
+        payload['end_time'] =
+            '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}:00';
+      }
+
+      await CommunityService().createAmenity(payload);
 
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
