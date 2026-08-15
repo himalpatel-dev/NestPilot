@@ -120,71 +120,89 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      body: RefreshIndicator(
-        onRefresh: _fetch,
-        color: AppColors.white,
-        backgroundColor: AppColors.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: ModulePageHeader(
-                title: 'Vehicles',
-                description: 'Registered vehicles & parking stickers',
-                icon: Icons.directions_car_rounded,
-                iconColor: ModuleColors.vehicles,
-                stats: [
-                  ModuleHeaderStat('$carCount', 'CARS'),
-                  ModuleHeaderStat('$bikeCount', 'BIKES'),
-                  ModuleHeaderStat('$total', 'TOTAL'),
+      // Header stays pinned; only the vehicle cards scroll.
+      body: Column(
+        children: [
+          ModulePageHeader(
+            title: 'Vehicles',
+            description: 'Registered vehicles & parking stickers',
+            icon: Icons.directions_car_rounded,
+            iconColor: ModuleColors.vehicles,
+            stats: [
+              ModuleHeaderStat('$carCount', 'CARS'),
+              ModuleHeaderStat('$bikeCount', 'BIKES'),
+              ModuleHeaderStat('$total', 'TOTAL'),
+            ],
+            showSearch: false,
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetch,
+              color: AppColors.white,
+              backgroundColor: AppColors.primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (_isLoading)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: NestLoader(),
+                    )
+                  else if (_vehicles.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildEmpty(canManage),
+                    )
+                  else ...[
+                    if (myVehicles.isNotEmpty) ...[
+                      if (canManage)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                          sliver: const SliverToBoxAdapter(
+                            child: AppSectionHeader('My Vehicles'),
+                          ),
+                        ),
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          canManage ? 12 : 20,
+                          16,
+                          0,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (ctx, i) => _buildCard(myVehicles[i], canManage),
+                            childCount: myVehicles.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (otherVehicles.isNotEmpty) ...[
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: AppSectionHeader('Society Vehicles'),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (ctx, i) => _buildCard(otherVehicles[i], canManage),
+                            childCount: otherVehicles.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: bottomPad + 90),
+                    ),
+                  ],
                 ],
-                showSearch: false,
               ),
             ),
-            if (_isLoading)
-              const SliverFillRemaining(child: NestLoader())
-            else if (_vehicles.isEmpty)
-              SliverFillRemaining(child: _buildEmpty(canManage))
-            else ...[
-              if (myVehicles.isNotEmpty) ...[
-                if (canManage)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                    sliver: const SliverToBoxAdapter(
-                      child: AppSectionHeader('My Vehicles'),
-                    ),
-                  ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, canManage ? 12 : 20, 16, 0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _buildCard(myVehicles[i], canManage),
-                      childCount: myVehicles.length,
-                    ),
-                  ),
-                ),
-              ],
-              if (otherVehicles.isNotEmpty) ...[
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: AppSectionHeader('Society Vehicles'),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _buildCard(otherVehicles[i], canManage),
-                      childCount: otherVehicles.length,
-                    ),
-                  ),
-                ),
-              ],
-              SliverToBoxAdapter(child: SizedBox(height: bottomPad + 90)),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
       // Adding a vehicle is a manage-only action — the list itself is
       // shared with view-only roles.

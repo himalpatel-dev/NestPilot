@@ -35,6 +35,7 @@ class ApiEndpoints {
 
   // Complaints
   static const String complaints = '/api/complaints';
+  static String complaint(String id) => '/api/complaints/$id';
   static String complaintStatus(String id) => '/api/complaints/$id/status';
   static String complaintComments(String id) => '/api/complaints/$id/comments';
 
@@ -63,6 +64,7 @@ class ApiEndpoints {
 
   // Amenities
   static const String amenities = '/api/amenities';
+  static String amenityDetail(int id) => '/api/amenities/$id';
   static const String myAmenityBookings = '/api/amenities/my-bookings';
   static const String bookAmenity = '/api/amenities/book';
   static const String allBookings = '/api/amenities/bookings';

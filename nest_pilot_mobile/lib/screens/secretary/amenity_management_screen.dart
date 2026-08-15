@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import '../../theme/nest_loader.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/module_page_header.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
+import '../../widgets/glare_button.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
@@ -94,16 +97,207 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
     }
   }
 
-  void _showAddAmenityDialog() {
-    showDialog(
+  void _openCreateSheet() {
+    showAppFormSheet(
       context: context,
-      builder: (context) => const AddAmenityDialog(),
-    ).then((val) {
-      if (val == true) _fetchData();
-    });
+      builder: (ctx) => _AmenityFormSheet(
+        onSaved: () {
+          Navigator.pop(ctx);
+          _fetchData();
+        },
+      ),
+    );
   }
 
-  Widget _sectionChip(String label, int value) {
+  void _openEditSheet(Amenity amenity) {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => _AmenityFormSheet(
+        editing: amenity,
+        onSaved: () {
+          Navigator.pop(ctx);
+          _fetchData();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteAmenity(Amenity amenity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: AppColors.black.withValues(alpha: 0.55),
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 36),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black.withValues(alpha: 0.15),
+                blurRadius: 28,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                decoration: const BoxDecoration(
+                  color: AppColors.accentRed,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.20),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.white.withValues(alpha: 0.40),
+                          width: 1.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Delete Amenity?',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      amenity.name,
+                      style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.80),
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Residents will no longer be able to book it. Existing bookings are kept.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(ctx, false),
+                            child: Container(
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(ctx, true),
+                            child: Container(
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: AppColors.accentRed,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accentRed.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteAmenity(amenity.id);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Amenity deleted')));
+        _fetchData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  /// Bookings waiting on an approve/reject decision — drives the chip badge
+  /// and the header stat, so requests are visible without opening the tab.
+  int get _pendingCount =>
+      _bookings.where((b) => b.status == 'PENDING').length;
+
+  Widget _sectionChip(String label, int value, {int badgeCount = 0}) {
     final selected = _section == value;
     return GestureDetector(
       onTap: () => setState(() => _section = value),
@@ -117,13 +311,41 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
             color: selected ? AppColors.primaryDark : AppColors.border,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.white : AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppColors.white : AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                constraints: const BoxConstraints(minWidth: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 5,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.white : AppColors.accentRed,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$badgeCount',
+                  style: TextStyle(
+                    color: selected ? AppColors.primaryDark : AppColors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -146,8 +368,17 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
               description: 'Manage facilities & approve bookings',
               icon: Icons.calendar_today_outlined,
               iconColor: ModuleColors.amenities,
+              stats: [
+                ModuleHeaderStat('${_amenities.length}', 'FACILITIES'),
+                ModuleHeaderStat('$_pendingCount', 'PENDING'),
+                ModuleHeaderStat('${_bookings.length}', 'BOOKINGS'),
+              ],
               showSearch: true,
-              searchHint: 'Search amenities...',
+              // The search box filters whichever section is open, so the hint
+              // follows the selected chip.
+              searchHint: _section == 0
+                  ? 'Search amenities...'
+                  : 'Search bookings...',
               searchController: _searchController,
               onSearchChanged: (v) => setState(() => _query = v),
             ),
@@ -157,7 +388,7 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                 children: [
                   _sectionChip('Facilities', 0),
                   const SizedBox(width: 8),
-                  _sectionChip('Bookings', 1),
+                  _sectionChip('Bookings', 1, badgeCount: _pendingCount),
                 ],
               ),
             ),
@@ -175,9 +406,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
             ),
           ],
         ),
-        floatingActionButton: PermissionService().canManage(ModuleCodes.amenities)
+        floatingActionButton:
+            PermissionService().canManage(ModuleCodes.amenities)
             ? FloatingActionButton(
-                onPressed: _showAddAmenityDialog,
+                onPressed: _openCreateSheet,
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.white,
                 elevation: 4,
@@ -218,6 +450,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
         ),
       );
     }
+    // Editing and deleting a facility are manage-only actions — the list
+    // itself is shared with view-only roles.
+    final canManage = PermissionService().canManage(ModuleCodes.amenities);
+
     return ListView.builder(
       itemCount: amenities.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -276,11 +512,13 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Text(
                               amenity.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
@@ -288,33 +526,51 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                               ),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                          const SizedBox(width: 8),
+                          // A paid full-day amenity shows two prices in one
+                          // badge — cap it so a long price can't push the row
+                          // past the card edge on narrow screens.
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.sizeOf(context).width * 0.45,
                             ),
-                            decoration: BoxDecoration(
-                              color: isPaid
-                                  ? AppColors.accentAmber.withValues(alpha: 0.12)
-                                  : AppColors.accentGreen.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isPaid
-                                  ? (amenity.isFullDay
-                                      ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
-                                      : "₹${amenity.pricePerHour}/hr")
-                                  : "Free",
-                              style: TextStyle(
-                                color: isPaid ? AppColors.warning : AppColors.success,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isPaid
+                                    ? AppColors.accentAmber.withValues(
+                                        alpha: 0.12,
+                                      )
+                                    : AppColors.accentGreen.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isPaid
+                                    ? (amenity.isFullDay
+                                          ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
+                                          : "₹${amenity.pricePerHour}/hr")
+                                    : "Free",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isPaid
+                                      ? AppColors.warning
+                                      : AppColors.success,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      if (amenity.description != null && amenity.description!.isNotEmpty) ...[
+                      if (amenity.description != null &&
+                          amenity.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
                           amenity.description!,
@@ -329,23 +585,34 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                       ],
                       const SizedBox(height: 12),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            amenity.isFullDay
-                                ? Icons.event_available_rounded
-                                : Icons.access_time_rounded,
-                            size: 14,
-                            color: AppColors.textSecondary,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Icon(
+                              amenity.isFullDay
+                                  ? Icons.event_available_rounded
+                                  : Icons.access_time_rounded,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            amenity.isFullDay
-                                ? 'Full-day booking (as per requirement)'
-                                : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          // Wraps instead of overflowing — the full-day label is
+                          // wider than the card on smaller phones.
+                          Expanded(
+                            child: Text(
+                              amenity.isFullDay
+                                  ? 'Full-day booking (as per requirement)'
+                                  : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                height: 1.3,
+                              ),
                             ),
                           ),
                         ],
@@ -353,6 +620,50 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                     ],
                   ),
                 ),
+                if (canManage) ...[
+                  const SizedBox(width: 10),
+                  Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openEditSheet(amenity),
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentIndigo.withValues(
+                              alpha: 0.10,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 14,
+                            color: AppColors.accentIndigo,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _deleteAmenity(amenity),
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentRed.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 14,
+                            color: AppColors.accentRed,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -420,7 +731,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
             collapsedBackgroundColor: AppColors.white,
             iconColor: AppColors.primary,
             collapsedIconColor: AppColors.textSecondary,
-            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 6,
+            ),
             title: Text(
               booking.amenity?.name ?? 'Unknown Amenity',
               style: const TextStyle(
@@ -433,9 +747,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
               padding: const EdgeInsets.only(top: 4.0),
               child: Text(
                 booking.isFullDay
-                    ? (booking.endDate != null && booking.endDate != booking.date
-                        ? '${booking.date} to ${booking.endDate}'
-                        : booking.date)
+                    ? (booking.endDate != null &&
+                              booking.endDate != booking.date
+                          ? '${booking.date} to ${booking.endDate}'
+                          : booking.date)
                     : '${booking.date} (${booking.startTime} - ${booking.endTime})',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -449,7 +764,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusBgColor(booking.status),
                     borderRadius: BorderRadius.circular(10),
@@ -464,7 +782,11 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Icon(Icons.expand_more, size: 18, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.expand_more,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
               ],
             ),
             children: [
@@ -478,15 +800,29 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                     if (booking.userName != null) ...[
                       Row(
                         children: [
-                          const Icon(Icons.person_outline_rounded, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.person_outline_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 8),
-                          RichText(
-                            text: TextSpan(
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                              children: [
-                                const TextSpan(text: 'Resident: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                                TextSpan(text: booking.userName),
-                              ],
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                ),
+                                children: [
+                                  const TextSpan(
+                                    text: 'Resident: ',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  TextSpan(text: booking.userName),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -494,15 +830,29 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.phone_android_rounded, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.phone_android_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 8),
-                          RichText(
-                            text: TextSpan(
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                              children: [
-                                const TextSpan(text: 'Mobile: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                                TextSpan(text: booking.userMobile ?? 'N/A'),
-                              ],
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                ),
+                                children: [
+                                  const TextSpan(
+                                    text: 'Mobile: ',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  TextSpan(text: booking.userMobile ?? 'N/A'),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -511,33 +861,53 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                     ],
                     Row(
                       children: [
-                        const Icon(Icons.currency_rupee_rounded, size: 16, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.currency_rupee_rounded,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 8),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                            children: [
-                              const TextSpan(text: 'Amount: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                              TextSpan(
-                                text: '₹${booking.amount}',
-                                style: const TextStyle(
-                                  color: AppColors.primaryDark,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
                               ),
-                            ],
+                              children: [
+                                const TextSpan(
+                                  text: 'Amount: ',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                TextSpan(
+                                  text: '₹${booking.amount}',
+                                  style: const TextStyle(
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    if (isPending && PermissionService().canManage(ModuleCodes.amenities)) ...[
+                    if (isPending &&
+                        PermissionService().canManage(
+                          ModuleCodes.amenities,
+                        )) ...[
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: () => _updateBookingStatus(booking.id, 'REJECTED'),
-                            icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.accentRed),
+                            onPressed: () =>
+                                _updateBookingStatus(booking.id, 'REJECTED'),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: AppColors.accentRed,
+                            ),
                             label: const Text(
                               'Reject',
                               style: TextStyle(
@@ -547,21 +917,34 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.accentRed.withValues(alpha: 0.1),
+                              backgroundColor: AppColors.accentRed.withValues(
+                                alpha: 0.1,
+                              ),
                               foregroundColor: AppColors.accentRed,
                               elevation: 0,
                               shadowColor: AppColors.transparent,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                side: const BorderSide(color: AppColors.accentRed, width: 1),
+                                side: const BorderSide(
+                                  color: AppColors.accentRed,
+                                  width: 1,
+                                ),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
-                            onPressed: () => _updateBookingStatus(booking.id, 'CONFIRMED'),
-                            icon: const Icon(Icons.check_rounded, size: 16, color: AppColors.white),
+                            onPressed: () =>
+                                _updateBookingStatus(booking.id, 'CONFIRMED'),
+                            icon: const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
                             label: const Text(
                               'Approve',
                               style: TextStyle(
@@ -577,7 +960,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                             ),
                           ),
                         ],
@@ -642,324 +1028,273 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   }
 }
 
-// ─── Add Amenity Dialog ──────────────────────────────────────────────────────
+// ── Add / edit amenity sheet ─────────────────────────────────────────────────
 
-class AddAmenityDialog extends StatefulWidget {
-  const AddAmenityDialog({super.key});
+class _AmenityFormSheet extends StatefulWidget {
+  final VoidCallback onSaved;
+  final Amenity? editing;
+  const _AmenityFormSheet({required this.onSaved, this.editing});
 
   @override
-  State<AddAmenityDialog> createState() => _AddAmenityDialogState();
+  State<_AmenityFormSheet> createState() => _AmenityFormSheetState();
 }
 
-class _AddAmenityDialogState extends State<AddAmenityDialog> {
+class _AmenityFormSheetState extends State<_AmenityFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
-  final _priceController = TextEditingController(); // price per hour
-  final _dailyPriceController = TextEditingController(); // price per day (FULL_DAY only)
+  late final _nameCtrl = TextEditingController(text: widget.editing?.name);
+  late final _descCtrl = TextEditingController(
+    text: widget.editing?.description,
+  );
+  late final _priceCtrl = TextEditingController(
+    text: _priceText(widget.editing?.pricePerHour),
+  );
+  late final _dailyPriceCtrl = TextEditingController(
+    text: _priceText(widget.editing?.pricePerDay),
+  );
 
-  bool _isPaid = false;
-  String _bookingType = 'SLOT';
-  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 22, minute: 0);
+  late bool _isPaid = widget.editing?.isPaid ?? false;
+  late String _bookingType = widget.editing?.bookingType ?? 'SLOT';
+  late TimeOfDay _startTime =
+      _parseTime(widget.editing?.startTime) ??
+      const TimeOfDay(hour: 9, minute: 0);
+  late TimeOfDay _endTime =
+      _parseTime(widget.editing?.endTime) ??
+      const TimeOfDay(hour: 22, minute: 0);
+
   bool _isLoading = false;
+
+  // Inline error state — modal sheets hide snackbars behind them, so API
+  // failures are surfaced in the sheet instead.
+  String? _apiError;
+
+  bool get _isEditing => widget.editing != null;
+
+  bool get _isFullDay => _bookingType == 'FULL_DAY';
+
+  /// Prices come back as doubles — prefill whole rupees without a ".0" tail,
+  /// and leave the field blank for a free amenity.
+  static String? _priceText(double? value) {
+    if (value == null || value == 0) return null;
+    return value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toString();
+  }
+
+  // start_time / end_time are 'HH:mm:ss' strings on the backend.
+  static TimeOfDay? _parseTime(String? raw) {
+    if (raw == null) return null;
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _priceCtrl.dispose();
+    _dailyPriceCtrl.dispose();
+    super.dispose();
+  }
+
+  String _fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
+
+  Future<void> _pickTime(bool isStart) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _startTime : _endTime,
+      builder: appPickerTheme,
+    );
+    if (picked != null) {
+      setState(() => isStart ? _startTime = picked : _endTime = picked);
+    }
+  }
+
+  String? _validatePrice(String? v) {
+    final text = v?.trim() ?? '';
+    if (text.isEmpty) return 'Required';
+    final value = double.tryParse(text);
+    if (value == null || value <= 0) return 'Enter a valid amount';
+    return null;
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _apiError = null;
+    });
+    try {
+      final payload = <String, dynamic>{
+        'name': _nameCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'is_paid': _isPaid,
+        'booking_type': _bookingType,
+        // price_per_hour applies to SLOT amenities and to partial-day bookings
+        // of a FULL_DAY amenity, so it's sent for both types.
+        'price_per_hour': _isPaid ? double.parse(_priceCtrl.text.trim()) : 0,
+        'price_per_day': _isPaid && _isFullDay
+            ? double.parse(_dailyPriceCtrl.text.trim())
+            : 0,
+        // Fixed timings only mean something for a slot amenity — sent as null
+        // for a full-day one so switching type clears any stale hours.
+        'start_time': _isFullDay ? null : _fmt(_startTime),
+        'end_time': _isFullDay ? null : _fmt(_endTime),
+      };
+
+      if (_isEditing) {
+        await CommunityService().updateAmenity(widget.editing!.id, payload);
+      } else {
+        payload['is_active'] = true;
+        await CommunityService().createAmenity(payload);
+      }
+      widget.onSaved();
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _apiError = e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final borderStyle = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.border),
-    );
-    final focusBorderStyle = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.primary, width: 2),
-    );
-
-    return AlertDialog(
-      backgroundColor: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-      title: const Text(
-        'Add New Amenity',
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  filled: true,
-                  fillColor: AppColors.white,
-                  enabledBorder: borderStyle,
-                  focusedBorder: focusBorderStyle,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-                validator: (val) => val!.isEmpty ? 'Required' : null,
+    return AppFormSheet(
+      accentColor: ModuleColors.amenities,
+      icon: _isEditing ? Icons.edit_rounded : Icons.calendar_today_rounded,
+      title: _isEditing ? 'Edit Amenity' : 'New Amenity',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppSectionHeader('Amenity Details'),
+            const SizedBox(height: 14),
+            AppFieldCard(
+              icon: Icons.business_center_outlined,
+              label: 'Name',
+              field: AppBorderlessField(
+                controller: _nameCtrl,
+                hint: 'e.g. Community Hall',
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descController,
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.description_outlined,
+              label: 'Description',
+              iconAlignment: CrossAxisAlignment.start,
+              field: AppBorderlessField(
+                controller: _descCtrl,
+                hint: 'Optional details residents should know…',
                 maxLines: 3,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  filled: true,
-                  fillColor: AppColors.white,
-                  enabledBorder: borderStyle,
-                  focusedBorder: focusBorderStyle,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFieldCard(
+              icon: Icons.category_outlined,
+              label: 'Booking Type',
+              field: AppCardDropdown<String>(
+                value: _bookingType,
+                items: const ['SLOT', 'FULL_DAY'],
+                itemLabel: (t) => t == 'FULL_DAY' ? 'Full Day' : 'Hourly Slot',
+                onChanged: (v) => setState(() => _bookingType = v!),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const AppSectionHeader('Availability'),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                _isFullDay
+                    ? 'Members can request either the whole day (or several days) or just a few specific hours — no fixed timing needed.'
+                    : 'Hours residents can pick a slot from — e.g. gym, yoga or courts.',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.3,
                 ),
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Booking Type',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
+            ),
+            if (!_isFullDay) ...[
+              const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: _bookingTypeOption(
-                      label: 'Hourly Slot',
-                      subtitle: 'Gym, yoga, courts…',
+                    child: AppPickerCard(
                       icon: Icons.access_time_rounded,
-                      value: 'SLOT',
+                      label: 'Opens At',
+                      value: _startTime.format(context),
+                      hint: 'Start time',
+                      onTap: () => _pickTime(true),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _bookingTypeOption(
-                      label: 'Full Day',
-                      subtitle: 'Hall, common plot…',
-                      icon: Icons.event_available_rounded,
-                      value: 'FULL_DAY',
+                    child: AppPickerCard(
+                      icon: Icons.access_time_outlined,
+                      label: 'Closes At',
+                      value: _endTime.format(context),
+                      hint: 'End time',
+                      onTap: () => _pickTime(false),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                title: const Text(
-                  'Paid Amenity?',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                value: _isPaid,
-                activeColor: AppColors.primary,
-                contentPadding: EdgeInsets.zero,
-                onChanged: (val) {
-                  setState(() => _isPaid = val);
-                },
-              ),
-              if (_isPaid) ...[
-                if (_bookingType == 'FULL_DAY') ...[
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _dailyPriceController,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                    decoration: InputDecoration(
-                      labelText: 'Price Per Day (whole-day booking)',
-                      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                      prefixText: '₹ ',
-                      prefixStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-                      filled: true,
-                      fillColor: AppColors.white,
-                      enabledBorder: borderStyle,
-                      focusedBorder: focusBorderStyle,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (val) => val!.isEmpty ? 'Required' : null,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _priceController,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: _bookingType == 'FULL_DAY'
-                        ? 'Price Per Hour (for partial-day bookings)'
-                        : 'Price Per Hour',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                    prefixText: '₹ ',
-                    prefixStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-                    filled: true,
-                    fillColor: AppColors.white,
-                    enabledBorder: borderStyle,
-                    focusedBorder: focusBorderStyle,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (val) => val!.isEmpty ? 'Required' : null,
-                ),
-              ],
-              if (_bookingType == 'SLOT') ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
-                        label: Text(
-                          'Start: ${_startTime.format(context)}',
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.border),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: AppColors.white,
-                        ),
-                        onPressed: () async {
-                          final t = await showTimePicker(
-                            context: context,
-                            initialTime: _startTime,
-                          );
-                          if (t != null) setState(() => _startTime = t);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.access_time, size: 16, color: AppColors.primary),
-                        label: Text(
-                          'End: ${_endTime.format(context)}',
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.border),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: AppColors.white,
-                        ),
-                        onPressed: () async {
-                          final t = await showTimePicker(
-                            context: context,
-                            initialTime: _endTime,
-                          );
-                          if (t != null) setState(() => _endTime = t);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ] else ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Members can request either the whole day (or several days) or just a few specific hours — no fixed timing needed.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
-                ),
-              ],
             ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
-          child: _isLoading
-              ? const NestLoader(size: 20, showDots: false)
-              : const Text(
-                  'Add',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+            const SizedBox(height: 24),
+            const AppSectionHeader('Pricing'),
+            const SizedBox(height: 14),
+            _buildPaidToggle(),
+            if (_isPaid) ...[
+              if (_isFullDay) ...[
+                const SizedBox(height: 12),
+                AppFieldCard(
+                  icon: Icons.currency_rupee_rounded,
+                  label: 'Price Per Day',
+                  field: AppBorderlessField(
+                    controller: _dailyPriceCtrl,
+                    hint: 'Whole-day booking charge',
+                    keyboardType: TextInputType.number,
+                    validator: _validatePrice,
                   ),
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _bookingTypeOption({
-    required String label,
-    required String subtitle,
-    required IconData icon,
-    required String value,
-  }) {
-    final selected = _bookingType == value;
-    return GestureDetector(
-      onTap: () => setState(() => _bookingType = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 18, color: selected ? AppColors.primary : AppColors.textSecondary),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppColors.primaryDark : AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+              ],
+              const SizedBox(height: 12),
+              AppFieldCard(
+                icon: Icons.schedule_rounded,
+                label: _isFullDay
+                    ? 'Price Per Hour (partial-day)'
+                    : 'Price Per Hour',
+                field: AppBorderlessField(
+                  controller: _priceCtrl,
+                  hint: 'e.g. 200',
+                  keyboardType: TextInputType.number,
+                  validator: _validatePrice,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 10.5,
-              ),
+            ],
+            if (_apiError != null) ...[
+              const SizedBox(height: 18),
+              AppSheetErrorBanner(_apiError!),
+            ],
+            const SizedBox(height: 26),
+            GlarePrimaryButton(
+              text: _isEditing ? 'Update Amenity' : 'Add Amenity',
+              trailingIcon: Icons.check_rounded,
+              isLoading: _isLoading,
+              onPressed: _submit,
             ),
           ],
         ),
@@ -967,44 +1302,69 @@ class _AddAmenityDialogState extends State<AddAmenityDialog> {
     );
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final payload = <String, dynamic>{
-        'name': _nameController.text,
-        'description': _descController.text,
-        'is_paid': _isPaid,
-        'booking_type': _bookingType,
-        'is_active': true,
-      };
-
-      // price_per_hour applies to SLOT amenities and to partial-day bookings of a
-      // FULL_DAY amenity, so it's sent for both types.
-      payload['price_per_hour'] = _isPaid ? double.parse(_priceController.text) : 0;
-
-      if (_bookingType == 'FULL_DAY') {
-        payload['price_per_day'] = _isPaid ? double.parse(_dailyPriceController.text) : 0;
-      } else {
-        payload['start_time'] =
-            '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00';
-        payload['end_time'] =
-            '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}:00';
-      }
-
-      await CommunityService().createAmenity(payload);
-
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        setState(() => _isLoading = false);
-      }
-    }
+  Widget _buildPaidToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.cardBackground,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.payments_outlined,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PAID AMENITY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Residents are charged for booking',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isPaid,
+            onChanged: (v) => setState(() => _isPaid = v),
+            activeThumbColor: AppColors.primary,
+          ),
+        ],
+      ),
+    );
   }
 }
-

@@ -4,8 +4,6 @@ import '../../../theme/nest_loader.dart';
 import '../../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
-import 'package:nest_pilot_mobile/services/permission_service.dart';
-import 'package:nest_pilot_mobile/config/modules.dart';
 import 'package:intl/intl.dart';
 
 class AmenityBookingScreen extends StatefulWidget {
@@ -289,12 +287,12 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
                           : '₹${a.pricePerHour}/hr')
                       : 'Free',
                 ),
-                trailing: PermissionService().canManage(ModuleCodes.amenities)
-                    ? ElevatedButton(
-                        onPressed: () => _bookAmenity(a),
-                        child: const Text('Book'),
-                      )
-                    : null,
+                // Booking is a view-level action — anyone who can reach this
+                // screen is a resident requesting a slot, not an administrator.
+                trailing: ElevatedButton(
+                  onPressed: () => _bookAmenity(a),
+                  child: const Text('Book'),
+                ),
               ),
             ],
           ),

@@ -58,7 +58,7 @@ const DEFAULT_PERMISSIONS = {
         COMPLAINTS: MANAGE,
         BILLS:      VIEW,
         EVENTS:     VIEW,
-        AMENITIES:  MANAGE,
+        AMENITIES:  VIEW, // view = browse facilities + request a booking
         VISITORS:   MANAGE,
         STAFF:      MANAGE, // manage = log attendance
         POLLS:      VIEW,

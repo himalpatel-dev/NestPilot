@@ -9,8 +9,9 @@ import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/status_widgets.dart';
-import 'complaint_create_screen.dart';
+import '../../widgets/app_form_sheet.dart';
 import 'complaint_detail_screen.dart';
+import 'complaint_form_sheet.dart';
 
 class ComplaintListScreen extends StatefulWidget {
   const ComplaintListScreen({super.key});
@@ -40,6 +41,33 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _openCreateSheet() {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => ComplaintFormSheet(
+        onSaved: (_) {
+          Navigator.pop(ctx);
+          _fetchComplaints();
+        },
+      ),
+    );
+  }
+
+  /// Opens the same sheet prefilled for an edit. Category, description and the
+  /// photo are all the API accepts — status is changed from the detail page.
+  void _openEditSheet(Complaint complaint) {
+    showAppFormSheet(
+      context: context,
+      builder: (ctx) => ComplaintFormSheet(
+        complaint: complaint,
+        onSaved: (_) {
+          Navigator.pop(ctx);
+          _fetchComplaints();
+        },
+      ),
+    );
   }
 
   Future<void> _fetchComplaints() async {
@@ -90,14 +118,14 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 
   String _statusLabel(String status) => status.replaceAll('_', ' ');
 
-  /// How many tracker steps (RAISED → ASSIGNED → IN PROGRESS → RESOLVED)
-  /// are completed for a given status.
+  /// How many tracker steps (RAISED → IN PROGRESS → RESOLVED) are completed
+  /// for a given status.
   int _stepsDone(String status) {
     switch (status) {
       case 'RESOLVED':
-        return 4;
-      case 'IN_PROGRESS':
         return 3;
+      case 'IN_PROGRESS':
+        return 2;
       default: // OPEN / REJECTED
         return 1;
     }
@@ -160,59 +188,59 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
-      body: RefreshIndicator(
-        onRefresh: _fetchComplaints,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            if (_isLoading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: NestLoader(),
-              )
-            else if (_error != null)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: ErrorWidgetView(
-                  message: _error!,
-                  onRetry: _fetchComplaints,
-                ),
-              )
-            else ...[
-              SliverToBoxAdapter(child: _buildSearchAndFilters()),
-              if (_filtered.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: EmptyWidget(
-                    message: 'No complaints found',
-                    icon: Icons.report_problem_outlined,
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _buildCard(_filtered[i]),
-                      childCount: _filtered.length,
+      // Header and filter chips stay pinned; only the complaint cards scroll.
+      body: Column(
+        children: [
+          _buildHeader(),
+          if (!_isLoading && _error == null) _buildSearchAndFilters(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchComplaints,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (_isLoading)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: NestLoader(),
+                    )
+                  else if (_error != null)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: ErrorWidgetView(
+                        message: _error!,
+                        onRetry: _fetchComplaints,
+                      ),
+                    )
+                  else if (_filtered.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyWidget(
+                        message: 'No complaints found',
+                        icon: Icons.report_problem_outlined,
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 90),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (ctx, i) => _buildCard(_filtered[i], canManage),
+                          childCount: _filtered.length,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       // Add is a manage-only action — the list itself is shared with
       // view-only roles.
       floatingActionButton: canManage
           ? FloatingActionButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ComplaintCreateScreen(),
-                ),
-              ).then((_) => _fetchComplaints()),
+              onPressed: _openCreateSheet,
               backgroundColor: AppColors.primaryDark,
               foregroundColor: AppColors.white,
               child: const Icon(Icons.add),
@@ -302,7 +330,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 
   // ─── Complaint card ─────────────────────────────────────────────────────────
 
-  Widget _buildCard(Complaint complaint) {
+  Widget _buildCard(Complaint complaint, bool canManage) {
     final statusColor = _statusColor(complaint.status);
 
     return GestureDetector(
@@ -373,6 +401,30 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                               ),
                             ),
                           ),
+                          // Edit is manage-only, the same gate the API puts on
+                          // PUT /complaints/:id.
+                          if (canManage) ...[
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () => _openEditSheet(complaint),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: ModuleColors.complaints.withValues(
+                                    alpha: 0.10,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 14,
+                                  color: ModuleColors.complaints,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -454,10 +506,10 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
     );
   }
 
-  // ─── Progress tracker: RAISED → ASSIGNED → IN PROGRESS → RESOLVED ──────────
+  // ─── Progress tracker: RAISED → IN PROGRESS → RESOLVED ────────────────────
 
   Widget _progressTracker(String status) {
-    const steps = ['RAISED', 'ASSIGNED', 'IN PROGRESS', 'RESOLVED'];
+    const steps = ['RAISED', 'IN PROGRESS', 'RESOLVED'];
     final done = _stepsDone(status);
 
     return Container(

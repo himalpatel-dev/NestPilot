@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "seed": "npx sequelize-cli db:seed:all",
     "reset-db": "node scripts/reset-db.js",
+    "fix-member-amenities": "node scripts/fix-member-amenity-permission.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

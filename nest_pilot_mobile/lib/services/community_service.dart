@@ -88,6 +88,24 @@ class CommunityService {
     }
   }
 
+  Future<void> updateAmenity(int id, Map<String, dynamic> data) async {
+    final response = await _apiService.put(
+      ApiEndpoints.amenityDetail(id),
+      data,
+    );
+    if (!response['success']) {
+      throw Exception(response['message']);
+    }
+  }
+
+  // Soft delete on the backend — existing bookings are left intact.
+  Future<void> deleteAmenity(int id) async {
+    final response = await _apiService.delete(ApiEndpoints.amenityDetail(id));
+    if (!response['success']) {
+      throw Exception(response['message']);
+    }
+  }
+
   Future<List<Booking>> getAllBookings() async {
     final response = await _apiService.get(ApiEndpoints.allBookings);
     if (response['success']) {

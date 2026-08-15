@@ -83,6 +83,27 @@ class ComplaintService {
     return response['success'] ?? false;
   }
 
+  /// Category / description / photo only — status has its own endpoint, and
+  /// priority is not editable server-side. Leaving [filePath] null keeps the
+  /// existing photo: the API only overwrites it when a file is uploaded.
+  Future<Complaint?> updateComplaint(
+    String id,
+    String category,
+    String description, {
+    String? filePath,
+  }) async {
+    final response = await _apiService.multipartPut(
+      ApiEndpoints.complaint(id),
+      {'category': category, 'description': description},
+      filePath: filePath,
+      fileKey: 'image',
+    );
+    if (response['success'] == true && response['data'] != null) {
+      return Complaint.fromJson(response['data']);
+    }
+    return null;
+  }
+
   Future<bool> updateStatus(String id, String status) async {
     final response = await _apiService.patch(ApiEndpoints.complaintStatus(id), {
       'status': status,
