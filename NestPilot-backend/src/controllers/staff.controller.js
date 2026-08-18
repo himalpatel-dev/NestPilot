@@ -40,6 +40,13 @@ const logAttendance = async (req, res, next) => {
                     date: today,
                     in_time: new Date()
                 });
+            } else {
+                // Re-marking entry restarts the day. Any exit already stamped
+                // now sits before the new entry, which can't be a real shift,
+                // so it is cleared instead of being left as bad data.
+                attendance.in_time = new Date();
+                attendance.out_time = null;
+                await attendance.save();
             }
         } else if (type === 'OUT') {
             if (attendance) {

@@ -332,17 +332,38 @@ Future<T?> showDropdownCardMenu<T>({
     transitionDuration: const Duration(milliseconds: 140),
     pageBuilder: (_, a, b) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, secondary, child) {
-      final Size screen = MediaQuery.of(ctx).size;
-      // Prefer to drop below the field; flip above if there's no room.
-      const double maxHeight = 280;
+      final media = MediaQuery.of(ctx);
+      final Size screen = media.size;
+      const double preferredHeight = 280;
       const double gap = 6;
+      const double edge = 12;
+
+      // Room on each side of the field, discounting the keyboard, the status
+      // bar and a small breathing margin. A field low on the page (a dropdown
+      // near the bottom of a form sheet) has little room below, so the menu
+      // has to flip up and/or shrink rather than run off the screen.
+      final double fieldTop = topLeft.dy;
+      final double fieldBottom = fieldTop + targetSize.height;
       final double belowSpace =
-          screen.height - (topLeft.dy + targetSize.height) - 12;
-      final bool dropUp = belowSpace < 160 && topLeft.dy > belowSpace;
+          screen.height - media.viewInsets.bottom - fieldBottom - gap - edge;
+      final double aboveSpace = fieldTop - media.padding.top - gap - edge;
+
+      // Prefer to drop below; flip up only when that side genuinely has more.
+      final bool dropUp =
+          belowSpace < preferredHeight && aboveSpace > belowSpace;
+      // Never taller than the side it opens into — this is what keeps the last
+      // options reachable instead of clipped off the bottom.
+      final double maxHeight = (dropUp ? aboveSpace : belowSpace).clamp(
+        120.0,
+        preferredHeight,
+      );
+
       final double width = targetSize.width.clamp(160.0, screen.width - 24);
       double left = topLeft.dx;
-      if (left + width > screen.width - 12) left = screen.width - 12 - width;
-      if (left < 12) left = 12;
+      if (left + width > screen.width - edge) {
+        left = screen.width - edge - width;
+      }
+      if (left < edge) left = edge;
 
       final Widget menu = Container(
         constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: width),

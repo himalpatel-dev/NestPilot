@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../config/app_config.dart';
 import '../../config/modules.dart';
+import '../../config/roles.dart';
 import '../../models/notice_complaint.dart';
 import '../../services/notice_complaint_service.dart';
 import '../../services/permission_service.dart';
@@ -286,9 +287,15 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   // ─── Build ──────────────────────────────────────────────────────────────────
 
+  /// Residents raise, edit and comment on complaints, but moving one through
+  /// its lifecycle is the society's call — so a member never gets the status
+  /// picker, even though they hold `manage` on the module.
+  bool get _canChangeStatus =>
+      PermissionService().canManage(ModuleCodes.complaints) &&
+      SessionService().currentUser?.role != UserRoles.member;
+
   @override
   Widget build(BuildContext context) {
-    final canManage = PermissionService().canManage(ModuleCodes.complaints);
     final imageUrl = _imageUrl;
     final commentsClosed =
         _currentStatus == 'RESOLVED' || _currentStatus == 'REJECTED';
@@ -314,7 +321,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _summaryCard(canManage),
+                  _summaryCard(_canChangeStatus),
                   const SizedBox(height: 16),
                   _descriptionCard(),
                   if (imageUrl != null) ...[
@@ -341,7 +348,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   // ─── Summary card — category, status, tracker, meta ─────────────────────────
 
-  Widget _summaryCard(bool canManage) {
+  Widget _summaryCard(bool canChangeStatus) {
     final complaint = widget.complaint;
     final categoryColor = _categoryColor(complaint.category);
     final statusColor = _statusColor(_currentStatus);
@@ -440,7 +447,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                 ),
               ),
               const Spacer(),
-              if (canManage)
+              if (canChangeStatus)
                 GestureDetector(
                   onTap: _updatingStatus ? null : _showStatusDialog,
                   child: Container(

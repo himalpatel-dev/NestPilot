@@ -118,6 +118,10 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 
   String _statusLabel(String status) => status.replaceAll('_', ' ');
 
+  /// A settled complaint is read-only — the same pair the detail page locks
+  /// its comment thread on.
+  bool _isClosed(String status) => status == 'RESOLVED' || status == 'REJECTED';
+
   /// How many tracker steps (RAISED → IN PROGRESS → RESOLVED) are completed
   /// for a given status.
   int _stepsDone(String status) {
@@ -402,8 +406,9 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                             ),
                           ),
                           // Edit is manage-only, the same gate the API puts on
-                          // PUT /complaints/:id.
-                          if (canManage) ...[
+                          // PUT /complaints/:id. Once a complaint is settled
+                          // its details are no longer editable.
+                          if (canManage && !_isClosed(complaint.status)) ...[
                             const SizedBox(width: 6),
                             GestureDetector(
                               onTap: () => _openEditSheet(complaint),

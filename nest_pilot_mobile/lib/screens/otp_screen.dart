@@ -223,7 +223,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                 runSpacing: 4 * s,
                                 children: [
                                   Text(
-                                    'Enter the 6-digit code sent to',
+                                    'Enter Otp sent to',
                                     textAlign: TextAlign.center,
                                     style: AppTextStyles.cardSubtext(s),
                                   ),
