@@ -5,12 +5,11 @@ import 'package:intl/intl.dart';
 import '../../models/billing_payment.dart';
 import '../../services/billing_payment_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_dashboard_header.dart';
-import '../../theme/app_icons.dart';
-import '../notification_list_screen.dart';
-import 'bill_create_screen.dart';
+import '../../widgets/module_page_header.dart';
+import 'bill_report_widgets.dart';
 import 'bills_manage_screen.dart';
-import 'payment_mark_screen.dart';
+import 'pending_bills_screen.dart';
+import 'recent_payments_screen.dart';
 
 class BillsDashboardScreen extends StatefulWidget {
   const BillsDashboardScreen({super.key});
@@ -20,12 +19,21 @@ class BillsDashboardScreen extends StatefulWidget {
 }
 
 class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
+  /// How many rows each section previews before handing off to its own page —
+  /// the dashboard is a summary, not a list.
+  static const int _pendingPreview = 3;
+  static const int _paymentsPreview = 5;
+
   final BillService _service = BillService();
 
   BillsDashboardData? _data;
   bool _loading = true;
   String? _error;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+
+  /// The month on screen, spelled out for the pages this dashboard hands off
+  /// to — they show the same data, just without the month picker.
+  String get _monthLabel => DateFormat('MMMM yyyy').format(_month);
 
   @override
   void initState() {
@@ -42,17 +50,19 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
       final result = await _service.getDashboardData(
         month: DateFormat('yyyy-MM').format(_month),
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _data = result;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
         });
+      }
     }
   }
 
@@ -66,38 +76,89 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
+        child: ConstrainedBox(
+          // Twelve rows plus the header run past the bottom of a short screen,
+          // so the list scrolls inside a capped sheet instead of overflowing.
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const Text(
-              'Select Month',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+              const Text(
+                'Select Month',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ...months.map(
-              (m) => ListTile(
-                title: Text(DateFormat('MMMM yyyy').format(m)),
-                trailing: m.month == _month.month && m.year == _month.year
-                    ? const Icon(Icons.check_circle, color: AppColors.primary)
-                    : null,
-                onTap: () => Navigator.pop(ctx, m),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  itemCount: months.length,
+                  itemBuilder: (_, i) {
+                    final m = months[i];
+                    final selected =
+                        m.month == _month.month && m.year == _month.year;
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(ctx, m),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? ModuleColors.bills.withValues(alpha: 0.12)
+                              : AppColors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selected
+                                ? ModuleColors.bills
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              DateFormat('MMMM yyyy').format(m),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (selected)
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: ModuleColors.bills,
+                                size: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -106,12 +167,6 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
       setState(() => _month = picked);
       _fetch();
     }
-  }
-
-  String _fmt(double v) {
-    if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(2)}L';
-    if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(1)}K';
-    return '₹${v.toStringAsFixed(0)}';
   }
 
   @override
@@ -131,76 +186,51 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
           onRefresh: _fetch,
           color: AppColors.white,
           backgroundColor: AppColors.primary,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: AppDashboardHeader(
-                  title: 'Bills Dashboard',
-                  subtitle: 'Manage society collections',
-                  onNotificationTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationListScreen(),
-                    ),
+          child: Column(
+            children: [
+              ModulePageHeader(
+                title: 'Bills Dashboard',
+                description: 'Collections at a glance',
+                icon: Icons.donut_large_outlined,
+                iconColor: ModuleColors.bills,
+                showSearch: false,
+                stats: [
+                  ModuleHeaderStat(
+                    _loading ? '—' : formatBillAmount(stats?.totalPending ?? 0),
+                    'PENDING DUES',
                   ),
-                  stats: [
-                    AppHeaderStat(
-                      value: _loading ? '—' : _fmt(stats?.totalPending ?? 0),
-                      label: 'Pending Dues',
-                      color: AppColors.accentRed,
-                      icon: Icons.receipt_long_rounded,
-                    ),
-                    AppHeaderStat(
-                      value: _loading ? '—' : _fmt(stats?.totalCollected ?? 0),
-                      label: 'Collected',
-                      color: AppColors.accentGreen,
-                      icon: Icons.check_circle_outline_rounded,
-                    ),
-                    AppHeaderStat(
-                      value: _loading
-                          ? '—'
-                          : '${stats?.pendingBillsCount ?? 0}',
-                      label: 'Pending Bills',
-                      color: AppColors.accentAmber,
-                      icon: Icons.pending_outlined,
-                    ),
-                  ],
-                ),
+                  ModuleHeaderStat(
+                    _loading
+                        ? '—'
+                        : formatBillAmount(stats?.totalCollected ?? 0),
+                    'COLLECTED',
+                  ),
+                  ModuleHeaderStat(
+                    _loading ? '—' : '${stats?.pendingBillsCount ?? 0}',
+                    'PENDING BILLS',
+                  ),
+                ],
               ),
-              if (_error != null)
-                SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _error!,
-                          style: const TextStyle(color: AppColors.accentRed),
-                          textAlign: TextAlign.center,
+              Expanded(
+                child: _error != null
+                    ? _errorState()
+                    : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          12,
+                          16,
+                          bottomPad + 28,
                         ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: _fetch,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPad + 28),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildQuickActions(context),
-                      const SizedBox(height: 16),
-                      _buildCollectionOverview(stats),
-                      const SizedBox(height: 16),
-                      _buildRecentPayments(context),
-                    ]),
-                  ),
-                ),
+                        children: [
+                          _buildCollectionOverview(stats),
+                          const SizedBox(height: 16),
+                          _buildPendingReport(),
+                          const SizedBox(height: 16),
+                          _buildRecentPayments(context),
+                        ],
+                      ),
+              ),
             ],
           ),
         ),
@@ -208,76 +238,57 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
     );
   }
 
-  // ─── Quick actions ────────────────────────────────────────────────────────
-
-  Widget _buildQuickActions(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionLabel(text: 'Quick Actions'),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BillCreateScreen()),
-                  ),
-                  child: const AppIconTile(
-                    icon: Icons.add_card_outlined,
-                    label: 'Create Bills',
-                    color: AppColors.accentGreen,
-                  ),
+  Widget _errorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: AppColors.accentRed,
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              "Couldn't load the dashboard",
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _fetch,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDark,
+                foregroundColor: AppColors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 13,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PaymentMarkScreen(),
-                    ),
-                  ),
-                  child: const AppIconTile(
-                    icon: Icons.payments_outlined,
-                    label: 'Payment',
-                    color: AppColors.accentBlue,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reminders sent to pending members'),
-                    ),
-                  ),
-                  child: const AppIconTile(
-                    icon: Icons.notifications_active_outlined,
-                    label: 'Send Reminder',
-                    color: AppColors.accentAmber,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Report download coming soon'),
-                    ),
-                  ),
-                  child: const AppIconTile(
-                    icon: Icons.download_outlined,
-                    label: 'Download Report',
-                    color: AppColors.accentPurple,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -369,14 +380,15 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
                   children: [
                     _LegendRow(
                       color: AppColors.accentGreen,
-                      value: _fmt(collected),
-                      label: 'Collected',
+                      value: formatBillAmount(collected),
+                      label:
+                          'Collected · ${DateFormat('MMM yyyy').format(_month)}',
                     ),
                     const SizedBox(height: 22),
                     _LegendRow(
                       color: AppColors.accentRed,
-                      value: _fmt(pending),
-                      label: 'Pending',
+                      value: formatBillAmount(pending),
+                      label: 'Pending · all time',
                     ),
                   ],
                 ),
@@ -385,6 +397,95 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ─── Bill-wise pending report ─────────────────────────────────────────────
+
+  /// One expandable card per unpaid bill, tapping through to the members who
+  /// still owe on it. Deliberately not the flat single-card row list that
+  /// Recent Payments uses — this is a report you drill into, not a feed.
+  Widget _buildPendingReport() {
+    final bills = _data?.pendingByBill ?? [];
+
+    if (_loading) {
+      return const _Card(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (bills.isEmpty) {
+      return _Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 36,
+                  color: AppColors.accentGreen.withValues(alpha: 0.6),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Every bill is settled',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final totalPending = bills.fold<double>(
+      0,
+      (sum, b) => sum + b.pendingAmount,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+          child: Row(
+            children: [
+              const _SectionLabel(text: 'Bill-wise Pending'),
+              const Spacer(),
+              Text(
+                '${formatBillAmount(totalPending)} across ${bills.length} '
+                '${bills.length == 1 ? 'bill' : 'bills'}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (final bill in bills.take(_pendingPreview))
+          PendingBillCard(bill: bill, format: formatBillAmount),
+        if (bills.length > _pendingPreview)
+          _ShowAllRow(
+            boxed: true,
+            label: 'Show all ${bills.length} bills',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    PendingBillsScreen(bills: bills, monthLabel: _monthLabel),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -407,7 +508,7 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
                   MaterialPageRoute(builder: (_) => const BillsManageScreen()),
                 ),
                 child: const Text(
-                  'View All',
+                  'All Bills',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 12.5,
@@ -447,15 +548,35 @@ class _BillsDashboardScreenState extends State<BillsDashboardScreen> {
                 ),
               ),
             )
-          else
+          else ...[
             Column(
               children: [
-                for (int i = 0; i < payments.length; i++) ...[
+                for (
+                  int i = 0;
+                  i < payments.length && i < _paymentsPreview;
+                  i++
+                ) ...[
                   if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  _PaymentRow(payment: payments[i]),
+                  PaymentRow(payment: payments[i]),
                 ],
               ],
             ),
+            if (payments.length > _paymentsPreview) ...[
+              const Divider(height: 1, color: Color(0xFFF3F4F6)),
+              _ShowAllRow(
+                label: 'Show all ${payments.length} payments',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RecentPaymentsScreen(
+                      payments: payments,
+                      monthLabel: _monthLabel,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -505,7 +626,7 @@ class _SectionLabel extends StatelessWidget {
           width: 3,
           height: 16,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: ModuleColors.bills,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -519,6 +640,69 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── "Show all" hand-off row ──────────────────────────────────────────────────
+
+/// Tap-through to a section's own page once the dashboard has capped it.
+class _ShowAllRow extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  /// A standalone row (one that isn't already inside a [_Card]) draws its own
+  /// white surface so it reads as part of the section above it.
+  final bool boxed;
+
+  const _ShowAllRow({
+    required this.label,
+    required this.onTap,
+    this.boxed = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Material(
+      color: AppColors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!boxed) return row;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: row,
     );
   }
 }
@@ -570,135 +754,6 @@ class _LegendRow extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-// ─── Payment row ──────────────────────────────────────────────────────────────
-
-class _PaymentRow extends StatelessWidget {
-  final DashboardPayment payment;
-  const _PaymentRow({required this.payment});
-
-  static const _avatarColors = [
-    Color(0xFF3B82F6),
-    Color(0xFF10B981),
-    Color(0xFF8B5CF6),
-    Color(0xFFF59E0B),
-    Color(0xFFEF4444),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final name = payment.memberName ?? '';
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final avatarColor = _avatarColors[name.length % _avatarColors.length];
-    final fmt = NumberFormat('#,##,###');
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: avatarColor.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              initials,
-              style: TextStyle(
-                color: avatarColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (payment.flatNo != null &&
-                        payment.flatNo!.isNotEmpty) ...[
-                      Text(
-                        payment.flatNo!,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const Text(
-                        ' | ',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                    Flexible(
-                      child: Text(
-                        name.isNotEmpty ? name : 'Unknown',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  DateFormat(
-                    'd MMM, hh:mm a',
-                  ).format(payment.paymentDate.toLocal()),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₹${fmt.format(payment.amount)}',
-                style: const TextStyle(
-                  color: AppColors.accentGreen,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.accentGreen.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Paid',
-                  style: TextStyle(
-                    color: AppColors.accentGreen,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

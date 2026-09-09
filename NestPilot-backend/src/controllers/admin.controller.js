@@ -159,6 +159,54 @@ const getSocietyMembers = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// Minimal member list for pickers (recording an offline payment, etc.).
+// Deliberately separate from getSocietyMembers: a role that manages bills can
+// fill in a member field through this without being granted USERS view, which
+// would also surface the whole Users module on their dashboard. Returns only
+// what a picker renders — id, name, mobile and flat.
+const getMembersLookup = async (req, res, next) => {
+    try {
+        const where = {
+            society_id: req.user.society_id,
+            status: 'active'
+        };
+
+        const scopedIds = await userIdsInScope(req);
+        if (scopedIds !== null) {
+            if (!scopedIds.length) return res.status(200).json(new ApiResponse(200, []));
+            where.id = { [Op.in]: scopedIds };
+        }
+
+        const users = await db.User.findAll({
+            where,
+            attributes: ['id', 'full_name', 'mobile'],
+            include: [{
+                model: db.UserHouseMapping,
+                attributes: ['id'],
+                required: false,
+                where: { is_active: true },
+                include: [{ model: db.House, attributes: ['house_no', 'wing'] }]
+            }],
+            order: [['full_name', 'ASC']]
+        });
+
+        const members = users.map(u => {
+            const house = (u.UserHouseMappings || []).map(m => m.House).find(Boolean);
+            const flat = house
+                ? (house.wing ? `${house.wing}-${house.house_no}` : house.house_no)
+                : null;
+            return {
+                id: u.id,
+                full_name: u.full_name,
+                mobile: u.mobile,
+                flat_number: flat
+            };
+        });
+
+        res.status(200).json(new ApiResponse(200, members));
+    } catch (e) { next(e); }
+};
+
 const getDashboardStats = async (req, res, next) => {
     try {
         const societyId = req.user.society_id;
@@ -249,6 +297,7 @@ module.exports = {
     approveUser,
     rejectUser,
     getSocietyMembers,
+    getMembersLookup,
     getDashboardStats,
     getSuperAdminStats
 };

@@ -14,7 +14,9 @@ class SocketService {
 
   Future<void> initSocket() async {
     if (socket != null && socket!.connected) return;
-    if (_isInitializing && _initCompleter != null) return _initCompleter!.future;
+    if (_isInitializing && _initCompleter != null) {
+      return _initCompleter!.future;
+    }
 
     _isInitializing = true;
     _initCompleter = Completer<void>();
@@ -43,7 +45,6 @@ class SocketService {
       socket?.connect();
 
       socket?.onConnect((_) {
-        print('Socket connected for user_${user.id}');
         socket?.emit('join', 'user_${user.id}');
       });
 
@@ -51,7 +52,6 @@ class SocketService {
 
       if (!_initCompleter!.isCompleted) _initCompleter!.complete();
     } catch (e) {
-      print('Socket init error: $e');
       if (!_initCompleter!.isCompleted) _initCompleter!.completeError(e);
     } finally {
       _isInitializing = false;
@@ -71,7 +71,6 @@ class SocketService {
       socket?.on(event, callback);
     } else {
       // If socket is not initialized, try to init and then listen
-      print('Socket not ready for $event. Initializing...');
       initSocket().then((_) {
         // Double check socket is not null after init
         if (socket != null) {

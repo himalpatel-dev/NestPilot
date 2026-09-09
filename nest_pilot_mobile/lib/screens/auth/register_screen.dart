@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../theme/nest_loader.dart';
-import '../services/auth_service.dart';
-import '../services/society_service.dart';
-import '../models/society_structure.dart';
-import '../widgets/app_button.dart';
-import '../widgets/app_text_field.dart';
-import '../widgets/app_field_card.dart';
+import '../../theme/nest_loader.dart';
+import '../../services/auth_service.dart';
+import '../../services/society_service.dart';
+import '../../models/society_structure.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_text_field.dart';
+import '../../widgets/app_field_card.dart';
 import 'pending_approval_screen.dart';
 
 class RegisterScreen extends StatefulWidget {

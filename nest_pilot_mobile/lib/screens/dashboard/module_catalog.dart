@@ -1,43 +1,39 @@
 import 'package:flutter/material.dart';
 
-import '../config/modules.dart';
-import '../services/permission_service.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_icons.dart';
+import '../../config/modules.dart';
+import '../../services/permission_service.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_icons.dart';
 
-import 'super_admin/society_create_screen.dart';
-import 'super_admin/societies_list_screen.dart';
-import 'super_admin/building_create_screen.dart';
-import 'super_admin/buildings_list_screen.dart';
-import 'super_admin/flat_create_screen.dart';
-import 'super_admin/flats_list_screen.dart';
-import 'super_admin/role_management_screen.dart';
-import 'super_admin/secretary_buildings_screen.dart';
+import '../societies/society_create_screen.dart';
+import '../societies/societies_list_screen.dart';
+import '../buildings/building_create_screen.dart';
+import '../buildings/buildings_list_screen.dart';
+import '../buildings/flat_create_screen.dart';
+import '../buildings/flats_list_screen.dart';
+import '../roles/role_management_screen.dart';
+import '../users/secretary_buildings_screen.dart';
 
-import 'secretary/pending_members_screen.dart';
-import 'secretary/bill_create_screen.dart';
-import 'secretary/bills_manage_screen.dart';
-import 'secretary/bills_dashboard_screen.dart';
-import 'secretary/amenity_management_screen.dart';
-import 'secretary/member_list_screen.dart';
-import 'secretary/event_manage_screen.dart';
-import 'secretary/payment_mark_screen.dart';
+import '../users/pending_members_screen.dart';
+import '../bills/bills_manage_screen.dart';
+import '../bills/bills_dashboard_screen.dart';
+import '../amenities/amenity_management_screen.dart';
+import '../users/member_list_screen.dart';
+import '../events/event_manage_screen.dart';
+import '../bills/payment_mark_screen.dart';
 
-import 'member/notice_list_screen.dart';
-import 'member/complaint_list_screen.dart';
-import 'member/bills_list_screen.dart';
-import 'member/ledger_screen.dart';
-import 'member/community/visitor_management_screen.dart';
-import 'member/community/amenity_booking_screen.dart';
-import 'member/community/staff_list_screen.dart';
-import 'member/community/poll_list_screen.dart';
-import 'member/community/document_list_screen.dart';
-import 'member/community/vehicle_list_screen.dart';
+import '../notices/notice_list_screen.dart';
+import '../complaints/complaint_list_screen.dart';
+import '../bills/bills_list_screen.dart';
+import '../bills/ledger_screen.dart';
+import '../visitors/visitor_management_screen.dart';
+import '../amenities/amenity_booking_screen.dart';
+import '../staff/staff_list_screen.dart';
+import '../polls/poll_list_screen.dart';
+import '../documents/document_list_screen.dart';
+import '../vehicles/vehicle_list_screen.dart';
 
-import 'security/verify_passcode_screen.dart';
-import 'security/walk_in_entry_screen.dart';
-import 'security/current_visitors_screen.dart';
-import 'common/visitor_report_screen.dart';
+import '../visitors/gate_control_screen.dart';
 
 // ─── Permission-driven master tile catalogue ─────────────────────────────────
 //
@@ -69,6 +65,9 @@ class ModuleTile {
   /// Action required on [module] for this tile to be shown. Defaults to view.
   final String requiredAction;
 
+  /// Optional extra visibility predicate (e.g. role check).
+  final bool Function()? isVisible;
+
   const ModuleTile(
     this.icon,
     this.label,
@@ -76,7 +75,8 @@ class ModuleTile {
     this.onTap, [
     this.tags = const [],
   ]) : module = null,
-       requiredAction = PermAction.view;
+       requiredAction = PermAction.view,
+       isVisible = null;
 
   const ModuleTile.gated(
     this.icon,
@@ -86,6 +86,7 @@ class ModuleTile {
     this.module, {
     this.requiredAction = PermAction.view,
     this.tags = const [],
+    this.isVisible,
   });
 }
 
@@ -96,7 +97,9 @@ List<ModuleSection> filterModuleSections(List<ModuleSection> sections) {
   for (final s in sections) {
     final allowed = s.tiles
         .where(
-          (t) => t.module == null || perms.can(t.module!, t.requiredAction),
+          (t) =>
+              (t.module == null || perms.can(t.module!, t.requiredAction)) &&
+              (t.isVisible == null || t.isVisible!()),
         )
         .toList();
     if (allowed.isNotEmpty) {
@@ -283,8 +286,8 @@ List<ModuleSection> masterModuleSections() => [
   ]),
   ModuleSection('Visitors', [
     ModuleTile.gated(
-      Icons.person_add_outlined,
-      'Invite / History',
+      Icons.person_pin_circle_outlined,
+      'Visitors Hub',
       ModuleColors.visitors,
       (c) => _go(c, const VisitorManagementScreen()),
       ModuleCodes.visitors,
@@ -297,14 +300,16 @@ List<ModuleSection> masterModuleSections() => [
         'outsider',
         'log',
         'history',
+        'report',
+        'approval',
       ],
     ),
     ModuleTile.gated(
-      Icons.vpn_key_outlined,
-      'Verify Code',
+      Icons.security_rounded,
+      'Gate Control',
       ModuleColors.verifyCode,
-      (c) => _go(c, const VerifyPasscodeScreen()),
-      ModuleCodes.visitors,
+      (c) => _go(c, const GateControlScreen()),
+      ModuleCodes.gateControl,
       requiredAction: PermAction.manage,
       tags: const [
         'gate',
@@ -315,80 +320,15 @@ List<ModuleSection> masterModuleSections() => [
         'security',
         'invite code',
         'check in',
-      ],
-    ),
-    ModuleTile.gated(
-      Icons.directions_walk_rounded,
-      'Walk-in Entry',
-      ModuleColors.walkIn,
-      (c) => _go(c, const WalkInEntryScreen()),
-      ModuleCodes.visitors,
-      requiredAction: PermAction.manage,
-      tags: const [
-        'gate',
-        'guard',
-        'entry',
-        'delivery',
         'walk-in',
         'walk in',
-        'security',
-        'allow',
-        'log visitor',
-      ],
-    ),
-    ModuleTile.gated(
-      Icons.group_outlined,
-      'Inside Now',
-      ModuleColors.visitors,
-      (c) => _go(c, const CurrentVisitorsScreen()),
-      ModuleCodes.visitors,
-      tags: const [
-        'current',
-        'present',
         'inside',
-        'visitor',
-        'who',
-        'guest',
-        'active',
-        'ongoing',
-      ],
-    ),
-    ModuleTile.gated(
-      Icons.history_outlined,
-      'Visitor Logs',
-      ModuleColors.visitors,
-      (c) => _go(c, const VisitorReportScreen()),
-      ModuleCodes.visitors,
-      tags: const [
-        'history',
-        'past',
-        'log',
-        'visitor',
-        'report',
-        'guest',
+        'current',
         'exit',
-        'record',
       ],
     ),
   ]),
   ModuleSection('Billing & Payments', [
-    ModuleTile.gated(
-      Icons.add_card_outlined,
-      'Create Bill',
-      ModuleColors.bills,
-      (c) => _go(c, const BillCreateScreen()),
-      ModuleCodes.bills,
-      requiredAction: PermAction.manage,
-      tags: const [
-        'generate',
-        'new',
-        'billing',
-        'invoice',
-        'bill generate',
-        'make bill',
-        'add bill',
-      ],
-    ),
     ModuleTile.gated(
       Icons.receipt_long_outlined,
       'Bills',

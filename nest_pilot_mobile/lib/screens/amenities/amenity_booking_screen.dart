@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/nest_loader.dart';
-import '../../../widgets/module_page_header.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/nest_loader.dart';
+import '../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:intl/intl.dart';

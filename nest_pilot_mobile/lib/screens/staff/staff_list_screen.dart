@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:intl/intl.dart';
 
-import '../../../config/modules.dart';
-import '../../../models/community_models.dart';
-import '../../../services/community_service.dart';
-import '../../../services/permission_service.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/nest_loader.dart';
-import '../../../widgets/app_field_card.dart';
-import '../../../widgets/app_form_sheet.dart';
-import '../../../widgets/glare_button.dart';
-import '../../../widgets/module_page_header.dart';
-import '../../../widgets/status_widgets.dart';
+import '../../config/modules.dart';
+import '../../models/community_models.dart';
+import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/nest_loader.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
+import '../../widgets/glare_button.dart';
+import '../../widgets/module_page_header.dart';
+import '../../widgets/status_widgets.dart';
 
 // ── Role helpers — shared by the list, the cards and the add sheet ───────────
 

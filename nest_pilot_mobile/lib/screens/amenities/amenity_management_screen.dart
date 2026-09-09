@@ -10,6 +10,7 @@ import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import 'package:nest_pilot_mobile/config/modules.dart';
+import 'amenity_detail_screen.dart';
 
 class AmenityManagementScreen extends StatefulWidget {
   const AmenityManagementScreen({super.key});
@@ -120,176 +121,6 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
         },
       ),
     );
-  }
-
-  Future<void> _deleteAmenity(Amenity amenity) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierColor: AppColors.black.withValues(alpha: 0.55),
-      builder: (ctx) => Dialog(
-        backgroundColor: AppColors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 36),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.15),
-                blurRadius: 28,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-                decoration: const BoxDecoration(
-                  color: AppColors.accentRed,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.20),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.white.withValues(alpha: 0.40),
-                          width: 1.5,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Delete Amenity?',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      amenity.name,
-                      style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.80),
-                        fontSize: 13,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Residents will no longer be able to book it. Existing bookings are kept.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(ctx, false),
-                            child: Container(
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBackground,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(ctx, true),
-                            child: Container(
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: AppColors.accentRed,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.accentRed.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                'Delete',
-                                style: TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await _service.deleteAmenity(amenity.id);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Amenity deleted')));
-        _fetchData();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
   }
 
   /// Bookings waiting on an approve/reject decision — drives the chip badge
@@ -450,8 +281,8 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
         ),
       );
     }
-    // Editing and deleting a facility are manage-only actions — the list
-    // itself is shared with view-only roles.
+    // Editing a facility is a manage-only action — the list itself is
+    // shared with view-only roles.
     final canManage = PermissionService().canManage(ModuleCodes.amenities);
 
     return ListView.builder(
@@ -461,210 +292,206 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
         final amenity = amenities[index];
         final isPaid = amenity.isPaid;
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar / Icon
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: amenity.imageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.network(
-                            amenity.imageUrl!,
-                            fit: BoxFit.cover,
-                            width: 52,
-                            height: 52,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.sports_soccer_rounded,
-                          color: AppColors.primary,
-                          size: 28,
-                        ),
+        return GestureDetector(
+          // Detail pops `true` when it deleted the amenity — refetch so the
+          // row it just removed doesn't linger in the list.
+          onTap: () async {
+            final deleted = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AmenityDetailScreen(
+                  amenity: amenity,
+                  bookings: _bookings
+                      .where((b) => b.amenityId == amenity.id)
+                      .toList(),
                 ),
-                const SizedBox(width: 16),
-                // Title and Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              amenity.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
+              ),
+            );
+            if (deleted == true) _fetchData();
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar / Icon
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: amenity.imageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.network(
+                              amenity.imageUrl!,
+                              fit: BoxFit.cover,
+                              width: 52,
+                              height: 52,
                             ),
+                          )
+                        : const Icon(
+                            Icons.sports_soccer_rounded,
+                            color: AppColors.primary,
+                            size: 28,
                           ),
-                          const SizedBox(width: 8),
-                          // A paid full-day amenity shows two prices in one
-                          // badge — cap it so a long price can't push the row
-                          // past the card edge on narrow screens.
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.sizeOf(context).width * 0.45,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isPaid
-                                    ? AppColors.accentAmber.withValues(
-                                        alpha: 0.12,
-                                      )
-                                    : AppColors.accentGreen.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Title and Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
                               child: Text(
-                                isPaid
-                                    ? (amenity.isFullDay
-                                          ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
-                                          : "₹${amenity.pricePerHour}/hr")
-                                    : "Free",
-                                maxLines: 1,
+                                amenity.name,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: isPaid
-                                      ? AppColors.warning
-                                      : AppColors.success,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      if (amenity.description != null &&
-                          amenity.description!.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          amenity.description!,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12.5,
-                            height: 1.3,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 1),
-                            child: Icon(
-                              amenity.isFullDay
-                                  ? Icons.event_available_rounded
-                                  : Icons.access_time_rounded,
-                              size: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // Wraps instead of overflowing — the full-day label is
-                          // wider than the card on smaller phones.
-                          Expanded(
-                            child: Text(
-                              amenity.isFullDay
-                                  ? 'Full-day booking (as per requirement)'
-                                  : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                height: 1.3,
+                            const SizedBox(width: 8),
+                            // A paid full-day amenity shows two prices in one
+                            // badge — cap it so a long price can't push the row
+                            // past the card edge on narrow screens.
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.sizeOf(context).width * 0.45,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isPaid
+                                      ? AppColors.accentAmber.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : AppColors.accentGreen.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  isPaid
+                                      ? (amenity.isFullDay
+                                            ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
+                                            : "₹${amenity.pricePerHour}/hr")
+                                      : "Free",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isPaid
+                                        ? AppColors.warning
+                                        : AppColors.success,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                        if (amenity.description != null &&
+                            amenity.description!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            amenity.description!,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12.5,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (canManage) ...[
-                  const SizedBox(width: 10),
-                  Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _openEditSheet(amenity),
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentIndigo.withValues(
-                              alpha: 0.10,
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 1),
+                              child: Icon(
+                                amenity.isFullDay
+                                    ? Icons.event_available_rounded
+                                    : Icons.access_time_rounded,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.edit_outlined,
-                            size: 14,
-                            color: AppColors.accentIndigo,
-                          ),
+                            const SizedBox(width: 6),
+                            // Wraps instead of overflowing — the full-day label is
+                            // wider than the card on smaller phones.
+                            Expanded(
+                              child: Text(
+                                amenity.isFullDay
+                                    ? 'Full-day booking (as per requirement)'
+                                    : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => _deleteAmenity(amenity),
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentRed.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.delete_outline_rounded,
-                            size: 14,
-                            color: AppColors.accentRed,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  // Edit button — delete lives on the detail screen now.
+                  if (canManage) ...[
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => _openEditSheet(amenity),
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: AppColors.accentIndigo.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: AppColors.accentIndigo,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );

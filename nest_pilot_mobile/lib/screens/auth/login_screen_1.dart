@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
-import '../services/auth_service.dart';
+import '../../services/auth_service.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,7 +15,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
-  static const Color _primaryBlue = Color(0xFF4A6589);
   static const Color _cardBg = Color(0xFFF8F1E5);
 
   Future<void> _requestOtp() async {

@@ -6,7 +6,8 @@ class ModuleCodes {
   static const String bills      = 'BILLS';
   static const String events     = 'EVENTS';
   static const String amenities  = 'AMENITIES';
-  static const String visitors   = 'VISITORS';
+  static const String visitors    = 'VISITORS';
+  static const String gateControl = 'GATE_CONTROL';
   static const String staff      = 'STAFF';
   static const String polls      = 'POLLS';
   static const String documents  = 'DOCUMENTS';

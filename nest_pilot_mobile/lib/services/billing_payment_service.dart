@@ -46,6 +46,26 @@ class BillService {
     return response['success'] ?? false;
   }
 
+  /// Edits a draft bill. The backend rejects this once the bill is published,
+  /// since member bills have already been generated from it.
+  Future<bool> updateBill(String id, Map<String, dynamic> data) async {
+    final response = await _apiService.put(ApiEndpoints.billById(id), {
+      'bill_type': data['billType'],
+      'title': data['title'],
+      'description': data['description'],
+      'amount_total': data['amountTotal'],
+      'due_date': data['dueDate'],
+    });
+    return response['success'] ?? false;
+  }
+
+  /// Soft-cancels the bill (status becomes CANCELLED) — published bills are
+  /// refused by the backend.
+  Future<bool> deleteBill(String id) async {
+    final response = await _apiService.delete(ApiEndpoints.billById(id));
+    return response['success'] ?? false;
+  }
+
   Future<BillsDashboardData> getDashboardData({String? month}) async {
     final endpoint = month != null
         ? '${ApiEndpoints.billsDashboard}?month=$month'

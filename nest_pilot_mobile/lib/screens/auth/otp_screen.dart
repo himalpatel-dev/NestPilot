@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/auth_service.dart';
-import '../services/permission_service.dart';
-import '../config/roles.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
-import '../theme/nest_loader.dart';
-import '../widgets/glare_button.dart';
+import '../../services/auth_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/roles.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_styles.dart';
+import '../../theme/nest_loader.dart';
+import '../../widgets/glare_button.dart';
 import 'pending_approval_screen.dart';
-import 'dashboard_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 
@@ -429,8 +429,9 @@ class _OtpFieldState extends State<_OtpField> {
       FocusScope.of(context).requestFocus(_focusNodes[_length - 1]);
     } else {
       final next = digits.length;
-      if (next < _length)
+      if (next < _length) {
         FocusScope.of(context).requestFocus(_focusNodes[next]);
+      }
     }
   }
 

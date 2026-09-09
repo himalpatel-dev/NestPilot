@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../models/user_model.dart';
-import '../config/roles.dart';
-import '../models/society_structure.dart';
-import '../services/admin_service.dart';
-import '../services/auth_service.dart';
-import '../services/notification_service.dart';
-import '../services/billing_payment_service.dart';
-import '../services/community_service.dart';
-import 'notification_list_screen.dart';
-import 'login_screen.dart';
+import '../../models/user_model.dart';
+import '../../config/roles.dart';
+import '../../models/society_structure.dart';
+import '../../services/admin_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/billing_payment_service.dart';
+import '../../services/community_service.dart';
+import '../notifications/notification_list_screen.dart';
+import '../auth/login_screen.dart';
 import 'module_catalog.dart';
-import 'services_hub_screen.dart';
-import 'super_admin/super_admin_dashboard_screen.dart';
-import '../services/socket_service.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_dashboard_header.dart';
-import '../theme/app_icons.dart';
+import 'super_admin_dashboard_screen.dart';
+import '../../services/socket_service.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_dashboard_header.dart';
+import '../../theme/app_icons.dart';
 
 /// Home for every role. Super Admin gets its own management-focused dashboard;
 /// all other roles share the unified, permission-driven dashboard.
@@ -396,10 +395,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── Modules grid ────────────────────────────────────────────────────────────
 
-  /// One card per catalogue tile — the dashboard mirrors the services hub:
-  /// every tile the user's permissions allow there shows here too, so the
-  /// two screens can never drift apart. Alerts and Profile are appended as
-  /// dashboard-only extras.
+  /// One card per catalogue tile the user's permissions allow, with Profile
+  /// appended as a dashboard-only extra. Notifications are reached through the
+  /// bell in the header rather than a tile of their own.
   List<_ModuleEntry> _moduleEntries() {
     final sections = filterModuleSections(masterModuleSections());
     return [
@@ -411,14 +409,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             tile.color,
             () => tile.onTap(context),
           ),
-      _ModuleEntry(
-        Icons.apps_rounded, 'Services', AppColors.accentGreen,
-        () => _go(ServicesHubScreen(user: widget.user, embedded: true)),
-      ),
-      _ModuleEntry(
-        Icons.notifications_outlined, 'Alerts', AppColors.accentRed,
-        _showNotifications,
-      ),
       _ModuleEntry(
         Icons.person_outline, 'Profile', AppColors.accentPurple,
         _showProfileSheet,
@@ -621,14 +611,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // ─── Navigation helper ───────────────────────────────────────────────────────
-
-  void _go(Widget screen, {VoidCallback? refresh}) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => screen),
-    ).then((_) => refresh?.call());
-  }
 }
 
 // ─── Data classes ────────────────────────────────────────────────────────────

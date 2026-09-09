@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
-import '../../../theme/app_colors.dart';
-import '../../../theme/nest_loader.dart';
-import '../../../models/community_models.dart';
-import '../../../services/community_service.dart';
-import '../../../services/permission_service.dart';
-import '../../../services/session_service.dart';
-import '../../../config/modules.dart';
-import '../../../widgets/module_page_header.dart';
-import '../../../widgets/app_field_card.dart';
-import '../../../widgets/app_form_sheet.dart';
-import '../../../widgets/glare_button.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/nest_loader.dart';
+import '../../models/community_models.dart';
+import '../../services/community_service.dart';
+import '../../services/permission_service.dart';
+import '../../services/session_service.dart';
+import '../../config/modules.dart';
+import '../../widgets/module_page_header.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
+import '../../widgets/glare_button.dart';
 import 'vehicle_detail_screen.dart';
 
 class VehicleListScreen extends StatefulWidget {
@@ -35,11 +35,12 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     setState(() => _isLoading = true);
     try {
       final vehicles = await _service.getAllVehicles();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _vehicles = vehicles;
           _isLoading = false;
         });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -194,9 +195,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                         ),
                       ),
                     ],
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: bottomPad + 90),
-                    ),
+                    SliverToBoxAdapter(child: SizedBox(height: bottomPad + 90)),
                   ],
                 ],
               ),

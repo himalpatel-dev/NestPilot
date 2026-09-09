@@ -4,7 +4,7 @@ import '../../models/billing_payment.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/status_widgets.dart';
-import 'bill_detail_screen.dart';
+import 'member_bill_detail_screen.dart';
 
 class BillsListScreen extends StatefulWidget {
   const BillsListScreen({super.key});
@@ -114,7 +114,7 @@ class _BillsListScreenState extends State<BillsListScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BillDetailScreen(bill: bill),
+                          builder: (context) => MemberBillDetailScreen(bill: bill),
                         ),
                       ),
                     ),

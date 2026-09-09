@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/billing_payment.dart';
 
-class BillDetailScreen extends StatelessWidget {
+class MemberBillDetailScreen extends StatelessWidget {
   final MemberBill bill;
-  const BillDetailScreen({super.key, required this.bill});
+  const MemberBillDetailScreen({super.key, required this.bill});
 
   @override
   Widget build(BuildContext context) {

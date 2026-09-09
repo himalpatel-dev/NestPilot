@@ -264,7 +264,8 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                                     ),
                                     const SizedBox(width: 13),
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Text(
                                           'Posted by',
@@ -341,11 +342,12 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                         GestureDetector(
                           onTap: () async {
                             final uri = Uri.tryParse(notice.attachmentUrl!);
-                            if (uri != null)
+                            if (uri != null) {
                               await launchUrl(
                                 uri,
                                 mode: LaunchMode.externalApplication,
                               );
+                            }
                           },
                           child: _card(
                             padding: const EdgeInsets.symmetric(
@@ -376,7 +378,8 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                                 const SizedBox(width: 16),
                                 const Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Attachment',

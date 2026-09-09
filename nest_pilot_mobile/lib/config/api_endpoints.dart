@@ -10,6 +10,7 @@ class ApiEndpoints {
   static const String superAdminStats = '/api/admin/super-admin-stats';
   static const String pendingUsers = '/api/admin/pending-users';
   static const String societyMembers = '/api/admin/members';
+  static const String societyMembersLookup = '/api/admin/members/lookup';
   static String approveUser(String id) => '/api/admin/users/$id/approve';
   static String rejectUser(String id) => '/api/admin/users/$id/reject';
 
@@ -41,6 +42,7 @@ class ApiEndpoints {
 
   // Billing
   static const String bills = '/api/bills';
+  static String billById(String id) => '/api/bills/$id';
   static String publishBill(String id) => '/api/bills/$id/publish';
   static const String myBills = '/api/bills/my';
   static String userBills(String userId) => '/api/bills/user/$userId';

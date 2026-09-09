@@ -51,6 +51,23 @@ const createBill = async (data, userScope) => {
     }
 };
 
+// A building-scoped user (e.g. a wing secretary) may only touch bills whose
+// targets all sit inside their assigned buildings. Shared by publish/update/
+// delete so the three paths can never drift apart.
+const assertBillInScope = async (bill, userScope) => {
+    if (!userScope || userScope.unscoped) return;
+    const targetHouseIds = bill.BillTargets ? bill.BillTargets.map(t => t.house_id) : [];
+    if (!targetHouseIds.length) return;
+
+    const outOfScope = await db.House.count({
+        where: {
+            id: { [Op.in]: targetHouseIds },
+            building_id: { [Op.notIn]: userScope.building_ids }
+        }
+    });
+    if (outOfScope > 0) throw new ApiError(403, 'Bill targets houses outside your assigned buildings');
+};
+
 const publishBill = async (billId, societyId, currentUserId, userScope) => {
     const transaction = await db.sequelize.transaction();
     try {
@@ -62,18 +79,7 @@ const publishBill = async (billId, societyId, currentUserId, userScope) => {
         if (!bill) throw new ApiError(404, 'Bill not found');
         if (bill.status === 'PUBLISHED') throw new ApiError(400, 'Already published');
 
-        if (userScope && !userScope.unscoped) {
-            const targetHouseIds = bill.BillTargets ? bill.BillTargets.map(t => t.house_id) : [];
-            if (targetHouseIds.length) {
-                const outOfScope = await db.House.count({
-                    where: {
-                        id: { [Op.in]: targetHouseIds },
-                        building_id: { [Op.notIn]: userScope.building_ids }
-                    }
-                });
-                if (outOfScope > 0) throw new ApiError(403, 'Bill targets houses outside your assigned buildings');
-            }
-        }
+        await assertBillInScope(bill, userScope);
 
         bill.status = 'PUBLISHED';
         await bill.save({ transaction });
@@ -150,6 +156,39 @@ const publishBill = async (billId, societyId, currentUserId, userScope) => {
     }
 };
 
+// Editable while the bill is still a DRAFT only. Once published, MemberBill
+// rows and the "new bill" notifications are already out with the old amount
+// and due date, so an edit here would silently disagree with what residents
+// were told.
+const EDITABLE_FIELDS = [
+    'bill_type',
+    'title',
+    'description',
+    'amount_total',
+    'due_date',
+    'penalty_type',
+    'penalty_value'
+];
+
+const updateBill = async (billId, societyId, data, userScope) => {
+    const bill = await db.Bill.findOne({
+        where: { id: billId, society_id: societyId },
+        include: [db.BillTarget]
+    });
+    if (!bill) throw new ApiError(404, 'Bill not found');
+    if (bill.status !== 'DRAFT') {
+        throw new ApiError(400, `Cannot edit a ${bill.status.toLowerCase()} bill`);
+    }
+
+    await assertBillInScope(bill, userScope);
+
+    for (const field of EDITABLE_FIELDS) {
+        if (data[field] !== undefined) bill[field] = data[field];
+    }
+    await bill.save();
+    return bill;
+};
+
 // Soft-cancel only — the model already defines a CANCELLED status for this.
 // A published bill can't be cancelled here since MemberBill rows and payment
 // notifications already went out; unpublishing would leave those dangling.
@@ -161,18 +200,7 @@ const deleteBill = async (billId, societyId, userScope) => {
     if (!bill) throw new ApiError(404, 'Bill not found');
     if (bill.status === 'PUBLISHED') throw new ApiError(400, 'Cannot delete a published bill');
 
-    if (userScope && !userScope.unscoped) {
-        const targetHouseIds = bill.BillTargets ? bill.BillTargets.map(t => t.house_id) : [];
-        if (targetHouseIds.length) {
-            const outOfScope = await db.House.count({
-                where: {
-                    id: { [Op.in]: targetHouseIds },
-                    building_id: { [Op.notIn]: userScope.building_ids }
-                }
-            });
-            if (outOfScope > 0) throw new ApiError(403, 'Bill targets houses outside your assigned buildings');
-        }
-    }
+    await assertBillInScope(bill, userScope);
 
     bill.status = 'CANCELLED';
     await bill.save();
@@ -243,7 +271,8 @@ const getDashboardData = async (societyId, month = null, userScope = null) => {
         if (!userScope.building_ids.length) {
             return {
                 stats: { total_collected: 0, total_pending: 0, pending_bills_count: 0 },
-                recent_payments: []
+                recent_payments: [],
+                pending_by_bill: []
             };
         }
         params.buildingIds = userScope.building_ids;
@@ -295,19 +324,87 @@ const getDashboardData = async (societyId, month = null, userScope = null) => {
         { replacements: params, ...queryType }
     );
 
+    // Bill-wise report: every member bill, paid and unpaid, carrying its parent
+    // bill so the API can nest the full roster under each bill. The pending
+    // totals count only unpaid rows, so they still reconcile with the headline
+    // total_pending figure above.
+    const memberBillRows = await db.sequelize.query(
+        `SELECT
+            b.id AS bill_id,
+            b.title,
+            b.bill_type,
+            b.due_date,
+            mb.user_id,
+            u.full_name AS member_name,
+            CASE WHEN h.wing IS NOT NULL AND h.wing != ''
+                 THEN h.wing || '-' || h.house_no
+                 ELSE h.house_no END AS flat_no,
+            CAST(mb.amount + mb.penalty_amount AS FLOAT) AS amount,
+            mb.status
+         FROM tbl_member_bills mb
+         INNER JOIN tbl_bills b ON b.id = mb.bill_id
+         LEFT JOIN tbl_houses h ON h.id = mb.house_id
+         LEFT JOIN tbl_users u ON u.id = mb.user_id
+         WHERE b.society_id = :societyId ${buildingClauseMemberBill}
+         ORDER BY b.due_date DESC, flat_no ASC`,
+        { replacements: params, ...queryType }
+    );
+
+    const UNPAID = ['PENDING', 'OVERDUE', 'PARTIAL'];
+    const billIndex = new Map();
+    for (const row of memberBillRows) {
+        let entry = billIndex.get(row.bill_id);
+        if (!entry) {
+            entry = {
+                bill_id: row.bill_id,
+                title: row.title,
+                bill_type: row.bill_type,
+                due_date: row.due_date,
+                pending_count: 0,
+                pending_amount: 0,
+                paid_count: 0,
+                paid_amount: 0,
+                members: []
+            };
+            billIndex.set(row.bill_id, entry);
+        }
+
+        const amount = Number(row.amount) || 0;
+        if (UNPAID.includes(row.status)) {
+            entry.pending_count += 1;
+            entry.pending_amount += amount;
+        } else {
+            entry.paid_count += 1;
+            entry.paid_amount += amount;
+        }
+
+        entry.members.push({
+            user_id: row.user_id,
+            member_name: row.member_name,
+            flat_no: row.flat_no,
+            amount,
+            status: row.status
+        });
+    }
+
+    // A fully settled bill has nothing outstanding to report on.
+    const pendingByBill = [...billIndex.values()].filter(b => b.pending_count > 0);
+
     return {
         stats: {
             total_collected: parseFloat(collectedRows[0]?.total_collected || 0),
             total_pending: parseFloat(pendingRows[0]?.total_pending || 0),
             pending_bills_count: parseInt(pendingRows[0]?.pending_count || 0)
         },
-        recent_payments: recentRows || []
+        recent_payments: recentRows || [],
+        pending_by_bill: pendingByBill
     };
 };
 
 module.exports = {
     createBill,
     publishBill,
+    updateBill,
     deleteBill,
     getMemberBills,
     getBillsBySociety,

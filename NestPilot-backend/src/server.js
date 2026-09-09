@@ -66,6 +66,11 @@ const startServer = async () => {
 
         const runModulePermissionSeeder = require('./seeders/modulePermissionSeeder');
 
+        // sync({ alter: true }) never widens an existing Postgres enum, so any
+        // value added to a model enum has to be applied to the type first.
+        const ensureEnumValues = require('./utils/ensureEnumValues');
+        await ensureEnumValues();
+
         // Connect to DB and start server
         db.sequelize.sync(syncOptions) // Auto-create/update tables from models
             .then(async () => {

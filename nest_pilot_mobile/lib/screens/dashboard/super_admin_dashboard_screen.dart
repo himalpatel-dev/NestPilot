@@ -8,16 +8,16 @@ import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
-import '../login_screen.dart';
-import '../notification_list_screen.dart';
-import 'building_create_screen.dart';
-import 'buildings_list_screen.dart';
-import 'flat_create_screen.dart';
-import 'flats_list_screen.dart';
-import 'role_management_screen.dart';
-import 'secretary_buildings_screen.dart';
-import 'societies_list_screen.dart';
-import 'society_create_screen.dart';
+import '../auth/login_screen.dart';
+import '../notifications/notification_list_screen.dart';
+import '../buildings/building_create_screen.dart';
+import '../buildings/buildings_list_screen.dart';
+import '../buildings/flat_create_screen.dart';
+import '../buildings/flats_list_screen.dart';
+import '../roles/role_management_screen.dart';
+import '../users/secretary_buildings_screen.dart';
+import '../societies/societies_list_screen.dart';
+import '../societies/society_create_screen.dart';
 
 /// Dedicated home for the Super Admin — same hero header design as the unified
 /// dashboard, with super-admin-focused management sections underneath.

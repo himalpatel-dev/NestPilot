@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const auth = require('../middlewares/auth.middleware');
-const { hasPermission } = require('../middlewares/permission.middleware');
+const { hasPermission, hasAnyPermission } = require('../middlewares/permission.middleware');
 
 router.use(auth);
 
@@ -13,6 +13,14 @@ router.get('/super-admin-stats', adminController.getSuperAdminStats);
 // Pending users + members are USERS-module views
 router.get('/pending-users', hasPermission('USERS', 'view'), adminController.getPendingUsers);
 router.get('/members', hasPermission('USERS', 'view'), adminController.getSocietyMembers);
+
+// Member picker (payment entry). Anyone who can manage bills needs to name a
+// member, but should not have to be given USERS view just for that — that flag
+// also puts the Users module on their dashboard.
+router.get('/members/lookup', hasAnyPermission([
+    { module: 'USERS', action: 'view' },
+    { module: 'BILLS', action: 'manage' }
+]), adminController.getMembersLookup);
 
 // Approve / reject pending residents = USERS approve
 router.post('/users/:id/approve', hasPermission('USERS', 'manage'), adminController.approveUser);

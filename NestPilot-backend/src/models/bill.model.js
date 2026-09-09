@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         bill_type: {
-            type: DataTypes.ENUM('MAINTENANCE', 'SPECIAL'),
+            type: DataTypes.ENUM('MAINTENANCE', 'SPECIAL', 'UTILITY', 'EVENT', 'OTHER'),
             allowNull: false
         },
         title: {

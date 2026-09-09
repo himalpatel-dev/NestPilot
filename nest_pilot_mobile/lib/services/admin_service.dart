@@ -26,6 +26,19 @@ class AdminService {
     return [];
   }
 
+  /// Minimal id/name/mobile/flat list for member pickers. Reachable with
+  /// BILLS manage, so a secretary can record a payment without being granted
+  /// USERS view — which would also add the Users module to their dashboard.
+  Future<List<UserModel>> getMembersLookup() async {
+    final response = await _apiService.get(ApiEndpoints.societyMembersLookup);
+    if (response['success'] == true) {
+      return (response['data'] as List)
+          .map((u) => UserModel.fromJson(u))
+          .toList();
+    }
+    return [];
+  }
+
   Future<DashboardStats?> getDashboardStats() async {
     final response = await _apiService.get(ApiEndpoints.dashboardStats);
     if (response['success'] == true && response['data'] != null) {

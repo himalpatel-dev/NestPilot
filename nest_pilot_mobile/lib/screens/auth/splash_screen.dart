@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/auth_service.dart';
-import '../services/permission_service.dart';
-import '../config/roles.dart';
-import '../theme/app_colors.dart';
+import '../../services/auth_service.dart';
+import '../../services/permission_service.dart';
+import '../../config/roles.dart';
+import '../../theme/app_colors.dart';
 import 'login_screen.dart';
 import 'pending_approval_screen.dart';
-import 'dashboard_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

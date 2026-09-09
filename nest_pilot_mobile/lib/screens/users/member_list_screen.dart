@@ -11,11 +11,10 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_bottom_nav.dart';
 import '../../theme/tab_route.dart';
 import '../../widgets/module_page_header.dart';
-import '../dashboard_screen.dart';
-import '../services_hub_screen.dart';
-import '../common/visitor_report_screen.dart';
-import '../login_screen.dart';
-import 'bills_manage_screen.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../visitors/visitor_report_screen.dart';
+import '../auth/login_screen.dart';
+import '../bills/bills_manage_screen.dart';
 
 class MemberListScreen extends StatefulWidget {
   final bool embedded;
@@ -160,7 +159,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 items: const [
                   AppNavItem(Icons.home_rounded, 'Home'),
                   AppNavItem(Icons.contacts_rounded, 'Residents'),
-                  AppNavItem(Icons.apps_rounded, 'Services'),
                   AppNavItem(Icons.receipt_long_rounded, 'Bills'),
                   AppNavItem(Icons.person_pin_circle_rounded, 'Visitor'),
                 ],
@@ -230,13 +228,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
     Widget? target;
     switch (index) {
       case 2:
-        final user = await _currentUser();
-        if (user != null) target = ServicesHubScreen(user: user);
-        break;
-      case 3:
         target = const BillsManageScreen();
         break;
-      case 4:
+      case 3:
         target = const VisitorReportScreen();
         break;
     }

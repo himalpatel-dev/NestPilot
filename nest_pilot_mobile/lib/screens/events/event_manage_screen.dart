@@ -58,17 +58,19 @@ class _EventManageScreenState extends State<EventManageScreen> {
     });
     try {
       final events = await _service.getEvents();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _events = eventsInDisplayOrder(events);
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -609,8 +611,9 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
       initialTime: TimeOfDay.now(),
       builder: appPickerTheme,
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() => isStart ? _startTime = picked : _endTime = picked);
+    }
   }
 
   Future<void> _submit() async {

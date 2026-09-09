@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/nest_loader.dart';
-import '../../../widgets/app_field_card.dart';
-import '../../../widgets/app_form_sheet.dart';
-import '../../../widgets/glare_button.dart';
-import '../../../widgets/module_page_header.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/nest_loader.dart';
+import '../../widgets/app_field_card.dart';
+import '../../widgets/app_form_sheet.dart';
+import '../../widgets/glare_button.dart';
+import '../../widgets/module_page_header.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';

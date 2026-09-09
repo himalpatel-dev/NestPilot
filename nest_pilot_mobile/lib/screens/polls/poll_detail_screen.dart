@@ -4,9 +4,9 @@ import 'package:nest_pilot_mobile/config/modules.dart';
 import 'package:nest_pilot_mobile/models/community_models.dart';
 import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/nest_loader.dart';
-import '../../../widgets/app_page_header.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/nest_loader.dart';
+import '../../widgets/app_page_header.dart';
 
 class PollDetailScreen extends StatefulWidget {
   final Poll poll;

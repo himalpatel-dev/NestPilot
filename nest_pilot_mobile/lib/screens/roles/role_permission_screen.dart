@@ -36,17 +36,19 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     });
     try {
       final perms = await _roleService.getRolePermissions(widget.role.id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _permissions = perms;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -98,6 +100,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         return Icons.fitness_center_outlined;
       case 'VISITORS':
         return Icons.person_pin_circle_outlined;
+      case 'GATE_CONTROL':
+        return Icons.security_rounded;
       case 'STAFF':
         return Icons.badge_outlined;
       case 'POLLS':
@@ -137,6 +141,8 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         return ModuleColors.amenities;
       case 'VISITORS':
         return ModuleColors.visitors;
+      case 'GATE_CONTROL':
+        return ModuleColors.verifyCode;
       case 'STAFF':
         return ModuleColors.staff;
       case 'POLLS':

@@ -93,7 +93,7 @@ class SecretaryBuildingService {
     final res = await _api.put(ApiEndpoints.societyAdminById(id), {
       'full_name': fullName,
       if (email?.isNotEmpty ?? false) 'email': email,
-      if (societyId != null) 'society_id': societyId,
+      'society_id': ?societyId,
     });
     return res['success'] == true;
   }
@@ -110,10 +110,9 @@ class SecretaryBuildingService {
   }
 
   Future<bool> setAssignments(int userId, List<int> buildingIds) async {
-    final res = await _api.put(
-      ApiEndpoints.societyAdminBuildings(userId),
-      {'building_ids': buildingIds},
-    );
+    final res = await _api.put(ApiEndpoints.societyAdminBuildings(userId), {
+      'building_ids': buildingIds,
+    });
     return res['success'] == true;
   }
 }
