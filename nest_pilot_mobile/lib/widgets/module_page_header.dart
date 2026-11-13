@@ -63,6 +63,10 @@ class ModulePageHeader extends StatelessWidget {
   /// Called on every keystroke in the built-in search field.
   final ValueChanged<String>? onSearchChanged;
 
+  /// Optional compact widget at the right end of the search field — e.g. a
+  /// filter button. Keep it at most 32px tall so the field keeps its height.
+  final Widget? searchTrailing;
+
   const ModulePageHeader({
     super.key,
     required this.title,
@@ -79,6 +83,7 @@ class ModulePageHeader extends StatelessWidget {
     this.searchHint = 'Search...',
     this.searchController,
     this.onSearchChanged,
+    this.searchTrailing,
   }) : assert(
          icon != null || iconWidget != null,
          'Provide either icon or iconWidget',
@@ -221,7 +226,9 @@ class ModulePageHeader extends StatelessWidget {
 
   Widget _searchField() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      // A trailing button sits closer to the edge so it lines up with the
+      // pill's rounded end.
+      padding: EdgeInsets.only(left: 14, right: searchTrailing != null ? 6 : 14),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
@@ -278,6 +285,10 @@ class ModulePageHeader extends StatelessWidget {
                 );
               },
             ),
+          if (searchTrailing != null) ...[
+            const SizedBox(width: 8),
+            searchTrailing!,
+          ],
         ],
       ),
     );

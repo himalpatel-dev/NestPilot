@@ -13,7 +13,9 @@ import '../../services/session_service.dart';
 import '../../services/user_management_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
-import '../../widgets/app_form_sheet.dart' show AppPickerCard;
+import '../../widgets/app_button.dart';
+import '../../widgets/app_form_sheet.dart'
+    show AppFormSheet, AppPickerCard, showAppFormSheet;
 import '../../widgets/app_sheet_action.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/society_picker_sheet.dart';
@@ -39,14 +41,17 @@ class UserManagementScreen extends StatefulWidget {
 
 enum _UserAction { approve, reject, block, unblock, edit, assignBuildings, call }
 
-class _UserManagementScreenState extends State<UserManagementScreen> {
-  static const List<(String, String)> _statusOptions = [
-    ('active', 'Active'),
-    ('pending', 'Pending'),
-    ('blocked', 'Blocked'),
-    ('rejected', 'Rejected'),
-  ];
+const List<(String, String)> _statusOptions = [
+  ('active', 'Active'),
+  ('pending', 'Pending'),
+  ('blocked', 'Blocked'),
+  ('rejected', 'Rejected'),
+];
 
+/// The filters picked in [_UserFilterSheet]; null fields mean "all".
+typedef _UserFilters = ({Society? society, RoleModel? role, String? status});
+
+class _UserManagementScreenState extends State<UserManagementScreen> {
   final UserManagementService _service = UserManagementService();
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
@@ -76,6 +81,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   bool get _hasFilters =>
       _query.isNotEmpty || _society != null || _role != null || _status != null;
+
+  /// Society / status / role filters in effect (search is not counted).
+  int get _activeFilterCount =>
+      (_society != null ? 1 : 0) +
+      (_status != null ? 1 : 0) +
+      (_role != null ? 1 : 0);
 
   @override
   void initState() {
@@ -226,15 +237,38 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     _reload();
   }
 
-  Future<void> _pickSociety() async {
-    final picked = await showSocietyPicker(context, selectedId: _society?.id);
-    if (picked == null || picked.id == _society?.id) return;
-    _society = picked;
+  void _clearSociety() {
+    _society = null;
     _reload();
   }
 
-  void _clearSociety() {
+  void _clearFilters() {
     _society = null;
+    _status = null;
+    _role = null;
+    _reload();
+  }
+
+  /// Society, status and role live in one sheet behind the search bar's
+  /// filter button, so the list keeps the screen space.
+  Future<void> _openFilters() async {
+    final picked = await showAppFormSheet<_UserFilters>(
+      context: context,
+      builder: (_) => _UserFilterSheet(
+        initial: (society: _society, role: _role, status: _status),
+        roles: _roles,
+        stats: _stats,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    if (picked.society?.id == _society?.id &&
+        picked.role?.id == _role?.id &&
+        picked.status == _status) {
+      return;
+    }
+    _society = picked.society;
+    _role = picked.role;
+    _status = picked.status;
     _reload();
   }
 
@@ -464,61 +498,167 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       searchHint: 'Search name, mobile, email or flat',
       searchController: _searchCtrl,
       onSearchChanged: _onSearchChanged,
-      bottom: _buildFilters(),
+      searchTrailing: _filterButton(),
+      // Nothing below the search bar until a filter is applied.
+      bottom: _activeFilterCount == 0 ? null : _buildActiveFilters(),
     );
   }
 
-  Widget _buildFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: AppPickerCard(
-                icon: Icons.location_city_outlined,
-                label: 'Society',
-                value: _society?.name,
-                hint: 'All societies',
-                onTap: _pickSociety,
+  /// Round tune icon inside the search bar; grows into a dark "⚙ 2" pill
+  /// showing how many filters are applied.
+  Widget _filterButton() {
+    final count = _activeFilterCount;
+    final active = count > 0;
+    return Tooltip(
+      message: 'Filters',
+      child: GestureDetector(
+        onTap: _openFilters,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 32,
+          constraints: const BoxConstraints(minWidth: 32),
+          padding: EdgeInsets.symmetric(horizontal: active ? 10 : 0),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? AppColors.primaryDark : AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 17,
+                color: active ? AppColors.white : AppColors.primary,
+              ),
+              if (active) ...[
+                const SizedBox(width: 5),
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One slim row of the applied filters — tap a chip to reopen the filter
+  /// sheet, or its ✕ to drop just that filter.
+  Widget _buildActiveFilters() {
+    return _chipRow([
+      if (_society != null)
+        _activeChip(
+          leading: const Icon(
+            Icons.location_city_outlined,
+            size: 14,
+            color: AppColors.primary,
+          ),
+          label: _society!.name,
+          onRemove: _clearSociety,
+        ),
+      if (_status != null)
+        _activeChip(
+          leading: Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: _statusColor(_status!),
+              shape: BoxShape.circle,
+            ),
+          ),
+          label: _statusLabel(_status!),
+          onRemove: () => _setStatus(null),
+        ),
+      if (_role != null)
+        _activeChip(
+          leading: const Icon(
+            Icons.badge_outlined,
+            size: 14,
+            color: AppColors.primary,
+          ),
+          label: _role!.name,
+          onRemove: () => _setRole(null),
+        ),
+      if (_activeFilterCount > 1)
+        GestureDetector(
+          onTap: _clearFilters,
+          behavior: HitTestBehavior.opaque,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+            child: Text(
+              'Clear all',
+              style: TextStyle(
+                color: AppColors.accentRed,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            if (_society != null) ...[
-              const SizedBox(width: 10),
-              Tooltip(
-                message: 'Show all societies',
-                child: _circleAction(
-                  icon: Icons.close_rounded,
-                  color: AppColors.accentRed,
-                  onTap: _clearSociety,
+          ),
+        ),
+    ]);
+  }
+
+  Widget _activeChip({
+    required Widget leading,
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return GestureDetector(
+      onTap: _openFilters,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            leading,
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: const BoxDecoration(
+                  color: AppColors.cardBackground,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.close_rounded,
+                  size: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
-        _chipRow([
-          _filterChip('All', _status == null, () => _setStatus(null)),
-          for (final (value, label) in _statusOptions)
-            _filterChip(
-              '$label · ${_stats.countFor(value)}',
-              _status == value,
-              () => _setStatus(value),
-            ),
-        ]),
-        if (_roles.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _chipRow([
-            _filterChip('All roles', _role == null, () => _setRole(null)),
-            for (final role in _roles)
-              _filterChip(
-                role.name,
-                _role?.id == role.id,
-                () => _setRole(role),
-              ),
-          ]),
-        ],
-      ],
+      ),
     );
   }
 
@@ -532,32 +672,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             chips[i],
           ],
         ],
-      ),
-    );
-  }
-
-  // Same chip as the Complaints / Notices filters.
-  Widget _filterChip(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryDark : AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AppColors.primaryDark : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.white : AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-          ),
-        ),
       ),
     );
   }
@@ -855,6 +969,214 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ─── Filter sheet ────────────────────────────────────────────────────────────
+
+/// Society, status and role filters in one sheet. Choices are staged here and
+/// only popped (as a [_UserFilters]) on "Show results", so the list reloads
+/// once rather than on every tap.
+class _UserFilterSheet extends StatefulWidget {
+  final _UserFilters initial;
+  final List<RoleModel> roles;
+
+  /// Status counts for [initial]'s society.
+  final UserStats stats;
+
+  const _UserFilterSheet({
+    required this.initial,
+    required this.roles,
+    required this.stats,
+  });
+
+  @override
+  State<_UserFilterSheet> createState() => _UserFilterSheetState();
+}
+
+class _UserFilterSheetState extends State<_UserFilterSheet> {
+  late Society? _society = widget.initial.society;
+  late RoleModel? _role = widget.initial.role;
+  late String? _status = widget.initial.status;
+
+  /// Null while counts are re-fetched for a newly picked society.
+  late UserStats? _stats = widget.stats;
+  int _statsRequestId = 0;
+
+  Future<void> _pickSociety() async {
+    final picked = await showSocietyPicker(context, selectedId: _society?.id);
+    if (picked == null || !mounted || picked.id == _society?.id) return;
+    _setSociety(picked);
+  }
+
+  /// Status counts are per society, so re-count when the society changes.
+  Future<void> _setSociety(Society? society) async {
+    final requestId = ++_statsRequestId;
+    final isInitial = society?.id == widget.initial.society?.id;
+    setState(() {
+      _society = society;
+      _stats = isInitial ? widget.stats : null;
+    });
+    if (isInitial) return;
+    try {
+      final stats = await UserManagementService().getStats(
+        societyId: society == null ? null : int.tryParse(society.id),
+      );
+      if (mounted && requestId == _statsRequestId) {
+        setState(() => _stats = stats);
+      }
+    } catch (_) {
+      // Counts are a hint — the chips still work without them.
+    }
+  }
+
+  void _reset() {
+    if (_society != null) _setSociety(null);
+    setState(() {
+      _status = null;
+      _role = null;
+    });
+  }
+
+  void _apply() => Navigator.pop<_UserFilters>(context, (
+    society: _society,
+    role: _role,
+    status: _status,
+  ));
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = _stats;
+    return AppFormSheet(
+      accentColor: ModuleColors.users,
+      icon: Icons.tune_rounded,
+      title: 'Filter users',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: AppPickerCard(
+                  icon: Icons.location_city_outlined,
+                  label: 'Society',
+                  value: _society?.name,
+                  hint: 'All societies',
+                  onTap: _pickSociety,
+                ),
+              ),
+              if (_society != null) ...[
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: 'Show all societies',
+                  child: _circleAction(
+                    icon: Icons.close_rounded,
+                    color: AppColors.accentRed,
+                    onTap: () => _setSociety(null),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 22),
+          _sectionLabel('Status'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _filterChip(
+                'All',
+                _status == null,
+                () => setState(() => _status = null),
+              ),
+              for (final (value, label) in _statusOptions)
+                _filterChip(
+                  stats == null ? label : '$label · ${stats.countFor(value)}',
+                  _status == value,
+                  () => setState(() => _status = value),
+                ),
+            ],
+          ),
+          if (widget.roles.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _sectionLabel('Role'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _filterChip(
+                  'All roles',
+                  _role == null,
+                  () => setState(() => _role = null),
+                ),
+                for (final role in widget.roles)
+                  _filterChip(
+                    role.name,
+                    _role?.id == role.id,
+                    () => setState(() => _role = role),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: _reset,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Text(
+                        'Reset',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: AppButton(
+                  text: 'Show results',
+                  color: AppColors.primary,
+                  height: 50,
+                  onPressed: _apply,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Same small caps as the label inside [AppPickerCard].
+  Widget _sectionLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.1,
       ),
     );
   }
@@ -1310,6 +1632,32 @@ Widget _avatar(ManagedUser user) {
         color: AppColors.white,
         fontSize: 15,
         fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
+}
+
+// Same chip as the Complaints / Notices filters.
+Widget _filterChip(String label, bool selected, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primaryDark : AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? AppColors.primaryDark : AppColors.border,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.white : AppColors.textSecondary,
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+        ),
       ),
     ),
   );

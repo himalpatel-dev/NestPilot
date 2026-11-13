@@ -53,11 +53,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
     _numberController = TextEditingController(text: f?.number ?? '');
     _floorController = TextEditingController(text: f?.floor ?? '0');
     _wingController = TextEditingController(text: f?.wing ?? '');
-    _areaController = TextEditingController(
-      text: (f?.areaSqft != null && f!.areaSqft != '0.00' && f.areaSqft != '0')
-          ? f.areaSqft!
-          : '',
-    );
+    _areaController = TextEditingController(text: _areaText(f?.areaSqft));
     _selectedUnitType = f?.unitType ?? 'FLAT';
 
     if (widget.isEditing) {
@@ -67,6 +63,16 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
     } else {
       _loadSocieties();
     }
+  }
+
+  /// The API sends area as a DECIMAL(10,2) string — show "3000.00" as "3000"
+  /// and "1250.50" as "1250.5"; blank when unset or zero.
+  static String _areaText(String? raw) {
+    final area = double.tryParse(raw ?? '');
+    if (area == null || area <= 0) return '';
+    return area == area.truncateToDouble()
+        ? area.toInt().toString()
+        : area.toString();
   }
 
   @override
@@ -456,13 +462,19 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                               field: AppBorderlessField(
                                 controller: _areaController,
                                 hint: 'e.g. 1200',
-                                keyboardType: TextInputType.number,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                // Stored as DECIMAL(10,2): up to 2 decimals.
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d*\.?\d{0,2}'),
+                                  ),
                                 ],
                                 validator: (v) {
                                   if (v != null && v.trim().isNotEmpty) {
-                                    final val = int.tryParse(v.trim());
+                                    final val = double.tryParse(v.trim());
                                     if (val == null || val <= 0) {
                                       return 'Enter a valid area';
                                     }
