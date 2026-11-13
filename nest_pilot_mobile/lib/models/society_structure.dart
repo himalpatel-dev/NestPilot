@@ -106,6 +106,9 @@ class Flat {
   final String unitType;
   final String? areaSqft;
 
+  /// False once the flat has been removed (houses are soft-deleted).
+  final bool isActive;
+
   Flat({
     required this.id,
     required this.number,
@@ -114,6 +117,7 @@ class Flat {
     this.wing,
     required this.unitType,
     this.areaSqft,
+    this.isActive = true,
   });
 
   factory Flat.fromJson(Map<String, dynamic> json) {
@@ -125,6 +129,78 @@ class Flat {
       wing: json['wing']?.toString(),
       unitType: json['unit_type'] ?? 'FLAT',
       areaSqft: json['area_sqft']?.toString(),
+      isActive: json['is_active'] != false,
+    );
+  }
+}
+
+/// One row of the Super Admin's society directory — the society plus the
+/// headline counts shown on its card.
+class SocietyOverview {
+  final Society society;
+  final int buildings;
+  final int flats;
+  final int activeUsers;
+  final int pendingUsers;
+  final int admins;
+
+  const SocietyOverview({
+    required this.society,
+    required this.buildings,
+    required this.flats,
+    required this.activeUsers,
+    required this.pendingUsers,
+    required this.admins,
+  });
+
+  /// Inactive is a label the Super Admin sets; nothing else changes.
+  bool get isInactive => (society.status ?? '').toLowerCase() == 'inactive';
+
+  factory SocietyOverview.fromJson(Map<String, dynamic> json) {
+    // Counts arrive as strings (Postgres COUNT is a bigint).
+    int toInt(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '0') ?? 0);
+    return SocietyOverview(
+      society: Society.fromJson(json),
+      buildings: toInt(json['buildings_count']),
+      flats: toInt(json['flats_count']),
+      activeUsers: toInt(json['active_users_count']),
+      pendingUsers: toInt(json['pending_users_count']),
+      admins: toInt(json['admins_count']),
+    );
+  }
+}
+
+/// One page of the society directory, plus overall active / inactive totals.
+class SocietyDirectoryPage {
+  final List<SocietyOverview> items;
+  final int total;
+  final bool hasMore;
+  final int allCount;
+  final int activeCount;
+  final int inactiveCount;
+
+  const SocietyDirectoryPage({
+    required this.items,
+    required this.total,
+    required this.hasMore,
+    required this.allCount,
+    required this.activeCount,
+    required this.inactiveCount,
+  });
+
+  factory SocietyDirectoryPage.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '0') ?? 0);
+    final summary = json['summary'] as Map<String, dynamic>? ?? const {};
+    return SocietyDirectoryPage(
+      items: (json['items'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SocietyOverview.fromJson)
+          .toList(),
+      total: toInt(json['total']),
+      hasMore: json['has_more'] == true,
+      allCount: toInt(summary['total']),
+      activeCount: toInt(summary['active']),
+      inactiveCount: toInt(summary['inactive']),
     );
   }
 }

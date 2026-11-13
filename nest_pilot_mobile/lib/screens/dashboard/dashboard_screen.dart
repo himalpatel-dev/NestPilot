@@ -5,12 +5,12 @@ import '../../models/user_model.dart';
 import '../../config/roles.dart';
 import '../../models/society_structure.dart';
 import '../../services/admin_service.dart';
-import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/billing_payment_service.dart';
 import '../../services/community_service.dart';
+import '../../services/session_service.dart';
 import '../notifications/notification_list_screen.dart';
-import '../auth/login_screen.dart';
+import '../profile/profile_screen.dart';
 import 'module_catalog.dart';
 import 'super_admin_dashboard_screen.dart';
 import '../../services/socket_service.dart';
@@ -206,129 +206,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool get _isSuperAdmin => widget.user.role == UserRoles.superAdmin;
   bool get _isSecretary => widget.user.role == UserRoles.societyAdmin;
 
-  // ─── Profile sheet ──────────────────────────────────────────────────────────
+  // ─── Profile ────────────────────────────────────────────────────────────────
 
-  void _showProfileSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  widget.user.fullName.isNotEmpty
-                      ? widget.user.fullName[0].toUpperCase()
-                      : 'U',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                widget.user.fullName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _roleLabel(widget.user.role),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                widget.user.mobile,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    size: 18,
-                    color: AppColors.white,
-                  ),
-                  label: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    await AuthService().logout();
-                    if (mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  /// The signed-in user as of the latest profile edit — the session copy is
+  /// refreshed on save, while [widget.user] is the login-time snapshot.
+  UserModel get _user => SessionService().currentUser ?? widget.user;
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ProfileScreen(user: _user)),
+    ).then((_) {
+      // Rebuild so the hero picks up a name changed on the profile page.
+      if (mounted) setState(() {});
+    });
   }
 
   // ─── Build ──────────────────────────────────────────────────────────────────
@@ -411,7 +302,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
       _ModuleEntry(
         Icons.person_outline, 'Profile', AppColors.accentPurple,
-        _showProfileSheet,
+        _openProfile,
       ),
     ];
   }
@@ -477,21 +368,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Hero ───────────────────────────────────────────────────────────────────
+  // ─── Hero ─────────────────────────────────────────────────────────────────
 
   Widget _buildHero() {
-    final hasFlat = (widget.user.flatNumber ?? '').isNotEmpty;
-    final hasSociety = (widget.user.societyName ?? '').isNotEmpty;
+    final user = _user;
+    final hasFlat = (user.flatNumber ?? '').isNotEmpty;
+    final hasSociety = (user.societyName ?? '').isNotEmpty;
 
     String subtitle;
     if (hasFlat && hasSociety) {
-      subtitle = 'Flat ${widget.user.flatNumber} · ${widget.user.societyName}';
+      subtitle = 'Flat ${user.flatNumber} · ${user.societyName}';
     } else if (hasFlat) {
-      subtitle = 'Flat ${widget.user.flatNumber}';
+      subtitle = 'Flat ${user.flatNumber}';
     } else if (hasSociety) {
-      subtitle = widget.user.societyName!;
+      subtitle = user.societyName!;
     } else {
-      subtitle = _roleLabel(widget.user.role);
+      subtitle = _roleLabel(user.role);
     }
 
     return AppDashboardHeader(
@@ -503,10 +395,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
-      title: widget.user.fullName,
+      title: user.fullName,
       subtitle: subtitle,
       unreadCount: _unreadCount,
       onNotificationTap: _showNotifications,
+      onLogoutTap: () => confirmLogout(context),
       stats: _headerStats(),
     );
   }

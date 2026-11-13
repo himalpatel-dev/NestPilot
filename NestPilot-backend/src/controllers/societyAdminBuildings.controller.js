@@ -204,9 +204,61 @@ const removeAssignment = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+/**
+ * Edit a Society Admin's name / email / society. Moving them to another
+ * society clears their building assignments and closes their flats, both of
+ * which belong to the old society.
+ */
+const updateSocietyAdmin = async (req, res, next) => {
+    const t = await db.sequelize.transaction();
+    try {
+        const user = await db.User.findByPk(req.params.userId, {
+            include: [{ model: db.Role, attributes: ['code'] }],
+            transaction: t
+        });
+        if (!user) throw new ApiError(404, 'User not found');
+        if (!user.Role || user.Role.code !== 'SOCIETY_ADMIN') {
+            throw new ApiError(400, 'User is not a Society Admin');
+        }
+
+        const changes = {};
+        if (req.body.full_name !== undefined) {
+            const fullName = String(req.body.full_name || '').trim();
+            if (!fullName) throw new ApiError(400, 'full_name cannot be empty');
+            changes.full_name = fullName;
+        }
+        if (req.body.email !== undefined) {
+            changes.email = String(req.body.email || '').trim() || null;
+        }
+        if (req.body.society_id !== undefined && req.body.society_id !== null) {
+            const societyId = Number(req.body.society_id);
+            const society = Number.isInteger(societyId) && societyId > 0
+                ? await db.Society.findByPk(societyId, { transaction: t })
+                : null;
+            if (!society) throw new ApiError(404, 'Society not found');
+            if (society.id !== user.society_id) {
+                changes.society_id = society.id;
+                await db.UserBuilding.destroy({ where: { user_id: user.id }, transaction: t });
+                await db.UserHouseMapping.update(
+                    { is_active: false, is_primary: false, end_date: new Date() },
+                    { where: { user_id: user.id, is_active: true }, transaction: t }
+                );
+            }
+        }
+
+        await user.update(changes, { transaction: t });
+        await t.commit();
+        res.status(200).json(new ApiResponse(200, user, 'Society Admin updated'));
+    } catch (e) {
+        await t.rollback();
+        next(e);
+    }
+};
+
 module.exports = {
     listSocietyAdmins,
     createSocietyAdmin,
+    updateSocietyAdmin,
     getAssignments,
     setAssignments,
     addAssignment,

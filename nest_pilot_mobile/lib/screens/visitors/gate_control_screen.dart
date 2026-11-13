@@ -44,7 +44,8 @@ class _GateControlScreenState extends State<GateControlScreen>
 
   @override
   Widget build(BuildContext context) {
-    final canManage = PermissionService().canManage(ModuleCodes.gateControl) ||
+    final canManage =
+        PermissionService().canManage(ModuleCodes.gateControl) ||
         PermissionService().canManage(ModuleCodes.visitors);
 
     return Scaffold(
@@ -64,50 +65,9 @@ class _GateControlScreenState extends State<GateControlScreen>
               ),
             )
           else ...[
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-                tabs: const [
-                  Tab(
-                    icon: Icon(Icons.vpn_key_rounded, size: 18),
-                    text: 'Verify Code',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.directions_walk_rounded, size: 18),
-                    text: 'Walk-In',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.groups_outlined, size: 18),
-                    text: 'Inside Now',
-                  ),
-                ],
-              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: _buildTabBar(),
             ),
             Expanded(
               child: TabBarView(
@@ -121,6 +81,77 @@ class _GateControlScreenState extends State<GateControlScreen>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Segmented tab bar: a white track (same border as the header's search
+  /// field) with a dark pill that slides under the active tab and follows
+  /// the page swipe.
+  Widget _buildTabBar() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      // Keeps the pill's shadow inside the track.
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: AppColors.primaryDark,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryDark.withValues(alpha: 0.25),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        dividerColor: AppColors.transparent,
+        overlayColor: const WidgetStatePropertyAll(AppColors.transparent),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+        labelColor: AppColors.white,
+        unselectedLabelColor: AppColors.textSecondary,
+        labelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+        tabs: [
+          _tab(Icons.vpn_key_rounded, 'Verify Code'),
+          _tab(Icons.directions_walk_rounded, 'Walk-In'),
+          _tab(Icons.groups_outlined, 'Inside Now'),
+        ],
+      ),
+    );
+  }
+
+  Widget _tab(IconData icon, String label) {
+    return Tab(
+      height: 40,
+      // Shrinks the label a touch on narrow phones instead of clipping it.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 6),
+            Text(label),
+          ],
+        ),
       ),
     );
   }
@@ -195,7 +226,9 @@ class _VerifyCodeTabState extends State<_VerifyCodeTab> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                result == 'INSIDE' ? 'Visitor entry logged successfully' : 'Entry denied',
+                result == 'INSIDE'
+                    ? 'Visitor entry logged successfully'
+                    : 'Entry denied',
               ),
             ),
           );
@@ -203,9 +236,9 @@ class _VerifyCodeTabState extends State<_VerifyCodeTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -343,10 +376,9 @@ class _WalkInEntryTabState extends State<_WalkInEntryTab> {
     try {
       final houses = await _service.getAllHouses();
       if (mounted) {
-        final nums = houses
-            .map<String>((h) => h['house_no'].toString())
-            .toList()
-          ..sort();
+        final nums =
+            houses.map<String>((h) => h['house_no'].toString()).toList()
+              ..sort();
         setState(() {
           _houseNumbers = nums;
           _loadingHouses = false;
@@ -360,9 +392,9 @@ class _WalkInEntryTabState extends State<_WalkInEntryTab> {
   Future<void> _logWalkIn() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedHouse == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a flat')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a flat')));
       return;
     }
     if (_selectedVisitorType == null) {
@@ -424,9 +456,9 @@ class _WalkInEntryTabState extends State<_WalkInEntryTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _logging = false);
@@ -833,7 +865,8 @@ class _InsideNowTabState extends State<_InsideNowTab> {
           final mobile = visitor['mobile'] as String? ?? '—';
           final houseNo = house?['house_no'] as String? ?? '—';
           final logId = log['id'] as int?;
-          final visitorType = (visitor['type'] ?? log['visitor_type']) as String?;
+          final visitorType =
+              (visitor['type'] ?? log['visitor_type']) as String?;
           final purpose = log['purpose'] as String?;
 
           String entryTime = '—';
@@ -899,7 +932,8 @@ class _InsideNowTabState extends State<_InsideNowTab> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (visitorType != null && visitorType.isNotEmpty) ...[
+                            if (visitorType != null &&
+                                visitorType.isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -907,10 +941,14 @@ class _InsideNowTabState extends State<_InsideNowTab> {
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.accentAmber.withValues(alpha: 0.12),
+                                  color: AppColors.accentAmber.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: AppColors.accentAmber.withValues(alpha: 0.35),
+                                    color: AppColors.accentAmber.withValues(
+                                      alpha: 0.35,
+                                    ),
                                   ),
                                 ),
                                 child: Text(
@@ -963,7 +1001,9 @@ class _InsideNowTabState extends State<_InsideNowTab> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accentRed.withValues(alpha: 0.28),
+                              color: AppColors.accentRed.withValues(
+                                alpha: 0.28,
+                              ),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -1035,7 +1075,9 @@ class _GuestCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: Row(
               children: [
@@ -1176,8 +1218,11 @@ class _GuestCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.block_rounded,
-                              color: AppColors.accentRed, size: 18),
+                          Icon(
+                            Icons.block_rounded,
+                            color: AppColors.accentRed,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Deny',
@@ -1203,7 +1248,9 @@ class _GuestCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accentGreen.withValues(alpha: 0.35),
+                            color: AppColors.accentGreen.withValues(
+                              alpha: 0.35,
+                            ),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -1213,8 +1260,11 @@ class _GuestCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.check_circle_outline_rounded,
-                              color: AppColors.white, size: 18),
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: AppColors.white,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Allow',
@@ -1284,7 +1334,9 @@ class _WalkInCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: Row(
               children: [

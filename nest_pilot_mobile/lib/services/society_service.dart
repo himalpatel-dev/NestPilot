@@ -15,6 +15,39 @@ class SocietyService {
     return [];
   }
 
+  /// Paged society directory with per-society counts (Super Admin only).
+  /// [status] is 'active' or 'inactive'; null lists every society.
+  Future<SocietyDirectoryPage> getSocietyDirectory({
+    int page = 1,
+    int limit = 20,
+    String? search,
+    String? status,
+  }) async {
+    final query = Uri(
+      queryParameters: {
+        'page': '$page',
+        'limit': '$limit',
+        if (search != null && search.isNotEmpty) 'search': search,
+        'status': ?status,
+      },
+    ).query;
+    final response = await _apiService.get(
+      '${ApiEndpoints.societyDirectory}?$query',
+    );
+    return SocietyDirectoryPage.fromJson(
+      response['data'] as Map<String, dynamic>? ?? const {},
+    );
+  }
+
+  /// Marks a society 'active' or 'inactive'. Inactive is a label only —
+  /// nothing is deleted and its residents can still sign in.
+  Future<bool> setSocietyStatus(String id, String status) async {
+    final response = await _apiService.put(ApiEndpoints.societyById(id), {
+      'status': status,
+    });
+    return response['success'] ?? false;
+  }
+
   Future<List<Building>> getBuildings(String societyId) async {
     final response = await _apiService.get(
       ApiEndpoints.societyBuildings(societyId),

@@ -76,16 +76,36 @@ const getMe = async (userId) => {
             { model: db.Role },
             { model: db.Society },
             {
+                // Current flat only — a moved-out resident's old mapping stays
+                // in the table with is_active = false.
                 model: db.House,
-                through: { attributes: ['relation_type'] },
+                through: { attributes: ['relation_type'], where: { is_active: true } },
+                required: false,
                 include: [{ model: db.Building }]
-            }
+            },
+            // Buildings a Society Admin manages, shown on their profile.
+            { association: 'assignedBuildings', attributes: ['id', 'name'], through: { attributes: [] } }
         ]
     });
+};
+
+// Self-service edit from the profile page. Only name and email: the mobile
+// number is the sign-in identity, and role / society / flat stay admin-managed.
+const updateMe = async (userId, { fullName, email }) => {
+    const user = await db.User.findByPk(userId);
+    if (!user) throw new ApiError(404, 'User not found');
+
+    const changes = {};
+    if (fullName !== undefined) changes.full_name = fullName.trim();
+    if (email !== undefined) changes.email = (email || '').trim() || null;
+    await user.update(changes);
+
+    return getMe(userId);
 };
 
 module.exports = {
     login,
     register,
-    getMe
+    getMe,
+    updateMe
 };

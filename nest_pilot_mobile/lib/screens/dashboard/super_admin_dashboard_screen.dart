@@ -6,16 +6,19 @@ import '../../models/user_model.dart';
 import '../../services/admin_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/session_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dashboard_header.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_list_screen.dart';
+import '../profile/profile_screen.dart';
 import '../buildings/building_create_screen.dart';
 import '../buildings/buildings_list_screen.dart';
 import '../buildings/flat_create_screen.dart';
 import '../buildings/flats_list_screen.dart';
 import '../roles/role_management_screen.dart';
 import '../users/secretary_buildings_screen.dart';
+import '../users/user_management_screen.dart';
 import '../societies/societies_list_screen.dart';
 import '../societies/society_create_screen.dart';
 
@@ -80,6 +83,19 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     ).then((_) => _fetchNotifications());
   }
 
+  /// The signed-in user as of the latest profile edit.
+  UserModel get _user => SessionService().currentUser ?? widget.user;
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ProfileScreen(user: _user)),
+    ).then((_) {
+      // Rebuild so the hero picks up a name changed on the profile page.
+      if (mounted) setState(() {});
+    });
+  }
+
   // ─── Management sections ────────────────────────────────────────────────────
 
   List<_SaSection> _sections() => [
@@ -129,6 +145,13 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     ]),
     _SaSection('People & Access', [
       _SaTile(
+        Icons.manage_accounts_rounded,
+        'All Users',
+        'Search, edit & control access',
+        AppColors.accentBlue,
+        () => _go(const UserManagementScreen()),
+      ),
+      _SaTile(
         Icons.shield_outlined,
         'Roles',
         'Configure role permissions',
@@ -141,6 +164,15 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
         'Assign society admins',
         AppColors.accentGreen,
         () => _go(const SecretaryBuildingsScreen()),
+      ),
+    ]),
+    _SaSection('Account', [
+      _SaTile(
+        Icons.person_outline_rounded,
+        'My Profile',
+        'Your details, edit & logout',
+        AppColors.accentPurple,
+        _openProfile,
       ),
     ]),
   ];
@@ -255,7 +287,7 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
-      title: widget.user.fullName,
+      title: _user.fullName,
       subtitle: 'Super Administrator',
       unreadCount: _unreadCount,
       onNotificationTap: _showNotifications,

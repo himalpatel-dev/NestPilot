@@ -177,8 +177,24 @@ const deleteFlatForBuilding = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+const getSocietyDirectory = async (req, res, next) => {
+    try {
+        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+        const data = await societyService.getSocietyDirectory({
+            page,
+            limit,
+            search: String(req.query.search || '').trim(),
+            status: req.query.status,
+            type: req.query.type
+        });
+        res.status(200).json(new ApiResponse(200, data));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     getSociety,
+    getSocietyDirectory,
     createSociety,
     updateSociety,
     createBuilding,

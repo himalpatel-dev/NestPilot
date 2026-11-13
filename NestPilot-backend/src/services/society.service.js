@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const db = require('../models');
 
 const getSocietyDetails = async (societyId) => {
@@ -151,8 +152,83 @@ const getHouseOccupancyStats = async (societyId) => {
     };
 };
 
+const SOCIETY_TYPES = ['APARTMENT', 'TENEMENT', 'ROW_HOUSE', 'COMMERCIAL', 'MIXED'];
+
+// Per-society counts as correlated sub-selects, so a page of societies costs
+// one query instead of several count calls per row.
+const directoryCounts = () => {
+    const count = (sql) => db.sequelize.literal(`(${sql})`);
+    return [
+        [count('SELECT COUNT(*) FROM tbl_buildings b WHERE b.society_id = "Society"."id"'), 'buildings_count'],
+        [count('SELECT COUNT(*) FROM tbl_houses h WHERE h.society_id = "Society"."id" AND h.is_active = true'), 'flats_count'],
+        [count('SELECT COUNT(*) FROM tbl_users u WHERE u.society_id = "Society"."id" AND u.status = \'active\''), 'active_users_count'],
+        [count('SELECT COUNT(*) FROM tbl_users u WHERE u.society_id = "Society"."id" AND u.status = \'pending\''), 'pending_users_count'],
+        [count(
+            'SELECT COUNT(*) FROM tbl_users u JOIN tbl_roles r ON r.id = u.role_id ' +
+            'WHERE u.society_id = "Society"."id" AND u.status = \'active\' AND r.code = \'SOCIETY_ADMIN\''
+        ), 'admins_count']
+    ];
+};
+
+/**
+ * Paged society directory for the Super Admin: search, status and type
+ * filters, per-society counts, and an overall active/inactive summary.
+ * Status is a free string defaulting to 'active' and deleteSociety sets
+ * 'inactive', so anything other than 'inactive' (null included) is active.
+ */
+const getSocietyDirectory = async ({ page, limit, search, status, type }) => {
+    const where = {};
+    if (search) {
+        const like = { [Op.iLike]: `%${search}%` };
+        where[Op.or] = [
+            { name: like },
+            { city: like },
+            { district: like },
+            { state: like },
+            { pincode: like },
+            { address: like },
+            // society_type is an enum, so cast it; "row house" still finds
+            // ROW_HOUSE because '_' is a one-character wildcard in ILIKE.
+            db.sequelize.where(
+                db.sequelize.cast(db.sequelize.col('society_type'), 'TEXT'),
+                { [Op.iLike]: `%${search.replace(/\s+/g, '_')}%` }
+            )
+        ];
+    }
+    if (status === 'inactive') where.status = 'inactive';
+    if (status === 'active') where.status = { [Op.or]: { [Op.ne]: 'inactive', [Op.is]: null } };
+    if (SOCIETY_TYPES.includes(type)) where.society_type = type;
+
+    const [total, items, byStatus] = await Promise.all([
+        db.Society.count({ where }),
+        db.Society.findAll({
+            where,
+            attributes: { include: directoryCounts() },
+            order: [['name', 'ASC'], ['id', 'ASC']],
+            limit,
+            offset: (page - 1) * limit
+        }),
+        db.Society.findAll({
+            attributes: ['status', [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count']],
+            group: ['status'],
+            raw: true
+        })
+    ]);
+
+    const summary = { total: 0, active: 0, inactive: 0 };
+    byStatus.forEach(r => {
+        const n = Number(r.count) || 0;
+        summary.total += n;
+        if (r.status === 'inactive') summary.inactive += n;
+        else summary.active += n;
+    });
+
+    return { items, total, page, limit, has_more: page * limit < total, summary };
+};
+
 module.exports = {
     getSocietyDetails,
+    getSocietyDirectory,
     createSociety,
     createBuilding,
     createHouse,

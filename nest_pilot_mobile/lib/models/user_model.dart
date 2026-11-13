@@ -11,6 +11,12 @@ class UserModel {
   final String? relationType;
   final String? flatNumber;
   final String? societyName;
+  final String? societyCity;
+  final String? buildingName;
+
+  /// Buildings a Society Admin manages — only sent by /auth/me.
+  final List<String> managedBuildings;
+  final DateTime? createdAt;
 
   UserModel({
     required this.id,
@@ -25,6 +31,10 @@ class UserModel {
     this.relationType,
     this.flatNumber,
     this.societyName,
+    this.societyCity,
+    this.buildingName,
+    this.managedBuildings = const [],
+    this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -36,30 +46,23 @@ class UserModel {
       roleCode = (json['role'] ?? json['role_code'] ?? '').toString();
     }
 
-    String? flatNum = json['flatNumber'] ?? json['flat_number'];
-    if (flatNum == null) {
-      final houses = json['Houses'] ?? json['houses'];
-      if (houses != null && (houses as List).isNotEmpty) {
-        flatNum = houses[0]['house_no']?.toString();
-      }
-    }
-    if (flatNum == null) {
+    // Current flat: /auth/me nests it as Houses (with the mapping's
+    // relation_type inside); other endpoints send UserHouseMappings → House.
+    dynamic house;
+    dynamic mapping;
+    final houses = json['Houses'] ?? json['houses'];
+    if (houses is List && houses.isNotEmpty) {
+      house = houses[0];
+      mapping = house['UserHouseMapping'];
+    } else {
       final mappings = json['UserHouseMappings'] ?? json['user_house_mappings'];
-      if (mappings != null && (mappings as List).isNotEmpty) {
-        final house = mappings[0]['House'] ?? mappings[0]['house'];
-        if (house != null) {
-          flatNum = house['house_no']?.toString();
-        }
+      if (mappings is List && mappings.isNotEmpty) {
+        mapping = mappings[0];
+        house = mapping['House'] ?? mapping['house'];
       }
     }
 
-    String? socName = json['societyName'] ?? json['society_name'];
-    if (socName == null) {
-      final soc = json['Society'] ?? json['society'];
-      if (soc != null) {
-        socName = soc['name']?.toString();
-      }
-    }
+    final soc = json['Society'] ?? json['society'];
 
     return UserModel(
       id: json['id']?.toString() ?? '',
@@ -71,11 +74,40 @@ class UserModel {
       societyId: (json['societyId'] ?? json['society_id'])?.toString(),
       buildingId: (json['buildingId'] ?? json['building_id'])?.toString(),
       flatId: (json['flatId'] ?? json['flat_id'])?.toString(),
-      relationType: json['relationType'] ?? json['relation_type'],
-      flatNumber: flatNum,
-      societyName: socName,
+      relationType:
+          json['relationType'] ??
+          json['relation_type'] ??
+          mapping?['relation_type'],
+      flatNumber:
+          json['flatNumber'] ??
+          json['flat_number'] ??
+          house?['house_no']?.toString(),
+      societyName:
+          json['societyName'] ??
+          json['society_name'] ??
+          soc?['name']?.toString(),
+      societyCity: json['societyCity'] ?? soc?['city']?.toString(),
+      buildingName:
+          json['buildingName'] ?? house?['Building']?['name']?.toString(),
+      managedBuildings: _buildingNames(
+        json['assignedBuildings'] ?? json['managedBuildings'],
+      ),
+      createdAt: DateTime.tryParse(
+        (json['createdAt'] ?? json['created_at'] ?? '').toString(),
+      ),
     );
   }
+
+  // /auth/me sends assignedBuildings as {id, name} objects; toJson() writes
+  // plain names.
+  static List<String> _buildingNames(dynamic list) => [
+    if (list is List)
+      for (final b in list)
+        if (b is Map && b['name'] != null)
+          b['name'].toString()
+        else if (b is String)
+          b,
+  ];
 
   Map<String, dynamic> toJson() {
     return {
@@ -91,6 +123,10 @@ class UserModel {
       'relationType': relationType,
       'flatNumber': flatNumber,
       'societyName': societyName,
+      'societyCity': societyCity,
+      'buildingName': buildingName,
+      'managedBuildings': managedBuildings,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

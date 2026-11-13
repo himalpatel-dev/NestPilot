@@ -73,6 +73,21 @@ class AuthService {
     return null;
   }
 
+  /// Saves the signed-in user's own name and email (an empty email clears it)
+  /// and refreshes the session copy.
+  Future<UserModel> updateMe({
+    required String fullName,
+    required String email,
+  }) async {
+    final response = await _apiService.patch(ApiEndpoints.me, {
+      'fullName': fullName,
+      'email': email,
+    });
+    final user = UserModel.fromJson(response['data']);
+    SessionService().currentUser = user;
+    return user;
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');

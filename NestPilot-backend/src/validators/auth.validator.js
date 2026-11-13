@@ -20,8 +20,16 @@ const register = Joi.object({
     email: Joi.string().email().optional().allow('')
 });
 
+// Self-service profile edit — name and email only; any other key (mobile,
+// role, ...) is rejected.
+const updateMe = Joi.object({
+    fullName: Joi.string().trim().max(100),
+    email: Joi.string().trim().email().allow('', null)
+}).min(1);
+
 module.exports = {
     requestOtp,
     verifyOtp,
-    register
+    register,
+    updateMe
 };

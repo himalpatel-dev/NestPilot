@@ -25,6 +25,15 @@ class ApiEndpoints {
   static String flatById(String buildingId, String flatId) =>
       '/api/buildings/$buildingId/flats/$flatId';
 
+  /// Paged society list with per-society counts (Super Admin only).
+  static const String societyDirectory = '/api/society/directory';
+
+  // User Management — every user across every society (Super Admin only)
+  static const String users = '/api/users';
+  static const String userStats = '/api/users/stats';
+  static String userById(int id) => '/api/users/$id';
+  static String userStatus(int id) => '/api/users/$id/status';
+
   // Location Masters (State -> District)
   static const String states = '/api/locations/states';
   static String stateDistricts(int stateId) =>

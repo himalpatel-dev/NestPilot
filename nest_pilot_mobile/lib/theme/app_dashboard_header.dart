@@ -45,6 +45,7 @@ class AppDashboardHeader extends StatelessWidget {
     this.bottomSection,
     this.unreadCount = 0,
     this.onNotificationTap,
+    this.onLogoutTap,
     this.stats = const [],
   });
 
@@ -66,6 +67,9 @@ class AppDashboardHeader extends StatelessWidget {
 
   final int unreadCount;
   final VoidCallback? onNotificationTap;
+
+  /// When set, a logout button sits beside the notification bell.
+  final VoidCallback? onLogoutTap;
 
   /// Pass an empty list (default) to hide the stats section entirely.
   final List<AppHeaderStat> stats;
@@ -138,9 +142,21 @@ class AppDashboardHeader extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             leftAction ?? const SizedBox.shrink(),
-                            _NotifBell(
-                              count: unreadCount,
-                              onTap: onNotificationTap,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _NotifBell(
+                                  count: unreadCount,
+                                  onTap: onNotificationTap,
+                                ),
+                                if (onLogoutTap != null) ...[
+                                  const SizedBox(width: 8),
+                                  _HeaderIconButton(
+                                    icon: Icons.logout_rounded,
+                                    onTap: onLogoutTap!,
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -258,7 +274,39 @@ class _NotifBell extends StatelessWidget {
   }
 }
 
-// ─── Stat item ────────────────────────────────────────────────────────────────
+// ─── Header icon button ──────────────────────────────────────────────────────
+
+/// Same frosted square as the notification bell, for other nav-row actions.
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.20)),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          color: AppColors.white.withValues(alpha: 0.90),
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Stat item ───────────────────────────────────────────────────────────────
 
 class _StatItem extends StatelessWidget {
   const _StatItem({required this.stat});

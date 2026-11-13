@@ -3,11 +3,15 @@ const router = express.Router();
 const societyController = require('../controllers/society.controller');
 const auth = require('../middlewares/auth.middleware');
 const { hasPermission } = require('../middlewares/permission.middleware');
+const authorize = require('../middlewares/role.middleware');
 
 router.post('/', auth, hasPermission('BUILDINGS', 'manage'), societyController.createSociety);
 
 // Public discovery endpoint — used during registration to list societies. Stays open.
 router.get('/', auth.optional, societyController.getSociety);
+
+// Paged directory with per-society counts, for the Super Admin's societies screen.
+router.get('/directory', auth, authorize(['SUPER_ADMIN']), societyController.getSocietyDirectory);
 
 router.post('/buildings', auth, hasPermission('BUILDINGS', 'manage'), societyController.createBuilding);
 router.post('/houses', auth, hasPermission('BUILDINGS', 'manage'), societyController.createHouse);

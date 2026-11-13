@@ -22,6 +22,7 @@ const eventRoutes = require('./event.routes');
 const roleRoutes = require('./role.routes');
 const societyAdminBuildingsRoutes = require('./societyAdminBuildings.routes');
 const locationRoutes = require('./location.routes');
+const userRoutes = require('./user.routes');
 
 router.use('/auth', authRoutes);
 router.use('/society', societyRoutes);
@@ -45,6 +46,7 @@ router.use('/events', eventRoutes);
 router.use('/roles', roleRoutes);
 router.use('/society-admins', societyAdminBuildingsRoutes);
 router.use('/locations', locationRoutes);
+router.use('/users', userRoutes);
 
 router.get('/health', (req, res) => {
     res.status(200).send('API is running...');

@@ -31,4 +31,15 @@ class NotificationModel {
       createdAt: DateTime.parse(json['created_at']),
     );
   }
+
+  NotificationModel copyWith({bool? isRead}) => NotificationModel(
+    id: id,
+    societyId: societyId,
+    title: title,
+    message: message,
+    type: type,
+    referenceId: referenceId,
+    isRead: isRead ?? this.isRead,
+    createdAt: createdAt,
+  );
 }
