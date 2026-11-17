@@ -11,6 +11,7 @@ import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import 'package:nest_pilot_mobile/config/modules.dart';
 import 'amenity_detail_screen.dart';
+import 'membership.dart';
 
 class AmenityManagementScreen extends StatefulWidget {
   const AmenityManagementScreen({super.key});
@@ -87,11 +88,13 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
   Future<void> _updateBookingStatus(int id, String status) async {
     try {
       await _service.updateBookingStatus(id, status);
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Booking $status')));
       _fetchData();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -399,7 +402,9 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  isPaid
+                                  amenity.isMembership
+                                      ? membershipPriceLabel(amenity)
+                                      : isPaid
                                       ? (amenity.isFullDay
                                             ? "₹${amenity.pricePerDay}/day · ₹${amenity.pricePerHour}/hr"
                                             : "₹${amenity.pricePerHour}/hr")
@@ -439,7 +444,9 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                             Padding(
                               padding: const EdgeInsets.only(top: 1),
                               child: Icon(
-                                amenity.isFullDay
+                                amenity.isMembership
+                                    ? Icons.card_membership_rounded
+                                    : amenity.isFullDay
                                     ? Icons.event_available_rounded
                                     : Icons.access_time_rounded,
                                 size: 14,
@@ -451,7 +458,9 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                             // wider than the card on smaller phones.
                             Expanded(
                               child: Text(
-                                amenity.isFullDay
+                                amenity.isMembership
+                                    ? _membersLine(amenity)
+                                    : amenity.isFullDay
                                     ? 'Full-day booking (as per requirement)'
                                     : 'Timing: ${amenity.startTime} - ${amenity.endTime}',
                                 maxLines: 2,
@@ -499,6 +508,15 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
     );
   }
 
+  /// "Membership · 12 active members of 40 · 3 plans"
+  String _membersLine(Amenity a) {
+    final n = a.activeMembers;
+    final cap = a.maxMembers != null ? ' of ${a.maxMembers}' : '';
+    final plans = a.plans.length;
+    return 'Membership · $n active member${n == 1 ? '' : 's'}$cap · '
+        '$plans plan${plans == 1 ? '' : 's'}';
+  }
+
   // ─── Bookings Tab ──────────────────────────────────────────────────────────
 
   Widget _buildBookingsTab() {
@@ -532,6 +550,24 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
       itemBuilder: (context, index) {
         final booking = bookings[index];
         final isPending = booking.status == 'PENDING';
+        // A membership reads as Active / Upcoming / Expired rather than just
+        // Approved, so the admin can tell who is currently a member.
+        final membershipState = booking.isMembership
+            ? membershipStateOf(booking)
+            : null;
+        final pillLabel = membershipState != null
+            ? membershipStateLabel(membershipState)
+            : _statusLabel(booking.status);
+        final pillColor = membershipState != null
+            ? membershipStateColor(membershipState)
+            : _getStatusColor(booking.status);
+        final pillBg = membershipState != null
+            ? membershipStateBg(membershipState)
+            : _getStatusBgColor(booking.status);
+        // Approving a paid membership is confirming its payment.
+        final approveLabel = booking.isMembership && booking.amount > 0
+            ? 'Mark Paid'
+            : 'Approve';
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -573,7 +609,10 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4.0),
               child: Text(
-                booking.isFullDay
+                booking.isMembership
+                    ? '${booking.planName ?? 'Membership'} · '
+                          '${membershipPeriodLabel(booking)}'
+                    : booking.isFullDay
                     ? (booking.endDate != null &&
                               booking.endDate != booking.date
                           ? '${booking.date} to ${booking.endDate}'
@@ -596,13 +635,13 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getStatusBgColor(booking.status),
+                    color: pillBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    _statusLabel(booking.status),
+                    pillLabel,
                     style: TextStyle(
-                      color: _getStatusColor(booking.status),
+                      color: pillColor,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -686,6 +725,20 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                       ),
                       const SizedBox(height: 8),
                     ],
+                    if (booking.isMembership) ...[
+                      _detailRow(
+                        Icons.card_membership_rounded,
+                        'Plan: ',
+                        booking.planName ?? 'Membership',
+                      ),
+                      const SizedBox(height: 8),
+                      _detailRow(
+                        Icons.date_range_rounded,
+                        'Valid: ',
+                        membershipPeriodLabel(booking),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     Row(
                       children: [
                         const Icon(
@@ -707,7 +760,12 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                                   style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 TextSpan(
-                                  text: '₹${booking.amount}',
+                                  text: booking.amount > 0
+                                      ? membershipMoney(booking.amount) +
+                                            (booking.paymentStatus == 'PAID'
+                                                ? ' · Paid'
+                                                : '')
+                                      : 'Free',
                                   style: const TextStyle(
                                     color: AppColors.primaryDark,
                                     fontWeight: FontWeight.w700,
@@ -772,9 +830,9 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
                               size: 16,
                               color: AppColors.white,
                             ),
-                            label: const Text(
-                              'Approve',
-                              style: TextStyle(
+                            label: Text(
+                              approveLabel,
+                              style: const TextStyle(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -803,6 +861,30 @@ class _AmenityManagementScreenState extends State<AmenityManagementScreen> {
           ),
         );
       },
+    );
+  }
+
+  // Same icon + bold label + value line as the Resident / Mobile rows.
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+              children: [
+                TextSpan(
+                  text: label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                TextSpan(text: value),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -879,6 +961,21 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
     text: _priceText(widget.editing?.pricePerDay),
   );
 
+  late final _maxMembersCtrl = TextEditingController(
+    text: widget.editing?.maxMembers?.toString(),
+  );
+
+  /// Editable membership plans. A new membership amenity starts with the
+  /// usual monthly / quarterly / yearly set, prices left for the admin.
+  late final List<_PlanDraft> _plans = widget.editing?.plans.isNotEmpty == true
+      ? widget.editing!.plans.map(_PlanDraft.from).toList()
+      : [
+          _PlanDraft(name: 'Monthly', duration: 1, unit: 'MONTH'),
+          _PlanDraft(name: 'Quarterly', duration: 3, unit: 'MONTH'),
+          _PlanDraft(name: 'Yearly', duration: 1, unit: 'YEAR'),
+        ];
+  static const int _maxPlans = 10;
+
   late bool _isPaid = widget.editing?.isPaid ?? false;
   late String _bookingType = widget.editing?.bookingType ?? 'SLOT';
   late TimeOfDay _startTime =
@@ -897,6 +994,32 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
   bool get _isEditing => widget.editing != null;
 
   bool get _isFullDay => _bookingType == 'FULL_DAY';
+
+  bool get _isMembership => _bookingType == 'MEMBERSHIP';
+
+  void _addPlan() => setState(() => _plans.add(_PlanDraft()));
+
+  void _removePlan(_PlanDraft plan) {
+    setState(() => _plans.remove(plan));
+    // Its fields are still mounted until the rebuild lands.
+    WidgetsBinding.instance.addPostFrameCallback((_) => plan.dispose());
+  }
+
+  String? _validateDuration(String? v, String unit) {
+    final n = int.tryParse(v?.trim() ?? '');
+    final max = _PlanDraft.maxFor(unit);
+    if (n == null || n < 1) return 'Required';
+    if (n > max) return 'Max $max';
+    return null;
+  }
+
+  String? _validateMaxMembers(String? v) {
+    final text = v?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final n = int.tryParse(text);
+    if (n == null || n < 1) return 'Enter a number above 0';
+    return null;
+  }
 
   /// Prices come back as doubles — prefill whole rupees without a ".0" tail,
   /// and leave the field blank for a free amenity.
@@ -924,6 +1047,10 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
     _descCtrl.dispose();
     _priceCtrl.dispose();
     _dailyPriceCtrl.dispose();
+    _maxMembersCtrl.dispose();
+    for (final p in _plans) {
+      p.dispose();
+    }
     super.dispose();
   }
 
@@ -963,15 +1090,23 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
         'is_paid': _isPaid,
         'booking_type': _bookingType,
         // price_per_hour applies to SLOT amenities and to partial-day bookings
-        // of a FULL_DAY amenity, so it's sent for both types.
-        'price_per_hour': _isPaid ? double.parse(_priceCtrl.text.trim()) : 0,
+        // of a FULL_DAY amenity, so it's sent for both types. A membership
+        // amenity is priced per plan instead.
+        'price_per_hour': _isPaid && !_isMembership
+            ? double.parse(_priceCtrl.text.trim())
+            : 0,
         'price_per_day': _isPaid && _isFullDay
             ? double.parse(_dailyPriceCtrl.text.trim())
             : 0,
-        // Fixed timings only mean something for a slot amenity — sent as null
-        // for a full-day one so switching type clears any stale hours.
+        // Fixed timings mean the slot window, or a membership amenity's
+        // opening hours — sent as null for a full-day one so switching type
+        // clears any stale hours.
         'start_time': _isFullDay ? null : _fmt(_startTime),
         'end_time': _isFullDay ? null : _fmt(_endTime),
+        if (_isMembership) ...{
+          'max_members': int.tryParse(_maxMembersCtrl.text.trim()),
+          'plans': [for (final p in _plans) p.toJson(isPaid: _isPaid)],
+        },
       };
 
       if (_isEditing) {
@@ -1032,8 +1167,12 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
               label: 'Booking Type',
               field: AppCardDropdown<String>(
                 value: _bookingType,
-                items: const ['SLOT', 'FULL_DAY'],
-                itemLabel: (t) => t == 'FULL_DAY' ? 'Full Day' : 'Hourly Slot',
+                items: const ['SLOT', 'FULL_DAY', 'MEMBERSHIP'],
+                itemLabel: (t) => switch (t) {
+                  'FULL_DAY' => 'Full Day',
+                  'MEMBERSHIP' => 'Membership (monthly / yearly)',
+                  _ => 'Hourly Slot',
+                },
                 onChanged: (v) => setState(() => _bookingType = v!),
               ),
             ),
@@ -1043,9 +1182,11 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
             Padding(
               padding: const EdgeInsets.only(left: 12),
               child: Text(
-                _isFullDay
+                _isMembership
+                    ? 'Opening hours shown to members — they use it any time in this window, nothing is booked. Ideal for a gym or pool.'
+                    : _isFullDay
                     ? 'Members can request either the whole day (or several days) or just a few specific hours — no fixed timing needed.'
-                    : 'Hours residents can pick a slot from — e.g. gym, yoga or courts.',
+                    : 'Hours residents can pick a slot from — e.g. courts or a party room.',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -1084,7 +1225,7 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
             const AppSectionHeader('Pricing'),
             const SizedBox(height: 14),
             _buildPaidToggle(),
-            if (_isPaid) ...[
+            if (_isPaid && !_isMembership) ...[
               if (_isFullDay) ...[
                 const SizedBox(height: 12),
                 AppFieldCard(
@@ -1112,6 +1253,7 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
                 ),
               ),
             ],
+            if (_isMembership) ..._buildPlansSection(),
             if (_apiError != null) ...[
               const SizedBox(height: 18),
               AppSheetErrorBanner(_apiError!),
@@ -1128,6 +1270,238 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
       ),
     );
   }
+
+  // ─── Membership plans ──────────────────────────────────────────────────────
+
+  List<Widget> _buildPlansSection() {
+    return [
+      const SizedBox(height: 24),
+      const AppSectionHeader('Membership Plans'),
+      const SizedBox(height: 4),
+      Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Text(
+          _isPaid
+              ? 'Residents pick one of these and pay for it — e.g. ₹500 a month or ₹5,000 a year.'
+              : 'Residents pick one of these — it sets how long their free membership runs.',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            height: 1.3,
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      for (int i = 0; i < _plans.length; i++) ...[
+        KeyedSubtree(
+          key: ObjectKey(_plans[i]),
+          child: _planCard(i, _plans[i]),
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (_plans.length < _maxPlans) _addPlanButton(),
+      const SizedBox(height: 12),
+      AppFieldCard(
+        icon: Icons.groups_outlined,
+        label: 'Member Limit (optional)',
+        field: AppBorderlessField(
+          controller: _maxMembersCtrl,
+          hint: 'Blank = unlimited',
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: _validateMaxMembers,
+        ),
+      ),
+    ];
+  }
+
+  Widget _planCard(int index, _PlanDraft plan) {
+    final ink = Color.lerp(ModuleColors.amenities, AppColors.black, 0.3)!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: ModuleColors.amenities.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _tinyLabel('Plan Name'),
+                    const SizedBox(height: 2),
+                    AppBorderlessField(
+                      controller: plan.name,
+                      hint: 'e.g. Monthly',
+                    ),
+                  ],
+                ),
+              ),
+              if (_plans.length > 1)
+                IconButton(
+                  tooltip: 'Remove plan',
+                  onPressed: () => _removePlan(plan),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.accentRed,
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(42, 6, 8, 8),
+            child: Divider(height: 1, color: AppColors.border),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 42, right: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _tinyLabel('Duration'),
+                      const SizedBox(height: 2),
+                      AppBorderlessField(
+                        controller: plan.duration,
+                        hint: '1',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (v) => _validateDuration(v, plan.unit),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _tinyLabel('Unit'),
+                      const SizedBox(height: 2),
+                      AppCardDropdown<String>(
+                        value: plan.unit,
+                        items: const ['DAY', 'MONTH', 'YEAR'],
+                        itemLabel: (u) => switch (u) {
+                          'DAY' => 'Days',
+                          'YEAR' => 'Years',
+                          _ => 'Months',
+                        },
+                        onChanged: (v) => setState(() => plan.unit = v!),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isPaid) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _tinyLabel('Price (₹)'),
+                        const SizedBox(height: 2),
+                        AppBorderlessField(
+                          controller: plan.price,
+                          hint: 'e.g. 500',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: _validatePrice,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addPlanButton() {
+    return GestureDetector(
+      onTap: _addPlan,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: ModuleColors.amenities.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              size: 18,
+              color: Color.lerp(ModuleColors.amenities, AppColors.black, 0.3),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Add plan',
+              style: TextStyle(
+                color: Color.lerp(ModuleColors.amenities, AppColors.black, 0.3),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Same uppercase micro-label as AppFieldCard.
+  Widget _tinyLabel(String text) => Text(
+    text.toUpperCase(),
+    style: const TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.1,
+      color: AppColors.textMuted,
+    ),
+  );
 
   Widget _buildPaidToggle() {
     return Container(
@@ -1160,11 +1534,11 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'PAID AMENITY',
                   style: TextStyle(
                     fontSize: 10,
@@ -1173,10 +1547,12 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
                     color: AppColors.textMuted,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Residents are charged for booking',
-                  style: TextStyle(
+                  _isMembership
+                      ? 'Members pay for the plan they choose'
+                      : 'Residents are charged for booking',
+                  style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
@@ -1193,5 +1569,64 @@ class _AmenityFormSheetState extends State<_AmenityFormSheet> {
         ],
       ),
     );
+  }
+}
+
+// ── Editable membership plan ────────────────────────────────────────────────
+
+/// One plan row in the amenity form. [id] is set for a plan that already
+/// exists, so the server updates it instead of creating a new one.
+class _PlanDraft {
+  final int? id;
+  final TextEditingController name;
+  final TextEditingController duration;
+  final TextEditingController price;
+
+  /// DAY | MONTH | YEAR
+  String unit;
+
+  _PlanDraft({
+    this.id,
+    String name = '',
+    int duration = 1,
+    this.unit = 'MONTH',
+    double? price,
+  }) : name = TextEditingController(text: name),
+       duration = TextEditingController(text: '$duration'),
+       price = TextEditingController(
+         text: price == null || price == 0
+             ? ''
+             : (price == price.roundToDouble()
+                   ? price.toStringAsFixed(0)
+                   : price.toString()),
+       );
+
+  factory _PlanDraft.from(AmenityPlan p) => _PlanDraft(
+    id: p.id,
+    name: p.name,
+    duration: p.durationValue,
+    unit: p.durationUnit,
+    price: p.price,
+  );
+
+  /// Longest allowed duration per unit (matches the server).
+  static int maxFor(String unit) => switch (unit) {
+    'DAY' => 365,
+    'YEAR' => 5,
+    _ => 36,
+  };
+
+  Map<String, dynamic> toJson({required bool isPaid}) => {
+    'id': ?id,
+    'name': name.text.trim(),
+    'duration_value': int.tryParse(duration.text.trim()) ?? 1,
+    'duration_unit': unit,
+    'price': isPaid ? double.tryParse(price.text.trim()) ?? 0 : 0,
+  };
+
+  void dispose() {
+    name.dispose();
+    duration.dispose();
+    price.dispose();
   }
 }

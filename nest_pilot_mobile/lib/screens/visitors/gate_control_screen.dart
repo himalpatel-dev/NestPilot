@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../config/modules.dart';
 import '../../services/community_service.dart';
@@ -533,6 +534,11 @@ class _WalkInEntryTabState extends State<_WalkInEntryTab> {
                 controller: _mobileCtrl,
                 hint: '10-digit mobile',
                 keyboardType: TextInputType.phone,
+                // Digits only, and typing stops at 10.
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
                 validator: (v) {
                   final val = (v ?? '').trim();
                   if (val.isEmpty) return 'Required';

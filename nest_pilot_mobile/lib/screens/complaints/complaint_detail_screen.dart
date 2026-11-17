@@ -92,9 +92,11 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
       if (newComment != null && mounted) {
         _commentController.clear();
         FocusScope.of(context).unfocus();
-        setState(() {
-          _comments.insert(0, newComment);
-        });
+        // The live 'new_comment' event can land before this response does —
+        // never show the same comment twice.
+        if (!_comments.any((c) => c.id == newComment.id)) {
+          setState(() => _comments.insert(0, newComment));
+        }
       }
     } catch (e) {
       if (mounted) _toast(e.toString(), color: AppColors.accentRed);

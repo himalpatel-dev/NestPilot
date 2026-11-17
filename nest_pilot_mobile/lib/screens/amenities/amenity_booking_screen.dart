@@ -10,11 +10,12 @@ import '../../widgets/app_form_sheet.dart';
 import '../../widgets/app_sheet_action.dart';
 import '../../widgets/glare_button.dart';
 import '../../widgets/module_page_header.dart';
+import 'membership.dart';
 
 /// Resident view of the society's amenities: browse the facilities, book one
-/// (whole days or a few hours for halls, a time slot for everything else),
-/// and follow each request under My Bookings. Free bookings are confirmed
-/// straight away; paid ones wait for the society admin.
+/// (whole days or a few hours for halls, a time slot for courts, a membership
+/// plan for a gym or pool), and follow each request under My Bookings. Free
+/// bookings are confirmed straight away; paid ones wait for the society admin.
 class AmenityBookingScreen extends StatefulWidget {
   const AmenityBookingScreen({super.key});
 
@@ -50,7 +51,29 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
         .toList();
   }
 
-  int get _upcomingCount => _myBookings.where(_isUpcoming).length;
+  // Memberships have their own section; "upcoming" means reservations.
+  int get _upcomingCount =>
+      _myBookings.where((b) => !b.isMembership && _isUpcoming(b)).length;
+
+  Amenity? _amenityById(int id) {
+    for (final a in _amenities) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
+  /// Running or queued memberships of [amenityId], earliest first — so the
+  /// first is the one in force today (or the next to start).
+  List<Booking> _liveMemberships(int amenityId) =>
+      _myBookings
+          .where(
+            (b) =>
+                b.isMembership &&
+                b.amenityId == amenityId &&
+                isLiveMembership(b),
+          )
+          .toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
 
   int get _pendingCount =>
       _myBookings.where((b) => b.status == 'PENDING').length;
@@ -114,6 +137,8 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   /// Picks the date(s) / time, confirms the amount on a summary sheet, then
   /// jumps to My Bookings so the new request is right there.
   Future<void> _bookAmenity(Amenity amenity) async {
+    if (amenity.isMembership) return _joinMembership(amenity);
+
     _BookingRequest? request;
     if (amenity.isFullDay) {
       final mode = await _chooseFullDayMode(amenity);
@@ -137,6 +162,24 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
       amenity.isPaid
           ? 'Booking requested — the society admin will confirm it'
           : 'Booked! Your booking is confirmed',
+    );
+    setState(() => _section = 1);
+    _fetchData();
+  }
+
+  /// Join, or renew straight after the latest running membership.
+  Future<void> _joinMembership(Amenity amenity) async {
+    final joined = await showMembershipSheet(
+      context,
+      amenity: amenity,
+      current: latestLiveMembership(amenity.id, _myBookings),
+    );
+    if (joined != true || !mounted) return;
+
+    _snack(
+      amenity.isPaid
+          ? 'Membership requested — it starts once the admin confirms payment'
+          : "You're in! Your membership is active",
     );
     setState(() => _section = 1);
     _fetchData();
@@ -373,12 +416,27 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
   // edit.
   Widget _facilityCard(Amenity amenity) {
     final hasDescription = (amenity.description ?? '').trim().isNotEmpty;
-    final hours = amenity.isFullDay
+    final hours = amenity.isMembership
+        ? 'Membership · ${membershipHoursLabel(amenity) ?? 'use any time'}'
+        : amenity.isFullDay
         ? 'Whole days or a few hours'
         : (amenity.startTime != null && amenity.endTime != null
               ? 'Open ${_apiTimeLabel(amenity.startTime)} – '
                     '${_apiTimeLabel(amenity.endTime)}'
               : 'Hourly slots');
+    final memberships = amenity.isMembership
+        ? _liveMemberships(amenity.id)
+        : const <Booking>[];
+    final actionLabel = !amenity.isMembership
+        ? 'Book'
+        : memberships.isEmpty
+        ? 'Join'
+        : 'Renew';
+    final actionIcon = !amenity.isMembership
+        ? Icons.event_available_rounded
+        : memberships.isEmpty
+        ? Icons.card_membership_rounded
+        : Icons.autorenew_rounded;
 
     return GestureDetector(
       onTap: () => _bookAmenity(amenity),
@@ -428,13 +486,19 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
                 _priceBadge(amenity),
               ],
             ),
+            if (memberships.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _memberStrip(memberships),
+            ],
             const SizedBox(height: 14),
             const Divider(height: 1, color: AppColors.border),
             const SizedBox(height: 12),
             Row(
               children: [
                 Icon(
-                  amenity.isFullDay
+                  amenity.isMembership
+                      ? Icons.card_membership_rounded
+                      : amenity.isFullDay
                       ? Icons.event_available_rounded
                       : Icons.access_time_rounded,
                   size: 15,
@@ -454,7 +518,11 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                _bookButton(() => _bookAmenity(amenity)),
+                _bookButton(
+                  () => _bookAmenity(amenity),
+                  label: actionLabel,
+                  icon: actionIcon,
+                ),
               ],
             ),
           ],
@@ -463,33 +531,58 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
     );
   }
 
-  Widget _amenityThumb(Amenity amenity) {
-    const fallback = Icon(
-      Icons.sports_soccer_rounded,
-      color: AppColors.primary,
-      size: 28,
-    );
-    final image = amenity.imageUrl;
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+  /// "Member until 15 Dec 2026" (plus any renewal already queued) on a
+  /// membership facility the resident belongs to. [live] is earliest first.
+  Widget _memberStrip(List<Booking> live) {
+    final current = live.first;
+    final state = membershipStateOf(current);
+    final color = membershipStateColor(state);
+    final day = DateFormat('d MMM yyyy');
+    final end = _parseDate(current.endDate);
+    final start = _parseDate(current.date);
+    final queued = live.length > 1 ? live.last : null;
+
+    final (IconData icon, String text) = switch (state) {
+      MembershipState.active => (
+        Icons.verified_rounded,
+        'Member until ${end == null ? '--' : day.format(end)}',
       ),
-      alignment: Alignment.center,
-      child: image == null || image.isEmpty
-          ? fallback
-          : ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                image,
-                fit: BoxFit.cover,
-                width: 52,
-                height: 52,
-                errorBuilder: (_, _, _) => fallback,
+      MembershipState.scheduled => (
+        Icons.event_rounded,
+        'Membership starts ${start == null ? '--' : day.format(start)}',
+      ),
+      _ => (Icons.hourglass_top_rounded, 'Membership request pending'),
+    };
+    final renewal = queued == null
+        ? ''
+        : membershipStateOf(queued) == MembershipState.pending
+        ? ' · renewal pending'
+        : ' · renewed';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: membershipStateBg(state),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '$text$renewal',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -523,7 +616,11 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
     );
   }
 
-  Widget _bookButton(VoidCallback onTap) {
+  Widget _bookButton(
+    VoidCallback onTap, {
+    String label = 'Book',
+    IconData icon = Icons.event_available_rounded,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -539,18 +636,14 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.event_available_rounded,
-              color: AppColors.white,
-              size: 16,
-            ),
-            SizedBox(width: 6),
+            Icon(icon, color: AppColors.white, size: 16),
+            const SizedBox(width: 6),
             Text(
-              'Book',
-              style: TextStyle(
+              label,
+              style: const TextStyle(
                 color: AppColors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -579,73 +672,308 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
       );
     }
 
-    // Soonest first for what's coming up; the API already sends the rest
-    // newest first.
-    final upcoming = bookings.where(_isUpcoming).toList()
-      ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
-    final history = bookings.where((b) => !_isUpcoming(b)).toList();
+    // Running / queued memberships first, then reservations still ahead
+    // (soonest first); the API already sends the rest newest first.
+    final memberships =
+        bookings.where((b) => b.isMembership && isLiveMembership(b)).toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+    final upcoming =
+        bookings.where((b) => !b.isMembership && _isUpcoming(b)).toList()
+          ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
+    final history = bookings
+        .where((b) => b.isMembership ? !isLiveMembership(b) : !_isUpcoming(b))
+        .toList();
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad + 24),
       children: [
+        if (memberships.isNotEmpty) ...[
+          const AppSectionHeader('Memberships'),
+          const SizedBox(height: 12),
+          for (final b in memberships) _membershipCard(b),
+        ],
         if (upcoming.isNotEmpty) ...[
+          if (memberships.isNotEmpty) const SizedBox(height: 10),
           const AppSectionHeader('Upcoming'),
           const SizedBox(height: 12),
           for (final b in upcoming) _bookingCard(b, upcoming: true),
         ],
         if (history.isNotEmpty) ...[
-          if (upcoming.isNotEmpty) const SizedBox(height: 10),
+          if (memberships.isNotEmpty || upcoming.isNotEmpty)
+            const SizedBox(height: 10),
           const AppSectionHeader('History'),
           const SizedBox(height: 12),
-          for (final b in history) _bookingCard(b, upcoming: false),
+          for (final b in history)
+            b.isMembership
+                ? _membershipCard(b)
+                : _bookingCard(b, upcoming: false),
         ],
       ],
     );
   }
 
-  Widget _bookingCard(Booking b, {required bool upcoming}) {
-    final amount = b.amount > 0 ? _money(b.amount) : 'Free';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: _cardDecoration(radius: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _dateLeaf(_parseDate(b.date), muted: !upcoming),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+  /// A membership pass: plan and validity, days left with a progress bar
+  /// while it runs, and Renew once it's close to ending (or has ended).
+  Widget _membershipCard(Booking b) {
+    final state = membershipStateOf(b);
+    final daysLeft = membershipDaysLeft(b);
+    final renewAmenity = _renewableAmenity(b);
+    final canRenew = renewAmenity != null;
+
+    final String amount;
+    if (b.amount <= 0) {
+      amount = 'Free';
+    } else if (b.paymentStatus == 'PAID') {
+      amount = '${_money(b.amount)} · Paid';
+    } else if (state == MembershipState.pending) {
+      amount = '${_money(b.amount)} · Awaiting payment confirmation';
+    } else {
+      amount = _money(b.amount);
+    }
+
+    return GestureDetector(
+      onTap: () => _openDetails(b),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: _cardDecoration(radius: 18),
+        child: Column(
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        b.amenity?.name ?? 'Amenity',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
+                _membershipTile(b, state, daysLeft),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              b.amenity?.name ?? 'Amenity',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _pill(
+                            membershipStateLabel(state),
+                            color: membershipStateColor(state),
+                            background: membershipStateBg(state),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _statusPill(b.status),
-                  ],
+                      const SizedBox(height: 8),
+                      _metaRow(
+                        Icons.card_membership_rounded,
+                        '${b.planName ?? 'Membership'} · '
+                        '${membershipPeriodLabel(b)}',
+                      ),
+                      const SizedBox(height: 5),
+                      _metaRow(Icons.currency_rupee_rounded, amount),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                _metaRow(Icons.access_time_rounded, _whenLabel(b)),
-                const SizedBox(height: 5),
-                _metaRow(Icons.currency_rupee_rounded, amount),
               ],
             ),
+            if (state == MembershipState.active || canRenew) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: state == MembershipState.active
+                        ? _usageBar(b, daysLeft)
+                        : const Text(
+                            'Your membership has ended',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                  if (renewAmenity != null) ...[
+                    const SizedBox(width: 12),
+                    _bookButton(
+                      () => _joinMembership(renewAmenity),
+                      label: 'Renew',
+                      icon: Icons.autorenew_rounded,
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The amenity to renew [b] on, when Renew applies to it — only on the
+  /// newest membership: while it runs (in its last fortnight), or once it has
+  /// expired with nothing newer in place. Null otherwise.
+  Amenity? _renewableAmenity(Booking b) {
+    if (!b.isMembership) return null;
+    final amenity = _amenityById(b.amenityId);
+    if (amenity == null || !amenity.isMembership) return null;
+    final state = membershipStateOf(b);
+    final latestLive = latestLiveMembership(b.amenityId, _myBookings);
+    final renewable =
+        (state == MembershipState.active &&
+            latestLive?.id == b.id &&
+            membershipDaysLeft(b) <= 15) ||
+        (state == MembershipState.expired &&
+            latestLive == null &&
+            _isNewestMembership(b));
+    return renewable ? amenity : null;
+  }
+
+  /// The renewal already queued after membership [b], if any.
+  Booking? _nextMembership(Booking b) {
+    Booking? next;
+    for (final o in _myBookings) {
+      if (o.id == b.id || !o.isMembership || o.amenityId != b.amenityId) {
+        continue;
+      }
+      if (!isLiveMembership(o)) continue;
+      if (o.date.compareTo(b.endDate ?? b.date) <= 0) continue;
+      if (next == null || o.date.compareTo(next.date) < 0) next = o;
+    }
+    return next;
+  }
+
+  /// Full details of one booking or membership, with Renew when it applies.
+  Future<void> _openDetails(Booking b) async {
+    final renewAmenity = _renewableAmenity(b);
+    final renew = await showAppFormSheet<bool>(
+      context: context,
+      builder: (_) => _BookingDetailsSheet(
+        booking: b,
+        amenity: b.amenity ?? _amenityById(b.amenityId),
+        next: b.isMembership ? _nextMembership(b) : null,
+        canRenew: renewAmenity != null,
+      ),
+    );
+    if (renew == true && renewAmenity != null && mounted) {
+      _joinMembership(renewAmenity);
+    }
+  }
+
+  /// No other (non-rejected) membership of the same amenity ends later.
+  bool _isNewestMembership(Booking b) => !_myBookings.any(
+    (o) =>
+        o.id != b.id &&
+        o.isMembership &&
+        o.amenityId == b.amenityId &&
+        o.status != 'REJECTED' &&
+        o.status != 'CANCELLED' &&
+        (o.endDate ?? o.date).compareTo(b.endDate ?? b.date) > 0,
+  );
+
+  /// Days-left tile while a membership runs; a calendar leaf otherwise
+  /// (start date while pending/upcoming, end date once over).
+  Widget _membershipTile(Booking b, MembershipState state, int daysLeft) {
+    switch (state) {
+      case MembershipState.active:
+        const color = ModuleColors.amenities;
+        return Container(
+          width: 54,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
           ),
-        ],
+          child: Column(
+            children: [
+              FittedBox(
+                child: Text(
+                  '$daysLeft',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                daysLeft == 1 ? 'DAY\nLEFT' : 'DAYS\nLEFT',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color.lerp(color, AppColors.black, 0.25),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  height: 1.15,
+                ),
+              ),
+            ],
+          ),
+        );
+      case MembershipState.pending:
+      case MembershipState.scheduled:
+        return _dateLeaf(_parseDate(b.date), muted: false);
+      default:
+        return _dateLeaf(_parseDate(b.endDate ?? b.date), muted: true);
+    }
+  }
+
+  Widget _bookingCard(Booking b, {required bool upcoming}) {
+    final amount = b.amount > 0 ? _money(b.amount) : 'Free';
+    return GestureDetector(
+      onTap: () => _openDetails(b),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: _cardDecoration(radius: 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _dateLeaf(_parseDate(b.date), muted: !upcoming),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          b.amenity?.name ?? 'Amenity',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _statusPill(b.status),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _metaRow(Icons.access_time_rounded, _whenLabel(b)),
+                  const SizedBox(height: 5),
+                  _metaRow(Icons.currency_rupee_rounded, amount),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -714,25 +1042,6 @@ class _AmenityBookingScreenState extends State<AmenityBookingScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // Same status pill as the admin Bookings tab.
-  Widget _statusPill(String status) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: _statusBgColor(status),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        _statusLabel(status),
-        style: TextStyle(
-          color: _statusColor(status),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 
@@ -1091,104 +1400,563 @@ class _ConfirmBookingSheetState extends State<_ConfirmBookingSheet> {
       ),
     );
   }
+}
 
-  // Tinted icon tile over an uppercase label and value — the same detail row
-  // as the profile page.
-  Widget _summaryRow({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required String value,
-    String? hint,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
+// ─── Booking details sheet ───────────────────────────────────────────────────
+
+/// Everything about one of the resident's bookings or memberships: where it
+/// stands, the dates / time or plan and validity, the amount, when it was
+/// requested, and what happens next. Pops `true` when Renew is tapped.
+class _BookingDetailsSheet extends StatelessWidget {
+  final Booking booking;
+
+  /// The facility booked (from the booking itself, or the facilities list).
+  final Amenity? amenity;
+
+  /// The renewal already queued after this membership, if any.
+  final Booking? next;
+
+  final bool canRenew;
+
+  const _BookingDetailsSheet({
+    required this.booking,
+    required this.amenity,
+    required this.next,
+    required this.canRenew,
+  });
+
+  static final _dayFull = DateFormat('EEE, d MMM yyyy');
+  static final _dayShort = DateFormat('d MMM yyyy');
+
+  @override
+  Widget build(BuildContext context) {
+    final b = booking;
+    return AppFormSheet(
+      accentColor: ModuleColors.amenities,
+      icon: b.isMembership
+          ? Icons.card_membership_rounded
+          : Icons.event_note_rounded,
+      title: b.isMembership ? 'Membership Details' : 'Booking Details',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(11),
+          _header(),
+          const SizedBox(height: 14),
+          _detailsCard(b.isMembership ? _membershipRows() : _bookingRows()),
+          const SizedBox(height: 14),
+          _statusNote(),
+          if (next != null) ...[const SizedBox(height: 10), _renewalNote()],
+          if (canRenew) ...[
+            const SizedBox(height: 24),
+            GlarePrimaryButton(
+              text: 'Renew Membership',
+              onPressed: () => Navigator.pop(context, true),
             ),
-            alignment: Alignment.center,
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Facility, reference number and status — plus the days-left bar while a
+  /// membership runs.
+  Widget _header() {
+    final b = booking;
+    final state = b.isMembership ? membershipStateOf(b) : null;
+    final reference = b.isMembership
+        ? 'Membership #${b.id}'
+        : 'Booking #${b.id}';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _sheetCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _amenityThumb(amenity),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      amenity?.name ?? 'Amenity',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      reference,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              state == null
+                  ? _statusPill(b.status)
+                  : _pill(
+                      membershipStateLabel(state),
+                      color: membershipStateColor(state),
+                      background: membershipStateBg(state),
+                    ),
+            ],
+          ),
+          if (state == MembershipState.active) ...[
+            const SizedBox(height: 14),
+            _usageBar(b, membershipDaysLeft(b)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// White card of label/value rows split by hairlines, as on Confirm
+  /// Booking.
+  Widget _detailsCard(List<Widget> rows) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: _sheetCardDecoration,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const Divider(height: 1, color: AppColors.border),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _bookingRows() {
+    final b = booking;
+    final start = _parseDate(b.date);
+    final end = _parseDate(b.endDate ?? b.date);
+    final days = start == null || end == null
+        ? 1
+        : _daysBetween(start, end) + 1;
+
+    final String dateValue;
+    if (start == null) {
+      dateValue = b.date;
+    } else if (days <= 1 || end == null) {
+      dateValue = _dayFull.format(start);
+    } else {
+      dateValue =
+          '${DateFormat('EEE, d MMM').format(start)} – ${_dayFull.format(end)}';
+    }
+
+    final String timeValue;
+    if (b.isFullDay) {
+      timeValue = days <= 1 ? 'Whole day' : '$days whole days';
+    } else {
+      final from = _parseTime(b.startTime);
+      final to = _parseTime(b.endTime);
+      final span =
+          '${_apiTimeLabel(b.startTime)} – ${_apiTimeLabel(b.endTime)}';
+      timeValue = from == null || to == null
+          ? span
+          : '$span · ${_hoursLabel((_minutes(to) - _minutes(from)) / 60)}';
+    }
+
+    return [
+      _summaryRow(
+        icon: Icons.calendar_today_rounded,
+        color: AppColors.accentBlue,
+        label: days > 1 ? 'Dates' : 'Date',
+        value: dateValue,
+      ),
+      _summaryRow(
+        icon: Icons.access_time_rounded,
+        color: AppColors.accentIndigo,
+        label: b.isFullDay ? 'Duration' : 'Time',
+        value: timeValue,
+      ),
+      _summaryRow(
+        icon: Icons.currency_rupee_rounded,
+        color: AppColors.accentAmber,
+        label: 'Amount',
+        value: b.amount > 0 ? _money(b.amount) : 'Free',
+      ),
+      ?_requestedRow(),
+    ];
+  }
+
+  List<Widget> _membershipRows() {
+    final b = booking;
+    final start = _parseDate(b.date);
+    final end = _parseDate(b.endDate ?? b.date);
+    final totalDays = start == null || end == null
+        ? null
+        : _daysBetween(start, end) + 1;
+    final a = amenity;
+    final hasHours = a != null && a.startTime != null && a.endTime != null;
+
+    final String? paymentHint;
+    if (b.amount <= 0) {
+      paymentHint = null;
+    } else if (b.paymentStatus == 'PAID') {
+      paymentHint = 'Paid';
+    } else if (b.status == 'PENDING') {
+      paymentHint = 'Awaiting payment confirmation';
+    } else {
+      paymentHint = null;
+    }
+
+    return [
+      _summaryRow(
+        icon: Icons.card_membership_rounded,
+        color: ModuleColors.amenities,
+        label: 'Plan',
+        value: b.planName ?? 'Membership',
+      ),
+      _summaryRow(
+        icon: Icons.date_range_rounded,
+        color: AppColors.accentBlue,
+        label: 'Valid',
+        value: start == null || end == null
+            ? b.date
+            : '${_dayShort.format(start)} – ${_dayShort.format(end)}',
+        hint: totalDays == null
+            ? null
+            : '$totalDays ${totalDays == 1 ? 'day' : 'days'}',
+      ),
+      if (hasHours)
+        _summaryRow(
+          icon: Icons.access_time_rounded,
+          color: AppColors.accentIndigo,
+          label: 'Opening Hours',
+          value: '${_apiTimeLabel(a.startTime)} – ${_apiTimeLabel(a.endTime)}',
+          hint: 'Use it any time in this window',
+        ),
+      _summaryRow(
+        icon: Icons.currency_rupee_rounded,
+        color: AppColors.accentAmber,
+        label: 'Amount',
+        value: b.amount > 0 ? membershipMoney(b.amount) : 'Free',
+        hint: paymentHint,
+      ),
+      ?_requestedRow(),
+    ];
+  }
+
+  /// "Requested On" from the booking's creation time, when the API sent it.
+  Widget? _requestedRow() {
+    final created = DateTime.tryParse(booking.createdAt ?? '');
+    if (created == null) return null;
+    return _summaryRow(
+      icon: Icons.schedule_send_rounded,
+      color: AppColors.accentTeal,
+      label: 'Requested On',
+      value: DateFormat('d MMM yyyy, h:mm a').format(created.toLocal()),
+    );
+  }
+
+  /// What the status means for the resident, and what happens next.
+  Widget _statusNote() {
+    final b = booking;
+    if (b.status == 'REJECTED') {
+      return _note(
+        icon: Icons.cancel_outlined,
+        color: AppColors.accentRed,
+        text:
+            'The society admin declined this request. Contact the society '
+            'office if you have questions.',
+      );
+    }
+    if (b.status == 'CANCELLED') {
+      return _note(
+        icon: Icons.block_rounded,
+        color: AppColors.accentRed,
+        text: b.isMembership
+            ? 'This membership was cancelled.'
+            : 'This booking was cancelled.',
+      );
+    }
+
+    if (b.isMembership) {
+      final start = _parseDate(b.date);
+      final end = _parseDate(b.endDate ?? b.date);
+      final from = start == null ? '--' : _dayFull.format(start);
+      final until = end == null ? '--' : _dayFull.format(end);
+      return switch (membershipStateOf(b)) {
+        MembershipState.pending => _note(
+          icon: Icons.hourglass_top_rounded,
+          color: AppColors.accentAmber,
+          text: b.amount > 0
+              ? 'Waiting for the society admin to confirm your payment. '
+                    'The membership starts once it is marked paid.'
+              : 'Waiting for the society admin to approve it.',
+        ),
+        MembershipState.scheduled => _note(
+          icon: Icons.event_available_rounded,
+          color: AppColors.accentBlue,
+          text:
+              'Confirmed. It starts on $from, and you can use it any time '
+              'during opening hours from then.',
+        ),
+        MembershipState.active => _note(
+          icon: Icons.verified_rounded,
+          color: AppColors.accentGreen,
+          text: 'Active. Use it any time during opening hours until $until.',
+        ),
+        _ => _note(
+          icon: Icons.history_rounded,
+          color: AppColors.textSecondary,
+          text: 'This membership ended on $until.',
+        ),
+      };
+    }
+
+    final upcoming = _isUpcoming(b);
+    if (b.status == 'PENDING') {
+      return upcoming
+          ? _note(
+              icon: Icons.hourglass_top_rounded,
+              color: AppColors.accentAmber,
+              text: 'Waiting for the society admin to approve this request.',
+            )
+          : _note(
+              icon: Icons.history_rounded,
+              color: AppColors.textSecondary,
+              text: 'This request was not approved before its date passed.',
+            );
+    }
+    return upcoming
+        ? _note(
+            icon: Icons.check_circle_outline_rounded,
+            color: AppColors.accentGreen,
+            text:
+                'Confirmed. The ${amenity?.name ?? 'amenity'} is reserved for '
+                'you.',
+          )
+        : _note(
+            icon: Icons.history_rounded,
+            color: AppColors.textSecondary,
+            text: 'This booking is over.',
+          );
+  }
+
+  /// The membership already queued to follow this one.
+  Widget _renewalNote() {
+    final n = next!;
+    final pending = membershipStateOf(n) == MembershipState.pending;
+    return _note(
+      icon: Icons.autorenew_rounded,
+      color: AppColors.accentBlue,
+      text:
+          'Renewed: your next membership (${n.planName ?? 'Membership'}) runs '
+          '${membershipPeriodLabel(n)}'
+          '${pending ? ', awaiting payment confirmation' : ''}.',
+    );
+  }
+}
+
+// ─── Shared widgets ──────────────────────────────────────────────────────────
+
+final _sheetCardDecoration = BoxDecoration(
+  color: AppColors.white,
+  borderRadius: BorderRadius.circular(18),
+  boxShadow: [
+    BoxShadow(
+      color: AppColors.black.withValues(alpha: 0.04),
+      blurRadius: 12,
+      offset: const Offset(0, 4),
+    ),
+  ],
+);
+
+Widget _amenityThumb(Amenity? amenity) {
+  const fallback = Icon(
+    Icons.sports_soccer_rounded,
+    color: AppColors.primary,
+    size: 28,
+  );
+  final image = amenity?.imageUrl;
+  return Container(
+    width: 52,
+    height: 52,
+    decoration: BoxDecoration(
+      color: AppColors.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    alignment: Alignment.center,
+    child: image == null || image.isEmpty
+        ? fallback
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              image,
+              fit: BoxFit.cover,
+              width: 52,
+              height: 52,
+              errorBuilder: (_, _, _) => fallback,
+            ),
+          ),
+  );
+}
+
+Widget _usageBar(Booking b, int daysLeft) {
+  final endingSoon = daysLeft <= 7;
+  final color = endingSoon ? AppColors.accentOrange : ModuleColors.amenities;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          value: membershipProgress(b),
+          minHeight: 6,
+          color: color,
+          backgroundColor: AppColors.cardBackground,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        endingSoon
+            ? 'Ends in $daysLeft ${daysLeft == 1 ? 'day' : 'days'} — renew to keep access'
+            : '$daysLeft ${daysLeft == 1 ? 'day' : 'days'} left',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: endingSoon
+              ? Color.lerp(color, AppColors.black, 0.3)
+              : AppColors.textSecondary,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+}
+
+// Same status pill as the admin Bookings tab.
+Widget _statusPill(String status) => _pill(
+  _statusLabel(status),
+  color: _statusColor(status),
+  background: _statusBgColor(status),
+);
+
+Widget _pill(String label, {required Color color, required Color background}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+    ),
+  );
+}
+
+// Tinted icon tile over an uppercase label and value — the same detail row
+// as the profile page.
+Widget _summaryRow({
+  required IconData icon,
+  required Color color,
+  required String label,
+  required String value,
+  String? hint,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (hint != null) ...[
                 const SizedBox(height: 2),
                 Text(
-                  value,
+                  hint,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    fontSize: 11.5,
                   ),
                 ),
-                if (hint != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    hint,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
-  // Tinted info note, like the User Management detail sheet's.
-  Widget _note({
-    required IconData icon,
-    required Color color,
-    required String text,
-  }) {
-    final ink = Color.lerp(color, AppColors.black, 0.35)!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: ink, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: ink,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
+// Tinted info note, like the User Management detail sheet's.
+Widget _note({
+  required IconData icon,
+  required Color color,
+  required String text,
+}) {
+  final ink = Color.lerp(color, AppColors.black, 0.35)!;
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color.withValues(alpha: 0.25)),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: ink, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: ink,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1247,6 +2015,7 @@ String _hoursLabel(double hours) {
 }
 
 String _priceLabel(Amenity a) {
+  if (a.isMembership) return membershipPriceLabel(a);
   if (!a.isPaid) return 'Free';
   return a.isFullDay
       ? '${_money(a.pricePerDay)}/day · ${_money(a.pricePerHour)}/hr'

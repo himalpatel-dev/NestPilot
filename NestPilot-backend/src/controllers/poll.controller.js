@@ -192,6 +192,46 @@ const votePoll = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+/**
+ * Map<option_id, [{ user_id, name, flat, voted_at }]> for one poll, newest
+ * vote first. `flat` is the voter's primary active flat ("A-101"), or null.
+ */
+const pollVotersByOption = async (pollId) => {
+    const votes = await db.PollVote.findAll({
+        where: { poll_id: pollId },
+        attributes: ['option_id', 'created_at'],
+        include: [{
+            model: db.User,
+            attributes: ['id', 'full_name'],
+            include: [{
+                model: db.UserHouseMapping,
+                required: false,
+                where: { is_active: true },
+                attributes: ['is_primary'],
+                include: [{ model: db.House, attributes: ['house_no', 'wing'] }]
+            }]
+        }],
+        order: [['created_at', 'DESC']]
+    });
+
+    const byOption = new Map();
+    for (const v of votes) {
+        const mappings = v.User?.UserHouseMappings || [];
+        const house = (mappings.find(m => m.is_primary) || mappings[0])?.House;
+        const flat = house
+            ? (house.wing ? `${house.wing}-${house.house_no}` : house.house_no)
+            : null;
+        if (!byOption.has(v.option_id)) byOption.set(v.option_id, []);
+        byOption.get(v.option_id).push({
+            user_id: v.User?.id ?? null,
+            name: v.User?.full_name || 'Former member',
+            flat,
+            voted_at: v.created_at
+        });
+    }
+    return byOption;
+};
+
 const getPollResults = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -206,13 +246,20 @@ const getPollResults = async (req, res, next) => {
             throw new ApiError(404, 'Poll not found');
         }
 
+        // Who voted for what is manager-only — residents keep seeing counts alone.
+        const votersByOption = req.userPermissions?.POLLS?.can_manage
+            ? await pollVotersByOption(poll.id)
+            : null;
+
         // Aggregate votes
         const results = await Promise.all(poll.options.map(async (opt) => {
             const count = await db.PollVote.count({ where: { option_id: opt.id } });
-            return {
+            const row = {
                 option: opt.option_text,
                 count
             };
+            if (votersByOption) row.voters = votersByOption.get(opt.id) || [];
+            return row;
         }));
 
         // Count total active members since we are in a society scope usually by implicit auth. But wait, `poll` has a society_id.

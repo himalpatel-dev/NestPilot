@@ -7,11 +7,14 @@ import '../../services/community_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/session_service.dart';
 import '../../config/modules.dart';
+import '../../config/roles.dart';
+import '../../models/user_model.dart';
 import '../../widgets/module_page_header.dart';
 import '../../widgets/app_field_card.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../../widgets/glare_button.dart';
 import 'vehicle_detail_screen.dart';
+import 'vehicle_owner_picker.dart';
 
 class VehicleListScreen extends StatefulWidget {
   const VehicleListScreen({super.key});
@@ -106,18 +109,17 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     final carCount = _vehicles.where((v) => v.type == 'CAR').length;
     final bikeCount = _vehicles.where((v) => v.type == 'BIKE').length;
 
-    // A manager sees every vehicle in the society (getAllVehicles), which
-    // mixes their own registration in among everyone else's — split it into
-    // "My Vehicles" / "Society Vehicles" so it doesn't read as one pile.
-    // A plain member's list is already scoped to just their own vehicles by
-    // the backend, so there's nothing to split there.
+    // getAllVehicles returns a resident their household's vehicles (family
+    // in the same flat) and every other role the whole society. Either way
+    // the caller's own registrations are split out as "My Vehicles" so they
+    // don't read as one pile with everyone else's.
+    final isResident = SessionService().currentUser?.role == UserRoles.member;
     final myUserId = int.tryParse(SessionService().currentUser?.id ?? '');
-    final myVehicles = canManage
-        ? _vehicles.where((v) => v.userId == myUserId).toList()
-        : _vehicles;
-    final otherVehicles = canManage
-        ? _vehicles.where((v) => v.userId != myUserId).toList()
-        : const <Vehicle>[];
+    final myVehicles = _vehicles.where((v) => v.userId == myUserId).toList();
+    final otherVehicles = _vehicles.where((v) => v.userId != myUserId).toList();
+    final othersTitle = isResident ? 'Household Vehicles' : 'Society Vehicles';
+    // A resident with only their own vehicles has nothing to tell apart.
+    final showHeaders = otherVehicles.isNotEmpty || !isResident;
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -156,7 +158,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                     )
                   else ...[
                     if (myVehicles.isNotEmpty) ...[
-                      if (canManage)
+                      if (showHeaders)
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                           sliver: const SliverToBoxAdapter(
@@ -166,7 +168,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(
                           16,
-                          canManage ? 12 : 20,
+                          showHeaders ? 12 : 20,
                           16,
                           0,
                         ),
@@ -182,14 +184,18 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                         sliver: SliverToBoxAdapter(
-                          child: AppSectionHeader('Society Vehicles'),
+                          child: AppSectionHeader(othersTitle),
                         ),
                       ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
-                            (ctx, i) => _buildCard(otherVehicles[i], canManage),
+                            (ctx, i) => _buildCard(
+                              otherVehicles[i],
+                              canManage,
+                              showOwner: true,
+                            ),
                             childCount: otherVehicles.length,
                           ),
                         ),
@@ -216,13 +222,22 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     );
   }
 
-  Widget _buildCard(Vehicle v, bool canManage) {
+  /// [showOwner] adds a "Flat A-2 · Name" line — for other people's
+  /// vehicles; on your own it would just repeat you.
+  Widget _buildCard(Vehicle v, bool canManage, {bool showOwner = false}) {
     final color = _vehicleColor(v.type);
     final icon = _vehicleIcon(v.type);
     final displayName = [
       v.model,
       v.brand,
     ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    final hasFlat = (v.flatNumber ?? '').isNotEmpty;
+    final ownerLine = showOwner
+        ? [
+            if (hasFlat) 'Flat ${v.flatNumber}',
+            if ((v.userName ?? '').isNotEmpty) v.userName!,
+          ].join('  ·  ')
+        : '';
 
     return GestureDetector(
       onTap: () async {
@@ -318,42 +333,27 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                         ),
                       ),
                     ],
-                    if (v.flatNumber != null && v.flatNumber!.isNotEmpty) ...[
+                    if (ownerLine.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.home_rounded,
+                          Icon(
+                            hasFlat ? Icons.home_rounded : Icons.person_rounded,
                             size: 11,
                             color: AppColors.textMuted,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'Flat ${v.flatNumber}',
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (v.userName != null && v.userName!.isNotEmpty) ...[
-                            const Text(
-                              '  Â·  ',
-                              style: TextStyle(
+                          Flexible(
+                            child: Text(
+                              ownerLine,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,
                               ),
                             ),
-                            Flexible(
-                              child: Text(
-                                v.userName!,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                     ],
@@ -463,7 +463,28 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
   bool _isLoading = false;
   String? _apiError;
 
+  /// Owner when a manager registers for someone else; null = themself.
+  UserModel? _owner;
+
   bool get _isEditing => widget.editing != null;
+
+  // Only managers (secretary/admin) register on a resident's behalf; a
+  // resident always registers for themself. The owner is fixed once added —
+  // the sticker is generated from it.
+  bool get _canPickOwner =>
+      !_isEditing && SessionService().currentUser?.role != UserRoles.member;
+
+  Future<void> _pickOwner() async {
+    final pick = await showVehicleOwnerPicker(context, selectedId: _owner?.id);
+    if (pick != null && mounted) setState(() => _owner = pick.user);
+  }
+
+  String get _ownerLabel {
+    final owner = _owner;
+    if (owner == null) return 'Myself';
+    final flat = owner.flatNumber ?? '';
+    return flat.isNotEmpty ? '${owner.fullName} · Flat $flat' : owner.fullName;
+  }
 
   @override
   void dispose() {
@@ -493,6 +514,7 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
           'vehicle_number': _numberCtrl.text.trim().toUpperCase(),
           'model': _modelCtrl.text.trim(),
           'type': _selectedType,
+          if (_owner != null) 'owner_user_id': int.tryParse(_owner!.id),
         });
       }
       widget.onSaved();
@@ -518,6 +540,42 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_canPickOwner) ...[
+              const AppSectionHeader('Owner'),
+              const SizedBox(height: 14),
+              GestureDetector(
+                onTap: _isLoading ? null : _pickOwner,
+                behavior: HitTestBehavior.opaque,
+                child: AppFieldCard(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Registered To',
+                  field: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _ownerLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
             const AppSectionHeader('Vehicle Details'),
             const SizedBox(height: 14),
             AppFieldCard(

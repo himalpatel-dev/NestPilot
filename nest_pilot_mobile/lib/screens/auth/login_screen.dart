@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _mobileController = TextEditingController(
-    text: '9727376757',
+    text: '9727376747',
   );
   final AuthService _authService = AuthService();
   bool _isLoading = false;
@@ -322,6 +322,8 @@ class _MobileNumberField extends StatelessWidget {
               controller: controller,
               keyboardType: TextInputType.phone,
               maxLength: 10,
+              // The phone keypad still offers + * # and spaces.
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: AppTextStyles.inputText(s),
               cursorColor: AppColors.primary,
               decoration: InputDecoration(

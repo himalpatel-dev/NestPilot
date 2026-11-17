@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../config/modules.dart';
 import '../../models/community_models.dart';
@@ -735,6 +736,11 @@ class _VisitorManagementScreenState extends State<VisitorManagementScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.phone,
+                    // Digits only, and typing stops at 10.
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     validator: (v) =>
                         (v == null || v.trim().length < 10)
                             ? 'Enter valid 10-digit mobile'

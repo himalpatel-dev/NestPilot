@@ -31,12 +31,21 @@ module.exports = (sequelize) => {
             type: DataTypes.BOOLEAN,
             defaultValue: false
         },
-        // SLOT = fixed hourly slots within a daily window (gym, yoga, courts)
+        // SLOT = fixed hourly slots within a daily window (courts, party room)
         // FULL_DAY = booked for whole date(s) as needed (banquet hall, common plot)
+        // MEMBERSHIP = shared facility used on a pass for a period (gym, pool):
+        //   residents buy one of the amenity's plans; no slot is reserved.
+        // A new value here must also be listed in utils/ensureEnumValues.js.
         booking_type: {
-            type: DataTypes.ENUM('SLOT', 'FULL_DAY'),
+            type: DataTypes.ENUM('SLOT', 'FULL_DAY', 'MEMBERSHIP'),
             defaultValue: 'SLOT',
             allowNull: false
+        },
+        // MEMBERSHIP only: most memberships that may overlap on any one day.
+        // null = unlimited.
+        max_members: {
+            type: DataTypes.INTEGER,
+            allowNull: true
         },
         price_per_hour: {
             type: DataTypes.DECIMAL(10, 2),
@@ -47,11 +56,11 @@ module.exports = (sequelize) => {
             defaultValue: 0.00
         },
         start_time: {
-            type: DataTypes.TIME, // '09:00:00' — only used when booking_type = SLOT
+            type: DataTypes.TIME, // '09:00:00' — SLOT booking window; MEMBERSHIP opening hours (display only)
             allowNull: true
         },
         end_time: {
-            type: DataTypes.TIME, // '22:00:00' — only used when booking_type = SLOT
+            type: DataTypes.TIME, // '22:00:00' — SLOT booking window; MEMBERSHIP opening hours (display only)
             allowNull: true
         },
         is_active: {
@@ -68,6 +77,7 @@ module.exports = (sequelize) => {
     Amenity.associate = (models) => {
         Amenity.belongsTo(models.Society, { foreignKey: 'society_id' });
         Amenity.hasMany(models.Booking, { foreignKey: 'amenity_id' });
+        Amenity.hasMany(models.AmenityPlan, { foreignKey: 'amenity_id', as: 'plans' });
     };
 
     return Amenity;

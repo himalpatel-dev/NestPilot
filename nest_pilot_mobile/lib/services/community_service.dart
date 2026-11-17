@@ -1,5 +1,6 @@
 // import 'dart:convert';
 import 'package:nest_pilot_mobile/models/community_models.dart';
+import 'package:nest_pilot_mobile/models/user_model.dart';
 import 'package:nest_pilot_mobile/services/api_service.dart';
 import '../config/api_endpoints.dart';
 
@@ -46,6 +47,18 @@ class CommunityService {
     if (response['success']) {
       return (response['data'] as List)
           .map((i) => Vehicle.fromJson(i))
+          .toList();
+    }
+    throw Exception(response['message']);
+  }
+
+  /// Residents a manager can register a vehicle for (id, name, mobile, flat).
+  /// The backend refuses residents, so this is manager-only.
+  Future<List<UserModel>> getVehicleOwnerOptions() async {
+    final response = await _apiService.get(ApiEndpoints.vehicleOwnerOptions);
+    if (response['success']) {
+      return (response['data'] as List)
+          .map((u) => UserModel.fromJson(u as Map<String, dynamic>))
           .toList();
     }
     throw Exception(response['message']);
@@ -332,8 +345,11 @@ class CommunityService {
     throw Exception(response['message']);
   }
 
+  /// Flats for the gate's walk-in picker. Uses the visitors endpoint, not
+  /// /api/society/houses — that one needs view on BUILDINGS, which a guard
+  /// doesn't have.
   Future<List<dynamic>> getAllHouses() async {
-    final response = await _apiService.get('/api/society/houses');
+    final response = await _apiService.get('${ApiEndpoints.visitors}/houses');
     if (response['success']) {
       return response['data'] as List;
     }

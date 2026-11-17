@@ -9,7 +9,8 @@ const db = require('../models');
  * Type names follow sequelize's convention: enum_<table>_<column>.
  */
 const ENUM_VALUES = {
-    enum_tbl_bills_bill_type: ['MAINTENANCE', 'SPECIAL', 'UTILITY', 'EVENT', 'OTHER']
+    enum_tbl_bills_bill_type: ['MAINTENANCE', 'SPECIAL', 'UTILITY', 'EVENT', 'OTHER'],
+    enum_amenities_booking_type: ['SLOT', 'FULL_DAY', 'MEMBERSHIP']
 };
 
 const ensureEnumValues = async () => {

@@ -193,6 +193,14 @@ const updateComplaint = async (id, data, file, societyId, userScope) => {
         }
     }
 
+    // Once the society has picked a complaint up (in progress) or settled it
+    // (resolved / rejected), its details are locked — only OPEN is editable.
+    if (complaint.status !== 'OPEN') {
+        const err = new Error('Only open complaints can be edited');
+        err.statusCode = 409;
+        throw err;
+    }
+
     const { category, description } = data;
     if (category !== undefined) complaint.category = category;
     if (description !== undefined) complaint.description = description;

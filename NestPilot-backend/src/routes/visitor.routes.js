@@ -18,6 +18,7 @@ router.post('/entry', hasAnyPermission([{ module: 'GATE_CONTROL', action: 'manag
 router.post('/exit', hasAnyPermission([{ module: 'GATE_CONTROL', action: 'manage' }, { module: 'VISITORS', action: 'manage' }]), controller.logExit);
 router.get('/inside', hasAnyPermission([{ module: 'GATE_CONTROL', action: 'view' }, { module: 'VISITORS', action: 'view' }]), controller.getInsideVisitors);
 router.get('/all', hasAnyPermission([{ module: 'VISITORS', action: 'view' }, { module: 'GATE_CONTROL', action: 'view' }]), controller.getAllSocietyVisitors);
-router.get('/verify/:code', hasAnyPermission([{ module: 'GATE_CONTROL', action: 'manage' }, { module: 'VISITORS', action: 'manage' }]), controller.verifyPassCode);
+router.get('/houses', hasAnyPermission([{ module: 'GATE_CONTROL', action: 'manage' }, { module: 'VISITORS', action: 'manage' }]), controller.getHouseOptions);
+router.get('/verify/:code',hasAnyPermission([{ module: 'GATE_CONTROL', action: 'manage' }, { module: 'VISITORS', action: 'manage' }]), controller.verifyPassCode);
 
 module.exports = router;

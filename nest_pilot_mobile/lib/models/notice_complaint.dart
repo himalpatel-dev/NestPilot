@@ -24,7 +24,7 @@ class Notice {
         json['created_at'] ??
             json['createdAt'] ??
             DateTime.now().toIso8601String(),
-      ),
+      ).toLocal(),
       attachmentUrl: json['attachment_url'] ?? json['attachmentUrl'],
       createdBy:
           (json['createdBy'] != null && json['createdBy']['full_name'] != null)
@@ -67,7 +67,7 @@ class Complaint {
         json['created_at'] ??
             json['createdAt'] ??
             DateTime.now().toIso8601String(),
-      ),
+      ).toLocal(),
       comments:
           (json['ComplaintComments'] as List? ??
                   json['comments'] as List? ??
@@ -102,7 +102,7 @@ class ComplaintComment {
         json['created_at'] ??
             json['createdAt'] ??
             DateTime.now().toIso8601String(),
-      ),
+      ).toLocal(),
     );
   }
 }

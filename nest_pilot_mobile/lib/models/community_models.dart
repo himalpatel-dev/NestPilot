@@ -35,8 +35,8 @@ class Vehicle {
     if (json['owner'] != null) {
       uName = json['owner']['full_name'];
       uMobile = json['owner']['mobile'];
-      // flat_number is not on user directly in backend, so we might skip it or check if we added it to attributes.
-      // In last edit I removed flat_number from attributes to be safe.
+      // The vehicle API flattens the owner's current flat ("A-2") in here.
+      uFlat = json['owner']['flat_number'];
     } else if (json['User'] != null) {
       uName = json['User']['full_name'];
       uMobile = json['User']['mobile'];
@@ -158,8 +158,72 @@ class VisitorLog {
   }
 }
 
-/// SLOT = fixed hourly slots within a daily window (gym, yoga, courts).
+/// One purchasable period of a MEMBERSHIP amenity, e.g. "Monthly" = 1 MONTH.
+class AmenityPlan {
+  final int id;
+  final String name;
+  final int durationValue;
+
+  /// DAY | MONTH | YEAR
+  final String durationUnit;
+  final double price;
+
+  const AmenityPlan({
+    required this.id,
+    required this.name,
+    required this.durationValue,
+    required this.durationUnit,
+    required this.price,
+  });
+
+  factory AmenityPlan.fromJson(Map<String, dynamic> json) {
+    return AmenityPlan(
+      id: json['id'],
+      name: (json['name'] ?? '').toString(),
+      durationValue: int.tryParse('${json['duration_value']}') ?? 1,
+      durationUnit: (json['duration_unit'] ?? 'MONTH').toString(),
+      price: double.tryParse('${json['price'] ?? 0}') ?? 0,
+    );
+  }
+
+  /// "1 month", "3 months", "1 year", "7 days".
+  String get durationLabel {
+    final word = switch (durationUnit) {
+      'DAY' => 'day',
+      'YEAR' => 'year',
+      _ => 'month',
+    };
+    return '$durationValue $word${durationValue == 1 ? '' : 's'}';
+  }
+
+  /// Whole months covered, or null for day-based plans.
+  int? get months => switch (durationUnit) {
+    'MONTH' => durationValue,
+    'YEAR' => durationValue * 12,
+    _ => null,
+  };
+
+  /// Last day (inclusive) of a membership starting on [start]. Mirrors the
+  /// server's membershipEnd, so the dates shown are the dates saved: a month
+  /// runs to the day before the same date next month (16 Nov → 15 Dec), or
+  /// to the month's last day when that date doesn't exist (31 Jan → 28 Feb).
+  DateTime endDateFor(DateTime start) {
+    if (durationUnit == 'DAY') {
+      return DateTime(start.year, start.month, start.day + durationValue - 1);
+    }
+    final monthIndex = (start.month - 1) + months!;
+    final year = start.year + monthIndex ~/ 12;
+    final month = monthIndex % 12 + 1;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    if (start.day > daysInMonth) return DateTime(year, month, daysInMonth);
+    return DateTime(year, month, start.day - 1);
+  }
+}
+
+/// SLOT = fixed hourly slots within a daily window (courts, party room).
 /// FULL_DAY = booked for whole date(s) as needed (banquet hall, common plot).
+/// MEMBERSHIP = shared facility used on a pass for a period (gym, pool) —
+/// residents buy one of [plans]; nothing is reserved.
 class Amenity {
   final int id;
   final String name;
@@ -169,10 +233,23 @@ class Amenity {
   final String bookingType;
   final double pricePerHour;
   final double pricePerDay;
+
+  /// SLOT: booking window. MEMBERSHIP: opening hours (shown only).
   final String? startTime;
   final String? endTime;
 
+  /// MEMBERSHIP only.
+  final List<AmenityPlan> plans;
+  final int? maxMembers;
+  final int activeMembers;
+
   bool get isFullDay => bookingType == 'FULL_DAY';
+  bool get isMembership => bookingType == 'MEMBERSHIP';
+
+  /// Cheapest plan price — the "From ₹…" figure.
+  double? get lowestPlanPrice => plans.isEmpty
+      ? null
+      : plans.map((p) => p.price).reduce((a, b) => a < b ? a : b);
 
   Amenity({
     required this.id,
@@ -185,6 +262,9 @@ class Amenity {
     this.pricePerDay = 0.0,
     this.startTime,
     this.endTime,
+    this.plans = const [],
+    this.maxMembers,
+    this.activeMembers = 0,
   });
 
   factory Amenity.fromJson(Map<String, dynamic> json) {
@@ -203,6 +283,11 @@ class Amenity {
           : 0.0,
       startTime: json['start_time'],
       endTime: json['end_time'],
+      plans: (json['plans'] as List? ?? [])
+          .map((p) => AmenityPlan.fromJson(p as Map<String, dynamic>))
+          .toList(),
+      maxMembers: json['max_members'] as int?,
+      activeMembers: json['active_members'] as int? ?? 0,
     );
   }
 }
@@ -211,17 +296,32 @@ class Booking {
   final int id;
   final int amenityId;
   final Amenity? amenity;
+
+  /// Start date; for a membership, the first day it's valid.
   final String date;
+
+  /// Whole-day bookings and memberships: last day covered (inclusive).
   final String? endDate;
   final String? startTime;
   final String? endTime;
   final String status;
   final double amount;
 
+  /// MEMBERSHIP bookings only — the plan bought (name kept as a snapshot).
+  final int? planId;
+  final String? planName;
+
+  /// PENDING | PAID | NOT_APPLICABLE
+  final String? paymentStatus;
+
+  /// When the resident sent the request (ISO timestamp, UTC).
+  final String? createdAt;
+
   // Extra fields for Admin display
   final String? userName;
   final String? userMobile;
 
+  bool get isMembership => planId != null;
   bool get isFullDay => startTime == null;
 
   Booking({
@@ -234,6 +334,10 @@ class Booking {
     this.endTime,
     required this.status,
     required this.amount,
+    this.planId,
+    this.planName,
+    this.paymentStatus,
+    this.createdAt,
     this.userName,
     this.userMobile,
   });
@@ -261,6 +365,10 @@ class Booking {
       amount: (json['amount'] != null)
           ? double.parse(json['amount'].toString())
           : 0.0,
+      planId: json['plan_id'] as int?,
+      planName: json['plan_name'] as String?,
+      paymentStatus: json['payment_status'] as String?,
+      createdAt: (json['created_at'] ?? json['createdAt'])?.toString(),
       userName: uName,
       userMobile: uMobile,
     );

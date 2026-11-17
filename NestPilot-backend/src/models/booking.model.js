@@ -44,6 +44,21 @@ module.exports = (sequelize) => {
             type: DataTypes.TIME, // SLOT bookings only
             allowNull: true
         },
+        // MEMBERSHIP bookings only: the plan bought, with its name kept as a
+        // snapshot so renaming/retiring the plan never rewrites history.
+        // `date`..`end_date` is the validity period; amount is the plan price.
+        plan_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'amenity_plans',
+                key: 'id'
+            }
+        },
+        plan_name: {
+            type: DataTypes.STRING(60),
+            allowNull: true
+        },
         status: {
             type: DataTypes.ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED'),
             defaultValue: 'PENDING'
@@ -67,6 +82,7 @@ module.exports = (sequelize) => {
         Booking.belongsTo(models.User, { foreignKey: 'user_id' });
         Booking.belongsTo(models.Amenity, { foreignKey: 'amenity_id' });
         Booking.belongsTo(models.Society, { foreignKey: 'society_id' });
+        Booking.belongsTo(models.AmenityPlan, { foreignKey: 'plan_id' });
     };
 
     return Booking;

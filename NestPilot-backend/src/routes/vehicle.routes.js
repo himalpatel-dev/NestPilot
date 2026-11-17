@@ -8,6 +8,8 @@ router.use(auth);
 router.post('/', hasPermission('VEHICLES', 'manage'), controller.addVehicle);
 router.get('/', hasPermission('VEHICLES', 'view'), controller.getMyVehicles);
 router.get('/all', hasPermission('VEHICLES', 'view'), controller.getAllVehicles);
+// Residents to pick from when a manager registers a vehicle for someone else.
+router.get('/owner-options', hasPermission('VEHICLES', 'manage'), controller.getOwnerOptions);
 router.put('/:id', hasPermission('VEHICLES', 'manage'), controller.updateVehicle);
 router.delete('/:id', hasPermission('VEHICLES', 'manage'), controller.deleteVehicle);
 

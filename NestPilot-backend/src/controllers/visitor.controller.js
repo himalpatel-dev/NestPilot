@@ -452,6 +452,20 @@ const getDashboard = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// Security: flats to pick from when logging a walk-in. The gate only needs
+// flat numbers, so this is open to whoever can log an entry rather than
+// requiring view on BUILDINGS (which a guard doesn't have).
+const getHouseOptions = async (req, res, next) => {
+    try {
+        const houses = await db.House.findAll({
+            where: { society_id: req.user.society_id },
+            attributes: ['id', 'house_no', 'wing'],
+            order: [['house_no', 'ASC']]
+        });
+        res.status(200).json(new ApiResponse(200, houses));
+    } catch (e) { next(e); }
+};
+
 module.exports = {
     preApproveVisitor,
     cancelInvite,
@@ -462,5 +476,6 @@ module.exports = {
     getInsideVisitors,
     getAllSocietyVisitors,
     verifyPassCode,
-    getDashboard
+    getDashboard,
+    getHouseOptions
 };

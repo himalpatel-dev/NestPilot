@@ -5,6 +5,7 @@ import 'package:nest_pilot_mobile/services/community_service.dart';
 import 'package:nest_pilot_mobile/services/permission_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_page_header.dart';
+import 'membership.dart';
 
 class AmenityDetailScreen extends StatefulWidget {
   final Amenity amenity;
@@ -210,6 +211,11 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
     final hasDescription =
         a.description != null && a.description!.isNotEmpty;
     final bookings = widget.bookings;
+    final typeLabel = a.isMembership
+        ? 'Membership'
+        : a.isFullDay
+        ? 'Full Day'
+        : 'Hourly Slot';
 
     return Scaffold(
       backgroundColor: AppColors.cardBackground,
@@ -221,7 +227,7 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
                 icon: Icons.calendar_today_outlined,
                 title: 'Amenity',
                 accentColor: ModuleColors.amenities,
-                subtitle: a.isFullDay ? 'Full Day' : 'Hourly Slot',
+                subtitle: typeLabel,
               ),
 
               // Sits outside the scroll view so the gap under the fixed header
@@ -327,12 +333,14 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
                             const SizedBox(height: 22),
 
                             _infoRow(
-                              icon: a.isFullDay
+                              icon: a.isMembership
+                                  ? Icons.card_membership_rounded
+                                  : a.isFullDay
                                   ? Icons.event_available_rounded
                                   : Icons.access_time_rounded,
                               color: AppColors.accentIndigo,
                               label: 'Booking Type',
-                              value: a.isFullDay ? 'Full Day' : 'Hourly Slot',
+                              value: typeLabel,
                             ),
                             const SizedBox(height: 12),
 
@@ -341,13 +349,38 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
                               color: const Color(0xFF00897B),
                               label: 'Availability',
                               // A full-day amenity has no fixed hours — the
-                              // resident picks whole days or a few hours.
-                              value: a.isFullDay
+                              // resident picks whole days or a few hours. A
+                              // membership one is used any time it's open.
+                              value: a.isMembership
+                                  ? (membershipHoursLabel(a) ??
+                                        'Any time · members only')
+                                  : a.isFullDay
                                   ? 'Whole day or selected hours'
                                   : '${a.startTime ?? '--'} - ${a.endTime ?? '--'}',
                             ),
 
-                            if (isPaid) ...[
+                            if (a.isMembership) ...[
+                              const SizedBox(height: 12),
+                              _infoRow(
+                                icon: Icons.groups_rounded,
+                                color: AppColors.accentBlue,
+                                label: 'Active Members',
+                                value: a.maxMembers != null
+                                    ? '${a.activeMembers} of ${a.maxMembers}'
+                                    : '${a.activeMembers} · no limit',
+                              ),
+                              for (final p in a.plans) ...[
+                                const SizedBox(height: 12),
+                                _infoRow(
+                                  icon: Icons.card_membership_rounded,
+                                  color: AppColors.accentAmber,
+                                  label: '${p.name} · ${p.durationLabel}',
+                                  value: isPaid
+                                      ? membershipMoney(p.price)
+                                      : 'Free for residents',
+                                ),
+                              ],
+                            ] else if (isPaid) ...[
                               if (a.isFullDay) ...[
                                 const SizedBox(height: 12),
                                 _infoRow(
@@ -442,7 +475,9 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
-                                    'Bookings (${bookings.length})',
+                                    a.isMembership
+                                        ? 'Memberships (${bookings.length})'
+                                        : 'Bookings (${bookings.length})',
                                     style: const TextStyle(
                                       color: AppColors.textPrimary,
                                       fontSize: 14,
@@ -548,11 +583,24 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
   }
 
   Widget _bookingRow(Booking b) {
-    final when = b.isFullDay
+    final when = b.isMembership
+        ? '${b.planName ?? 'Membership'} · ${membershipPeriodLabel(b)}'
+        : b.isFullDay
         ? (b.endDate != null && b.endDate != b.date
               ? '${b.date} to ${b.endDate}'
               : b.date)
         : '${b.date} (${b.startTime} - ${b.endTime})';
+    // Memberships read Active / Upcoming / Expired, not just Approved.
+    final state = b.isMembership ? membershipStateOf(b) : null;
+    final pillLabel = state != null
+        ? membershipStateLabel(state)
+        : _statusLabel(b.status);
+    final pillColor = state != null
+        ? membershipStateColor(state)
+        : _statusColor(b.status);
+    final pillBg = state != null
+        ? membershipStateBg(state)
+        : _statusBgColor(b.status);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -608,13 +656,13 @@ class _AmenityDetailScreenState extends State<AmenityDetailScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: _statusBgColor(b.status),
+                  color: pillBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _statusLabel(b.status),
+                  pillLabel,
                   style: TextStyle(
-                    color: _statusColor(b.status),
+                    color: pillColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),

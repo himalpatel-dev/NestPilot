@@ -7,6 +7,7 @@ import 'package:nest_pilot_mobile/services/permission_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/nest_loader.dart';
 import '../../widgets/app_page_header.dart';
+import 'poll_voters_sheet.dart';
 
 class PollDetailScreen extends StatefulWidget {
   final Poll poll;
@@ -449,6 +450,36 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              const Spacer(),
+              if (_hasVoters)
+                GestureDetector(
+                  onTap: () => _openVoters(null),
+                  behavior: HitTestBehavior.opaque,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.groups_2_outlined,
+                        size: 16,
+                        color: ModuleColors.polls,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        'All voters',
+                        style: TextStyle(
+                          color: ModuleColors.polls,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: ModuleColors.polls,
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 20),
@@ -499,75 +530,206 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        ...results.map((r) {
-          final count = r['count'] as int;
-          final percentage = totalVotes > 0 ? (count / totalVotes) : 0.0;
-          final percentageText = '${(percentage * 100).toStringAsFixed(1)}%';
+        for (int i = 0; i < results.length; i++)
+          _optionResult(
+            results[i] as Map<String, dynamic>,
+            index: i,
+            totalVotes: totalVotes,
+          ),
+      ],
+    );
+  }
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        r['option'],
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      percentageText,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.5,
-                        color: ModuleColors.polls,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Stack(
-                  children: [
-                    Container(
-                      height: 10,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    FractionallySizedBox(
-                      widthFactor: percentage,
-                      child: Container(
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: ModuleColors.polls,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '$count votes',
+  Widget _optionResult(
+    Map<String, dynamic> r, {
+    required int index,
+    required int totalVotes,
+  }) {
+    final count = r['count'] as int;
+    final percentage = totalVotes > 0 ? (count / totalVotes) : 0.0;
+    final percentageText = '${(percentage * 100).toStringAsFixed(1)}%';
+    // `voters` is only sent to POLLS managers; residents get counts alone.
+    final voters = (r['voters'] as List?)?.cast<Map<String, dynamic>>();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  r['option'],
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
+                ),
+              ),
+              Text(
+                percentageText,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.5,
+                  color: ModuleColors.polls,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Stack(
+            children: [
+              Container(
+                height: 10,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: percentage,
+                child: Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: ModuleColors.polls,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                '$count ${count == 1 ? 'vote' : 'votes'}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const Spacer(),
+              if (voters != null && voters.isNotEmpty)
+                _voterPreview(voters, onTap: () => _openVoters(index)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// True once results carry voter details (POLLS managers only) and at
+  /// least one vote exists.
+  bool get _hasVoters {
+    final results = _results?['results'];
+    if (results is! List) return false;
+    return results.any(
+      (r) => ((r as Map)['voters'] as List?)?.isNotEmpty ?? false,
+    );
+  }
+
+  /// Opens the voters sheet, preselecting [optionIndex] (null = all options).
+  void _openVoters(int? optionIndex) {
+    final results = _results?['results'];
+    if (results is! List) return;
+    showPollVotersSheet(
+      context,
+      question: widget.poll.question,
+      results: results,
+      initialOption: optionIndex,
+    );
+  }
+
+  /// Compact "who voted" strip for one option: up to three overlapping
+  /// avatars, a "+N" bubble for the rest, and a View pill. It stays the same
+  /// size however many people voted; the full list lives in the sheet.
+  Widget _voterPreview(
+    List<Map<String, dynamic>> voters, {
+    required VoidCallback onTap,
+  }) {
+    const size = 26.0;
+    const step = 18.0;
+    final shown = voters.take(3).toList();
+    final extra = voters.length - shown.length;
+    final bubbles = shown.length + (extra > 0 ? 1 : 0);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: size + (bubbles - 1) * step,
+            height: size,
+            child: Stack(
+              children: [
+                for (int i = 0; i < shown.length; i++)
+                  Positioned(
+                    left: i * step,
+                    child: PollVoterAvatar(
+                      name: shown[i]['name']?.toString() ?? '',
+                      size: size,
+                      ringed: true,
+                    ),
+                  ),
+                if (extra > 0)
+                  Positioned(
+                    left: shown.length * step,
+                    child: Container(
+                      width: size,
+                      height: size,
+                      decoration: BoxDecoration(
+                        color: ModuleColors.polls,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.white, width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        extra > 99 ? '99+' : '+$extra',
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.fromLTRB(10, 5, 4, 5),
+            decoration: BoxDecoration(
+              color: ModuleColors.polls.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'View',
+                  style: TextStyle(
+                    color: ModuleColors.polls,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: ModuleColors.polls,
                 ),
               ],
             ),
-          );
-        }),
-      ],
+          ),
+        ],
+      ),
     );
   }
 

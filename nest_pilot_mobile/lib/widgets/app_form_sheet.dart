@@ -186,6 +186,10 @@ class AppSheetErrorBanner extends StatelessWidget {
 /// the selected [value] (or [hint]) with a chevron. Use for date/time pickers
 /// and any other field whose value comes from a dialog rather than the
 /// keyboard. Set [error] to outline the card in red after a failed submit.
+///
+/// When the card is narrow (e.g. two side by side on a small phone) it
+/// tightens its padding, icon and chevron, and scales the label and value down
+/// to fit on one line instead of wrapping or cutting them off.
 class AppPickerCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -204,13 +208,37 @@ class AppPickerCard extends StatelessWidget {
     this.error = false,
   });
 
+  /// Below this width the card switches to its compact layout.
+  static const double _compactWidth = 200;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _card(compact: constraints.maxWidth < _compactWidth),
+    );
+  }
+
+  Widget _card({required bool compact}) {
     final hasValue = value != null;
+    final valueText = Text(
+      hasValue ? value! : hint,
+      maxLines: 1,
+      overflow: compact ? null : TextOverflow.ellipsis,
+      softWrap: !compact,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
+        color: hasValue ? AppColors.textPrimary : AppColors.textHint,
+      ),
+    );
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 12 : 14,
+          vertical: 12,
+        ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(18),
@@ -228,49 +256,56 @@ class AppPickerCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: compact ? 32 : 40,
+              height: compact ? 32 : 40,
               decoration: const BoxDecoration(
                 color: AppColors.cardBackground,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 18, color: AppColors.primary),
+              child: Icon(
+                icon,
+                size: compact ? 16 : 18,
+                color: AppColors.primary,
+              ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: compact ? 8 : 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: AppColors.textMuted,
+                  // A label never wraps — a two-line label made the card
+                  // taller than its neighbour.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label.toUpperCase(),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    hasValue ? value! : hint,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
-                      color: hasValue
-                          ? AppColors.textPrimary
-                          : AppColors.textHint,
-                    ),
-                  ),
+                  compact
+                      ? FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: valueText,
+                        )
+                      : valueText,
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down_rounded,
               color: AppColors.textSecondary,
-              size: 22,
+              size: compact ? 18 : 22,
             ),
           ],
         ),

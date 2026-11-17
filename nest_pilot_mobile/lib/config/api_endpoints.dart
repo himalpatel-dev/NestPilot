@@ -66,6 +66,7 @@ class ApiEndpoints {
   // Vehicles
   static const String vehicles = '/api/vehicles';
   static const String allVehicles = '/api/vehicles/all';
+  static const String vehicleOwnerOptions = '/api/vehicles/owner-options';
   static String vehicleDetail(int id) => '/api/vehicles/$id';
 
   // Visitors
