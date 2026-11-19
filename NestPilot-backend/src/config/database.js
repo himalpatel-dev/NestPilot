@@ -1,13 +1,17 @@
+
+require('dotenv').config();
+
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'NestPilot',
-    process.env.DB_USER || 'postgres',
-    process.env.DB_PASS || 'P8L5fE123456_',
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASS,
     {
-        host: process.env.DB_HOST || 'localhost',
-        dialect: 'postgres',
-        logging: false, // set to console.log to see SQL queries
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT || 5432),
+        dialect: process.env.DB_DIALECT || 'postgres',
+        logging: false,
     }
 );
 

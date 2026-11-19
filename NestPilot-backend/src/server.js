@@ -4,6 +4,8 @@ const app = require('./app');
 // Import db after ensuring DB exists (though requiring it just creates the instance, doesn't connect yet)
 const db = require('./models');
 // Logger removed
+const path = require('path');
+const { execFileSync } = require('child_process');
 
 const PORT = process.env.PORT || 5005;
 
@@ -41,6 +43,28 @@ const ensureDatabaseExists = async () => {
     }
 };
 
+
+const runDatabaseSeeders = () => {
+    console.log('Running database seeders...');
+
+    const sequelizeCliPath = require.resolve('sequelize-cli');
+
+    execFileSync(
+        process.execPath,
+        [sequelizeCliPath, 'db:seed:all'],
+        {
+            cwd: path.resolve(__dirname, '..'),
+            env: {
+                ...process.env,
+                NODE_ENV: process.env.NODE_ENV || 'production'
+            },
+            stdio: 'inherit'
+        }
+    );
+
+    console.log('All database seeders completed successfully.');
+};
+
 const startServer = async () => {
     try {
         // Ensure critical secrets are present before starting
@@ -75,6 +99,10 @@ const startServer = async () => {
         db.sequelize.sync(syncOptions) // Auto-create/update tables from models
             .then(async () => {
                 console.log("Database synced successfully (Tables created/updated).");
+
+                // Run all Sequelize CLI seeders
+                runDatabaseSeeders();
+
                 await runModulePermissionSeeder();
 
                 const server = http.createServer(app);
