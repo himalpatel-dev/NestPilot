@@ -44,10 +44,22 @@ const ensureDatabaseExists = async () => {
 };
 
 
+
 const runDatabaseSeeders = () => {
     console.log('Running database seeders...');
 
-    const sequelizeCliPath = require.resolve('sequelize-cli');
+    const path = require('path');
+    const { execFileSync } = require('child_process');
+
+    // Locate the installed Sequelize CLI package
+    const sequelizeCliPackage = require.resolve('sequelize-cli/package.json');
+
+    // Get the actual CLI executable
+    const sequelizeCliPath = path.join(
+        path.dirname(sequelizeCliPackage),
+        'lib',
+        'sequelize'
+    );
 
     execFileSync(
         process.execPath,
@@ -64,6 +76,7 @@ const runDatabaseSeeders = () => {
 
     console.log('All database seeders completed successfully.');
 };
+
 
 const startServer = async () => {
     try {
@@ -86,10 +99,6 @@ const startServer = async () => {
         const http = require('http');
         const socketUtil = require('./utils/socket'); // Import socket util
 
-        // ...
-
-        const runModulePermissionSeeder = require('./seeders/modulePermissionSeeder');
-
         // sync({ alter: true }) never widens an existing Postgres enum, so any
         // value added to a model enum has to be applied to the type first.
         const ensureEnumValues = require('./utils/ensureEnumValues');
@@ -102,8 +111,6 @@ const startServer = async () => {
 
                 // Run all Sequelize CLI seeders
                 runDatabaseSeeders();
-
-                await runModulePermissionSeeder();
 
                 const server = http.createServer(app);
                 socketUtil.init(server); // Initialize Socket.IO
