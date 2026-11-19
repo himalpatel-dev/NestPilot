@@ -1,42 +1,54 @@
-# Auto-deploys the backend to the Linux server on every push to main that
-# touches NestPilot-backend/. Requires these GitHub repo secrets
-# (Settings → Secrets and variables → Actions):
-#   SERVER_HOST     - server IP or domain
-#   SERVER_USER     - SSH user (e.g. ubuntu, root)
-#   SERVER_SSH_KEY  - private key whose public half is in the server's
-#                     ~/.ssh/authorized_keys
-#   DEPLOY_PATH     - path of the cloned repo on the server (e.g. /var/www/NestPilot)
-name: Deploy Backend
+
+name: Deploy NestPilot Backend
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'NestPilot-backend/**'
-      - '.github/workflows/deploy-backend.yml'
-  # Allows manual deploys from the GitHub Actions tab
+    branches:
+      - main
+
   workflow_dispatch:
 
 jobs:
   deploy:
+    name: Deploy to VPS
     runs-on: ubuntu-latest
+
     steps:
-      - name: Pull and restart on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            # Load nvm (npm/pm2 aren't on PATH in non-interactive SSH sessions)
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            cd "${{ secrets.DEPLOY_PATH }}"
-            git fetch origin main
-            git reset --hard origin/main
-            cd NestPilot-backend
-            npm ci --omit=dev
-            pm2 restart nestpilot-api || pm2 start src/server.js --name nestpilot-api
-            pm2 save
+      - name: Deploy through SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" << 'EOF'
+
+              set -e
+
+              cd /var/www/nestpilot/NestPilot/NestPilot-backend
+
+              echo "Pulling latest code..."
+              git pull --ff-only origin main
+
+              echo "Installing dependencies..."
+              npm install --omit=dev
+
+              echo "Restarting API..."
+              pm2 restart nestpilot-api --update-env
+
+              pm2 save
+
+              echo "Deployment completed successfully!"
+
+          EOF
