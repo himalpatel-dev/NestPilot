@@ -9,10 +9,29 @@ const routes = require("./routes");
 const ApiError = require("./utils/ApiError");
 
 const app = express();
+const cors = require('cors');
+const allowedOrigins = [
+    'http://localhost:51368',
+    'http://localhost:3000',
+    'https://nestpilot.krimal.in'
+];
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests without an Origin header (Postman, server-to-server)
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS: ' + origin));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 204
+}));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(compression());
