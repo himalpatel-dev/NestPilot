@@ -45,36 +45,47 @@ const ensureDatabaseExists = async () => {
 
 
 
-const runDatabaseSeeders = () => {
-    console.log('Running database seeders...');
-
-    const path = require('path');
-    const { execFileSync } = require('child_process');
-
-    // Locate the installed Sequelize CLI package
-    const sequelizeCliPackage = require.resolve('sequelize-cli/package.json');
-
-    // Get the actual CLI executable
-    const sequelizeCliPath = path.join(
-        path.dirname(sequelizeCliPackage),
-        'lib',
-        'sequelize'
-    );
-
-    execFileSync(
-        process.execPath,
-        [sequelizeCliPath, 'db:seed:all'],
-        {
-            cwd: path.resolve(__dirname, '..'),
-            env: {
-                ...process.env,
-                NODE_ENV: process.env.NODE_ENV || 'production'
-            },
-            stdio: 'inherit'
+const runDatabaseSeeders = async () => {
+    try {
+        // If roles are already populated, seeders have already run.
+        const roleCount = await db.Role.count();
+        if (roleCount > 0) {
+            console.log('Database already seeded (roles present). Skipping db:seed:all.');
+            return;
         }
-    );
 
-    console.log('All database seeders completed successfully.');
+        console.log('Running database seeders...');
+
+        const path = require('path');
+        const { execFileSync } = require('child_process');
+
+        // Locate the installed Sequelize CLI package
+        const sequelizeCliPackage = require.resolve('sequelize-cli/package.json');
+
+        // Get the actual CLI executable
+        const sequelizeCliPath = path.join(
+            path.dirname(sequelizeCliPackage),
+            'lib',
+            'sequelize'
+        );
+
+        execFileSync(
+            process.execPath,
+            [sequelizeCliPath, 'db:seed:all'],
+            {
+                cwd: path.resolve(__dirname, '..'),
+                env: {
+                    ...process.env,
+                    NODE_ENV: process.env.NODE_ENV || 'production'
+                },
+                stdio: 'inherit'
+            }
+        );
+
+        console.log('All database seeders completed successfully.');
+    } catch (err) {
+        console.warn('Database seeders notice (non-fatal):', err.message);
+    }
 };
 
 
@@ -109,8 +120,8 @@ const startServer = async () => {
             .then(async () => {
                 console.log("Database synced successfully (Tables created/updated).");
 
-                // Run all Sequelize CLI seeders
-                runDatabaseSeeders();
+                // Run all Sequelize CLI seeders if needed
+                await runDatabaseSeeders();
 
                 const server = http.createServer(app);
                 socketUtil.init(server); // Initialize Socket.IO
